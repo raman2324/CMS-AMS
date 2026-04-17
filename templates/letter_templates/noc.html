@@ -1,0 +1,71 @@
+{% extends "letter_templates/base_letter.html" %}
+{% block content %}
+
+<div class="letterhead clearfix">
+  <div class="company-wrap">
+    <div class="company-name">{{ company.name }}</div>
+    <div class="company-meta">
+      {{ company.registered_address }}<br>
+      CIN: {{ company.cin }}{% if company.gstin %} &nbsp;|&nbsp; GSTIN: {{ company.gstin }}{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="date-line">Date: <strong>{{ issue_date }}</strong></div>
+
+{% if ref_number %}
+<div style="margin-bottom:10pt">Ref: <strong>{{ ref_number }}</strong></div>
+{% endif %}
+
+<div style="text-align:center; margin:18pt 0 14pt 0;">
+  <div style="font-size:14pt; font-weight:bold; text-decoration:underline; letter-spacing:1pt;">
+    NO OBJECTION CERTIFICATE
+  </div>
+</div>
+
+<div class="body-text">
+  <p>To Whomsoever It May Concern,</p>
+
+  <p>
+    This is to certify that <strong>{{ employee.name }}</strong> (Employee Code:
+    <strong>{{ employee.employee_code }}</strong>), currently employed with
+    <strong>{{ company.name }}</strong> as <strong>{{ employee.designation }}</strong>
+    in the <strong>{{ employee.department }}</strong> department since
+    <strong>{{ employee.joining_date }}</strong>, has approached us for a No Objection Certificate.
+  </p>
+
+  <p>
+    <strong>{{ company.name }}</strong> hereby confirms that we have <strong>no objection</strong>
+    to {{ employee.name }} proceeding for the following purpose:
+  </p>
+
+  <p style="padding: 10pt 20pt; border-left: 3pt solid #333; margin: 10pt 0;">
+    <strong>{{ purpose }}</strong>
+  </p>
+
+  {% if valid_until %}
+  <p>
+    This certificate is valid until <strong>{{ valid_until }}</strong>.
+  </p>
+  {% endif %}
+
+  <p>
+    This certificate is issued at the request of the employee and is for the stated purpose only.
+    It does not imply any guarantee, endorsement, or financial obligation on the part of
+    {{ company.name }}.
+  </p>
+</div>
+
+<div class="signature-block">
+  For <strong>{{ company.name }}</strong>
+  <div class="sign-line"></div>
+  <div class="sign-name">{{ company.signatory_name }}</div>
+  <div class="sign-desig">{{ company.signatory_designation }}</div>
+  <div class="sign-company">{{ company.name }}</div>
+</div>
+
+<div class="doc-footer">
+  This is a computer-generated document. | Document ID: <em>[auto]</em>
+</div>
+
+{% endblock %}

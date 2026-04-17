@@ -1,0 +1,103 @@
+{% extends "letter_templates/base_letter.html" %}
+{% block content %}
+
+<div class="letterhead clearfix">
+  <div class="company-wrap">
+    <div class="company-name">{{ company.name }}</div>
+    <div class="company-meta">
+      {{ company.registered_address }}<br>
+      CIN: {{ company.cin }}{% if company.gstin %} &nbsp;|&nbsp; GSTIN: {{ company.gstin }}{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="date-line">Date: <strong>{{ issue_date }}</strong></div>
+
+{% if ref_number %}
+<div style="margin-bottom:10pt">Ref: <strong>{{ ref_number }}</strong></div>
+{% endif %}
+
+<div class="addressee">
+  <div class="to-label">To,</div>
+  <strong>{{ employee.name }}</strong><br>
+  {{ employee.designation }}, {{ employee.department }}<br>
+  Employee Code: {{ employee.employee_code }}
+</div>
+
+<div class="subject-line">
+  <span class="subject-label">Sub:</span>
+  Salary Certificate
+</div>
+
+<div class="salutation">To Whomsoever It May Concern,</div>
+
+<div class="body-text">
+  <p>
+    This is to certify that <strong>{{ employee.name }}</strong> (Employee Code:
+    <strong>{{ employee.employee_code }}</strong>) is employed with
+    <strong>{{ company.name }}</strong> as <strong>{{ employee.designation }}</strong>
+    in the <strong>{{ employee.department }}</strong> department since
+    <strong>{{ employee.joining_date }}</strong>.
+  </p>
+
+  <p>
+    The details of their remuneration, effective from <strong>{{ effective_date }}</strong>,
+    are as under:
+  </p>
+
+  <table class="salary-table">
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th style="text-align:right">Amount (INR per month)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if basic %}
+      <tr>
+        <td>Basic Salary</td>
+        <td style="text-align:right">{{ basic }}</td>
+      </tr>
+      {% endif %}
+      {% if hra %}
+      <tr>
+        <td>House Rent Allowance (HRA)</td>
+        <td style="text-align:right">{{ hra }}</td>
+      </tr>
+      {% endif %}
+      <tr class="total-row">
+        <td><strong>Gross Monthly Salary</strong></td>
+        <td style="text-align:right"><strong>{{ salary_monthly }}</strong></td>
+      </tr>
+      <tr class="total-row">
+        <td><strong>Annual CTC</strong></td>
+        <td style="text-align:right"><strong>{{ salary_annual }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    The above figures are gross amounts before statutory deductions (PF, PT, TDS etc.),
+    payable as per the applicable laws.
+  </p>
+
+  <p>
+    This certificate is issued at the request of the employee for <em>personal use only</em>
+    and should not be considered a guarantee of future employment or continued engagement.
+  </p>
+</div>
+
+<div class="signature-block">
+  For <strong>{{ company.name }}</strong>
+  <div class="sign-line"></div>
+  <div class="sign-name">{{ company.signatory_name }}</div>
+  <div class="sign-desig">{{ company.signatory_designation }}</div>
+  <div class="sign-company">{{ company.name }}</div>
+</div>
+
+<div class="doc-footer">
+  This is a computer-generated document. | Document ID: <em>[auto]</em> |
+  Confidential — issued for personal use only.
+</div>
+
+{% endblock %}

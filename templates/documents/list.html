@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Documents — HR Docs{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-files me-2"></i>Documents</h4>
+  {% if user.can_generate %}
+  <a href="{% url 'documents:generate' %}" class="btn btn-dark btn-sm">
+    <i class="bi bi-plus-circle me-1"></i>Generate New
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<form method="get" class="mb-4">
+  <div class="row g-2 align-items-end">
+    <!-- Search -->
+    <div class="col-lg-4 col-md-6">
+      <label class="form-label small fw-semibold mb-1">Search</label>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="q" value="{{ search_query }}" class="form-control"
+               placeholder="Employee name, code, or company…">
+      </div>
+    </div>
+    <!-- Template Type -->
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Template Type</label>
+      <select name="template" class="form-select form-select-sm">
+        <option value="">All Types</option>
+        {% for val, label in template_choices %}
+        <option value="{{ val }}" {% if template_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <!-- Status -->
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <!-- Actions -->
+    <div class="col-auto">
+      <button type="submit" class="btn btn-outline-dark btn-sm">
+        <i class="bi bi-funnel me-1"></i>Filter
+      </button>
+      <a href="{% url 'documents:list' %}" class="btn btn-link btn-sm text-muted">Clear</a>
+    </div>
+  </div>
+  {% if search_query %}
+  <div class="mt-2 small text-muted">
+    Showing results for <strong>"{{ search_query }}"</strong> — {{ documents|length }} found
+  </div>
+  {% endif %}
+</form>
+
+{% if documents %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>Recipient</th>
+          <th>Template</th>
+          <th>Company</th>
+          <th>Generated</th>
+          <th>By</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in documents %}
+        <tr>
+          <td>
+            <strong>{{ doc.recipient.name }}</strong>
+            <div class="small text-muted">{{ doc.recipient.employee_code }} · {{ doc.recipient.department }}</div>
+          </td>
+          <td>{{ doc.template.get_name_display }} <span class="text-muted small">v{{ doc.template.version }}</span></td>
+          <td>{{ doc.company.short_name }}</td>
+          <td>
+            <div>{{ doc.generated_at|date:"d M Y" }}</div>
+            <div class="small text-muted">{{ doc.generated_at|time:"H:i" }}</div>
+          </td>
+          <td class="small text-muted">{{ doc.generated_by.get_full_name|default:doc.generated_by.username }}</td>
+          <td>
+            {% if doc.is_void %}
+            <span class="badge bg-danger">Void</span>
+            {% else %}
+            <span class="badge bg-success">Generated</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{% url 'documents:detail' doc.id %}" class="btn btn-outline-secondary btn-sm me-1">
+              <i class="bi bi-eye"></i>
+            </a>
+            {% if not doc.is_void %}
+            <a href="{% url 'documents:download' doc.id %}" class="btn btn-dark btn-sm">
+              <i class="bi bi-download"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-inbox" style="font-size:3rem"></i>
+  <p class="mt-3">No documents found.
+    {% if user.can_generate %}
+    <a href="{% url 'documents:generate' %}">Generate the first one.</a>
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+{% endblock %}

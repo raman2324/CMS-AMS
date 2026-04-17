@@ -1,0 +1,96 @@
+{% extends "letter_templates/base_letter.html" %}
+{% block content %}
+
+<div class="letterhead clearfix">
+  <div class="company-wrap">
+    <div class="company-name">{{ company.name }}</div>
+    <div class="company-meta">
+      {{ company.registered_address }}<br>
+      CIN: {{ company.cin }}{% if company.gstin %} &nbsp;|&nbsp; GSTIN: {{ company.gstin }}{% endif %}
+    </div>
+  </div>
+  {% if company.logo_url %}
+  <div class="logo-wrap"><img src="{{ company.logo_url }}" alt="{{ company.name }} logo"></div>
+  {% endif %}
+</div>
+
+<div class="date-line">Date: <strong>{{ issue_date }}</strong></div>
+
+{% if ref_number %}
+<div style="margin-bottom:10pt">Ref: <strong>{{ ref_number }}</strong></div>
+{% endif %}
+
+<div class="addressee">
+  <div class="to-label">To,</div>
+  <strong>{{ employee.name }}</strong>
+</div>
+
+<div class="subject-line">
+  <span class="subject-label">Sub:</span>
+  Offer of Employment — {{ employee.designation }}
+</div>
+
+<div class="salutation">Dear <strong>{{ employee.name }}</strong>,</div>
+
+<div class="body-text">
+  <p>
+    We are pleased to extend this offer of employment to you for the position of
+    <strong>{{ employee.designation }}</strong> in the <strong>{{ employee.department }}</strong>
+    department at <strong>{{ company.name }}</strong>.
+  </p>
+
+  <p>
+    Your appointment will be effective from <strong>{{ start_date }}</strong>,
+    subject to successful completion of documentation and background verification.
+  </p>
+
+  <p>
+    <strong>Compensation:</strong> Your annual Cost to Company (CTC) will be
+    <strong>INR {{ ctc_annual }}</strong> (Rupees {{ ctc_annual }} only), subject to applicable
+    tax deductions as per the prevailing income tax laws.
+  </p>
+
+  {% if probation_months %}
+  <p>
+    <strong>Probation Period:</strong> You will be on probation for
+    <strong>{{ probation_months }} month(s)</strong> from your date of joining.
+    Your employment will be confirmed upon satisfactory completion of the probation period.
+  </p>
+  {% endif %}
+
+  {% if reporting_to %}
+  <p>
+    <strong>Reporting:</strong> You will report to <strong>{{ reporting_to }}</strong>.
+  </p>
+  {% endif %}
+
+  {% if work_location %}
+  <p>
+    <strong>Work Location:</strong> {{ work_location }}. You may be required to work from
+    other locations or travel as per business requirements.
+  </p>
+  {% endif %}
+
+  <p>
+    This offer is contingent upon verification of your credentials, completion of joining
+    formalities, and execution of the Employee Agreement. Please sign and return a copy of
+    this letter as acknowledgement of your acceptance.
+  </p>
+
+  <p>We look forward to welcoming you to the team.</p>
+</div>
+
+<div class="signature-block">
+  Yours sincerely,
+  <div class="sign-line"></div>
+  <div class="sign-name">{{ company.signatory_name }}</div>
+  <div class="sign-desig">{{ company.signatory_designation }}</div>
+  <div class="sign-company">{{ company.name }}</div>
+</div>
+
+<div class="doc-footer">
+  This is a computer-generated document. | Document ID: <em>[auto]</em> |
+  Confidential — for the addressee only.
+</div>
+
+{% endblock %}
