@@ -104,10 +104,3 @@ templates/
 static/css/     App styles
 ```
 
-## Week 1 TODO (before going to staging)
-
-- [ ] Update company details in Django admin (real addresses, CINs, signatory info)
-- [ ] Upload company logos via admin → Company → logo field
-- [ ] File SSO app request with IT (Google Workspace OAuth or Microsoft Entra)
-- [ ] Schedule legal/HR kickoff meeting (retention policy, signature requirements)
-- [ ] Prototype the salary letter template against a real letter for WeasyPrint fidelity
