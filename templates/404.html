@@ -1,0 +1,257 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Page Not Found · HR Docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #0f0f13;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Ambient blobs ── */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.18;
+      pointer-events: none;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+    .blob-1 { width: 520px; height: 520px; background: #7c3aed; top: -140px; left: -120px; animation-delay: 0s; }
+    .blob-2 { width: 380px; height: 380px; background: #2563eb; bottom: -80px; right: -60px; animation-delay: -4s; }
+    .blob-3 { width: 260px; height: 260px; background: #db2777; top: 40%; left: 55%; animation-delay: -8s; }
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(30px, 20px) scale(1.06); }
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      z-index: 10;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 28px;
+      padding: 3.5rem 3rem 3rem;
+      max-width: 540px;
+      width: calc(100% - 2rem);
+      text-align: center;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    /* ── Brand ── */
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 2.2rem;
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    .brand-name { font-size: 1rem; font-weight: 700; color: #e5e7eb; letter-spacing: -0.2px; }
+
+    /* ── 404 number ── */
+    .error-number {
+      font-size: clamp(5rem, 16vw, 8rem);
+      font-weight: 900;
+      letter-spacing: -6px;
+      line-height: 1;
+      background: linear-gradient(135deg, #a78bfa 0%, #818cf8 40%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+      user-select: none;
+    }
+
+    /* ── Headline ── */
+    .headline {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #f3f4f6;
+      margin-bottom: 0.35rem;
+    }
+    .subline {
+      font-size: 0.88rem;
+      color: #6b7280;
+      margin-bottom: 1.6rem;
+    }
+
+    /* ── Reason box ── */
+    .reason-box {
+      background: rgba(124, 58, 237, 0.12);
+      border: 1px solid rgba(124, 58, 237, 0.30);
+      border-radius: 12px;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 1.6rem;
+      text-align: left;
+      display: flex;
+      gap: 0.7rem;
+      align-items: flex-start;
+    }
+    .reason-box .icon {
+      font-size: 1.1rem;
+      color: #a78bfa;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+    .reason-box .text { font-size: 0.875rem; color: #d1d5db; line-height: 1.5; }
+    .reason-box .text strong { color: #e9d5ff; font-weight: 600; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+      margin: 1.6rem 0 1.4rem;
+    }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 0.7rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary-404 {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 0.65rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.15s;
+      box-shadow: 0 4px 18px rgba(124,58,237,0.35);
+    }
+    .btn-primary-404:hover { opacity: 0.88; transform: translateY(-1px); color: #fff; }
+    .btn-ghost-404 {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      background: rgba(255,255,255,0.06);
+      color: #9ca3af;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 0.65rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, transform 0.15s;
+    }
+    .btn-ghost-404:hover { background: rgba(255,255,255,0.11); color: #e5e7eb; transform: translateY(-1px); }
+
+    /* ── Footer note ── */
+    .footer-note {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: #374151;
+      display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+    }
+
+    /* ── Floating dots decoration ── */
+    .dots {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .dot {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      animation: float 8s ease-in-out infinite;
+    }
+    .dot:nth-child(1) { width:8px; height:8px; top:15%; left:10%; animation-delay:0s; }
+    .dot:nth-child(2) { width:5px; height:5px; top:70%; left:8%; animation-delay:-2s; }
+    .dot:nth-child(3) { width:10px; height:10px; top:25%; right:12%; animation-delay:-4s; }
+    .dot:nth-child(4) { width:6px; height:6px; top:80%; right:10%; animation-delay:-6s; }
+    .dot:nth-child(5) { width:4px; height:4px; top:50%; left:5%; animation-delay:-1s; }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-14px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ambient blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<!-- Floating dots -->
+<div class="dots">
+  <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  <div class="dot"></div><div class="dot"></div>
+</div>
+
+<div class="card">
+
+  <!-- Brand -->
+  <a href="/" class="brand">
+    <div class="brand-icon"><i class="bi bi-file-earmark-text-fill" style="color:#1a1a1a"></i></div>
+    <span class="brand-name">HR Docs</span>
+  </a>
+
+  <!-- 404 -->
+  <div class="error-number">404</div>
+  <div class="headline">Page Not Found</div>
+  <div class="subline">We couldn't find what you were looking for.</div>
+
+  <!-- Reason -->
+  <div class="reason-box">
+    <span class="icon"><i class="bi bi-exclamation-circle-fill"></i></span>
+    <div class="text">
+      {% if reason %}
+        <strong>Reason:</strong> {{ reason }}
+      {% else %}
+        <strong>Reason:</strong> This page doesn't exist, the document may have been deleted,
+        or you may not have permission to view it.
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Audit note -->
+  <p style="font-size:0.8rem;color:#6b7280;line-height:1.5;">
+    If you arrived here from the Audit Log, the file may have been removed after
+    the event was recorded — audit entries are kept permanently even after deletion.
+  </p>
+
+  <div class="divider"></div>
+
+  <!-- Buttons -->
+  <div class="btn-row">
+    <a href="/" class="btn-primary-404">
+      <i class="bi bi-house-door-fill"></i> Go to Home
+    </a>
+    <a href="javascript:history.back()" class="btn-ghost-404">
+      <i class="bi bi-arrow-left"></i> Go Back
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-note">
+    <i class="bi bi-shield-check"></i>
+    All audit records are preserved permanently.
+  </div>
+
+</div>
+
+</body>
+</html>

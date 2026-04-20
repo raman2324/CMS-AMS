@@ -3,16 +3,25 @@ Views for the HR Document Generation Platform.
 
 Routes:
   GET  /documents/                  DocumentListView
+  GET  /documents/audit/            AuditLogView (Finance Head + Viewer only)
   GET  /documents/generate/         GenerateDocumentView
   POST /documents/generate/         GenerateDocumentView (generate PDF)
   GET  /documents/<uuid>/           DocumentDetailView
-  POST /documents/<uuid>/           DocumentDetailView (void action)
+  POST /documents/<uuid>/           DocumentDetailView (void / lock / unlock)
+  POST /documents/<uuid>/lock/      document_lock
+  POST /documents/<uuid>/unlock/    document_unlock
   GET  /documents/<uuid>/download/  document_download
 
 HTMX endpoints (return HTML fragments):
   GET  /documents/api/employees/              employee_search
   GET  /documents/api/template-fields/<uuid>/ template_fields
   POST /documents/api/preview/               preview_letter
+
+Access control rules:
+  - Viewer:       list (metadata only, no download button), detail (no download/void/lock)
+  - Issuer:       list (own documents only), detail (own docs only — 403 otherwise)
+  - Finance Head: list (all documents), detail (all docs, lock/unlock, void any)
+  - Admin:        generate documents, manage templates — NO document read access
 """
 import uuid as _uuid_mod
 from datetime import date
@@ -20,12 +29,15 @@ from datetime import date
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views import View
 
+from accounts.models import User
 from documents.forms import GenerateDocumentForm, VoidDocumentForm
 from documents.models import (
     AuditEvent, Company, Document, Employee,
@@ -33,8 +45,54 @@ from documents.models import (
 )
 from documents.services import (
     build_letter_context, download_document, generate_document,
-    render_letter_html, void_document,
+    lock_document, render_letter_html, unlock_document, void_document,
 )
+
+
+# ---------------------------------------------------------------------------
+# Access control helpers
+# ---------------------------------------------------------------------------
+
+def _assert_document_access(request, document):
+    """
+    Raise PermissionDenied if the requesting user cannot access this document.
+    Finance Head sees everything. Issuers see only their own documents.
+    Admins have no document access at all.
+    Viewers can see detail/metadata but not download/void — callers handle that.
+
+    Logs document.access_denied audit event before raising.
+    """
+    user = request.user
+
+    # Admin (IT/DevOps) role has no document access
+    if user.role == User.ROLE_ADMIN:
+        AuditEvent.objects.create(
+            event_type="document.access_denied",
+            actor=user,
+            target_type="Document",
+            target_id=str(document.id),
+            metadata={"reason": "admin_role_no_document_access"},
+        )
+        raise PermissionDenied
+
+    # Finance Head sees all — no further check needed
+    if user.sees_all_documents():
+        return
+
+    # Viewer sees all document metadata (download/void restricted separately)
+    if user.role == User.ROLE_VIEWER:
+        return
+
+    # Issuer: only their own documents
+    if user.role == User.ROLE_ISSUER and document.generated_by != user:
+        AuditEvent.objects.create(
+            event_type="document.access_denied",
+            actor=user,
+            target_type="Document",
+            target_id=str(document.id),
+            metadata={"reason": "not_owner", "owner": str(document.generated_by_id)},
+        )
+        raise PermissionDenied
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +119,6 @@ def employee_search(request):
         qs = qs.filter(company_id=company_id)
 
     # Issuers scoped to their own department (blank = all departments)
-    from accounts.models import User
     if request.user.role == User.ROLE_ISSUER and request.user.department:
         qs = qs.filter(department=request.user.department)
 
@@ -240,30 +297,30 @@ class GenerateDocumentView(LoginRequiredMixin, View):
             messages.error(request, f"Document generation failed: {exc}")
             return redirect("documents:generate")
 
-        # Stream PDF as direct download
-        employee_name = document.recipient.name.replace(" ", "_")
-        tmpl_name = document.template.get_name_display().replace(" ", "_")
-        date_str = document.generated_at.strftime("%Y%m%d")
-        filename = f"{tmpl_name}_{employee_name}_{date_str}.pdf"
-
-        response = HttpResponse(pdf_bytes, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
+        messages.success(
+            request,
+            f"Document generated successfully for {document.recipient.name}. "
+            "You can download it from the Documents list."
+        )
+        return redirect("documents:list")
 
 
 class DocumentListView(LoginRequiredMixin, View):
     template_name = "documents/list.html"
 
     def get(self, request):
-        from accounts.models import User
+        # Admin (IT/DevOps) has no document access
+        if request.user.role == User.ROLE_ADMIN:
+            messages.error(request, "Admin accounts do not have access to documents.")
+            return redirect("admin:index")
 
         qs = Document.objects.select_related(
             "template", "recipient", "recipient__company", "generated_by"
         )
 
-        # Department scoping for Issuers
-        if request.user.role == User.ROLE_ISSUER and request.user.department:
-            qs = qs.filter(recipient__department=request.user.department)
+        # Finance Head sees everything. Issuers see only their own documents.
+        if request.user.role == User.ROLE_ISSUER:
+            qs = qs.filter(generated_by=request.user)
 
         # Query filters
         search_query = request.GET.get("q", "").strip()
@@ -283,8 +340,12 @@ class DocumentListView(LoginRequiredMixin, View):
         if template_filter:
             qs = qs.filter(template__name=template_filter)
 
+        paginator = Paginator(qs, 50)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
         return render(request, self.template_name, {
-            "documents": qs[:200],
+            "documents": page_obj,
+            "page_obj": page_obj,
             "search_query": search_query,
             "status_filter": status_filter,
             "template_filter": template_filter,
@@ -296,8 +357,23 @@ class DocumentListView(LoginRequiredMixin, View):
 class DocumentDetailView(LoginRequiredMixin, View):
     template_name = "documents/detail.html"
 
-    def get(self, request, pk):
+    def _get_document_or_403(self, request, pk):
         document = get_object_or_404(Document, id=pk)
+        _assert_document_access(request, document)
+        return document
+
+    def get(self, request, pk):
+        document = self._get_document_or_403(request, pk)
+
+        # Log every view (Finance Head can see who looked at what)
+        AuditEvent.objects.create(
+            event_type="document.viewed",
+            actor=request.user,
+            target_type="Document",
+            target_id=str(pk),
+            metadata={"role": request.user.role},
+        )
+
         audit_events = AuditEvent.objects.filter(
             target_type="Document", target_id=str(pk)
         ).order_by("occurred_at")
@@ -309,10 +385,32 @@ class DocumentDetailView(LoginRequiredMixin, View):
         })
 
     def post(self, request, pk):
-        """Void a document."""
-        document = get_object_or_404(Document, id=pk)
-        void_form = VoidDocumentForm(request.POST)
+        """Handle void, lock, and unlock actions."""
+        document = self._get_document_or_403(request, pk)
+        action = request.POST.get("action", "void")
 
+        if action == "lock":
+            return self._handle_lock(request, document)
+        elif action == "unlock":
+            return self._handle_unlock(request, document)
+        else:
+            return self._handle_void(request, document, pk)
+
+    def _handle_void(self, request, document, pk):
+        # Viewers cannot void
+        if request.user.role == User.ROLE_VIEWER:
+            raise PermissionDenied
+
+        # Locked documents cannot be voided (even by Finance Head)
+        if document.is_locked:
+            messages.error(request, "Cannot void a locked document. Unlock it first.")
+            return redirect("documents:detail", pk=pk)
+
+        # Issuers can only void their own documents
+        if request.user.role == User.ROLE_ISSUER and document.generated_by != request.user:
+            raise PermissionDenied
+
+        void_form = VoidDocumentForm(request.POST)
         if not void_form.is_valid():
             audit_events = AuditEvent.objects.filter(
                 target_type="Document", target_id=str(pk)
@@ -327,11 +425,47 @@ class DocumentDetailView(LoginRequiredMixin, View):
         messages.success(request, "Document has been voided. The PDF file is retained for compliance.")
         return redirect("documents:detail", pk=pk)
 
+    def _handle_lock(self, request, document):
+        if not request.user.can_lock_document():
+            raise PermissionDenied
+
+        reason = request.POST.get("lock_reason", "").strip()
+        if len(reason) < 10:
+            messages.error(request, "Lock reason must be at least 10 characters.")
+            return redirect("documents:detail", pk=document.id)
+
+        lock_document(str(document.id), request.user, reason)
+        messages.success(request, "Document locked. Downloads and voids are now blocked.")
+        return redirect("documents:detail", pk=document.id)
+
+    def _handle_unlock(self, request, document):
+        if not request.user.can_lock_document():
+            raise PermissionDenied
+
+        reason = request.POST.get("unlock_reason", "").strip()
+        if not reason:
+            messages.error(request, "A reason is required to unlock a document.")
+            return redirect("documents:detail", pk=document.id)
+
+        unlock_document(str(document.id), request.user, reason)
+        messages.success(request, "Document unlocked. Normal access restored.")
+        return redirect("documents:detail", pk=document.id)
+
 
 @login_required
 def document_download(request, pk):
     """Re-download a previously generated document."""
     document = get_object_or_404(Document, id=pk)
+    _assert_document_access(request, document)
+
+    # Viewers cannot download PDFs
+    if request.user.role == User.ROLE_VIEWER:
+        raise PermissionDenied
+
+    # Locked documents block all downloads (Finance Head can still download — they own the lock)
+    if document.is_locked and not request.user.can_lock_document():
+        messages.error(request, "This document is locked and cannot be downloaded.")
+        return redirect("documents:detail", pk=pk)
 
     try:
         pdf_bytes = download_document(str(pk), request.user)
@@ -347,3 +481,54 @@ def document_download(request, pk):
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+# ---------------------------------------------------------------------------
+# Audit Log
+# ---------------------------------------------------------------------------
+
+class AuditLogView(LoginRequiredMixin, View):
+    """
+    Dedicated audit log page — Finance Head and Viewer only.
+    Issuers and Admins get 403 (they operate the tool, they don't audit it).
+    """
+    template_name = "documents/audit.html"
+
+    def get(self, request):
+        if request.user.role not in (User.ROLE_FINANCE_HEAD, User.ROLE_VIEWER):
+            raise PermissionDenied
+
+        qs = AuditEvent.objects.select_related("actor").order_by("-occurred_at")
+
+        # Filters
+        event_type_filter = request.GET.get("event_type", "").strip()
+        if event_type_filter:
+            qs = qs.filter(event_type=event_type_filter)
+
+        actor_filter = request.GET.get("actor", "").strip()
+        if actor_filter:
+            qs = qs.filter(
+                Q(actor__username__icontains=actor_filter) |
+                Q(actor__first_name__icontains=actor_filter) |
+                Q(actor__last_name__icontains=actor_filter)
+            )
+
+        date_from = request.GET.get("date_from", "").strip()
+        if date_from:
+            qs = qs.filter(occurred_at__date__gte=date_from)
+
+        date_to = request.GET.get("date_to", "").strip()
+        if date_to:
+            qs = qs.filter(occurred_at__date__lte=date_to)
+
+        paginator = Paginator(qs, 50)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+        return render(request, self.template_name, {
+            "page_obj": page_obj,
+            "event_types": AuditEvent.EVENT_TYPES,
+            "event_type_filter": event_type_filter,
+            "actor_filter": actor_filter,
+            "date_from": date_from,
+            "date_to": date_to,
+        })

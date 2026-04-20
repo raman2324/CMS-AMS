@@ -2,6 +2,8 @@
 Django admin customizations for HR Document Platform.
 
 Key design decisions:
+  - DocumentAdmin restricted to Finance Head role only (IT admins cannot see salary data)
+  - AuditEventAdmin restricted to Finance Head role only
   - DocumentAdmin.has_add_permission = False  → Documents only created via app
   - AuditEventAdmin is fully read-only         → Immutable by design
   - LetterTemplateAdmin forces version bump    → Active templates are read-only
@@ -13,6 +15,7 @@ from django.http import HttpResponse
 from django.utils.html import format_html
 from django.utils import timezone
 
+from accounts.models import User
 from documents.models import Company, Employee, LetterTemplate, Document, AuditEvent
 
 
@@ -90,24 +93,33 @@ class LetterTemplateAdmin(admin.ModelAdmin):
 
 
 # ---------------------------------------------------------------------------
-# Document
+# Document  (Finance Head only — IT admin cannot see salary letters)
 # ---------------------------------------------------------------------------
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
     list_display = [
-        "recipient_name", "template_name", "company", "status_badge",
+        "recipient_name", "template_name", "company", "status_badge", "lock_badge",
         "generated_by", "generated_at", "hash_short", "download_count",
     ]
-    list_filter = ["status", "company", "template__name", "generated_at"]
+    list_filter = ["status", "is_locked", "company", "template__name", "generated_at"]
     search_fields = ["recipient__name", "recipient__employee_code", "content_hash", "id"]
     readonly_fields = [
         "id", "company", "template", "recipient", "variables_snapshot",
         "s3_key", "content_hash", "generated_by", "generated_at",
-        "status", "download_count",
+        "status", "download_count", "is_locked", "locked_at", "locked_by", "locked_reason",
     ]
     list_select_related = ["recipient", "template", "company", "generated_by"]
     date_hierarchy = "generated_at"
+
+    def has_add_permission(self, request):
+        return False  # Documents are only created via the app workflow
+
+    def has_change_permission(self, request, obj=None):
+        return False  # Documents are immutable
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # S3 Object Lock — never delete documents
 
     def recipient_name(self, obj):
         return obj.recipient.name
@@ -125,19 +137,21 @@ class DocumentAdmin(admin.ModelAdmin):
         )
     status_badge.short_description = "Status"
 
+    def lock_badge(self, obj):
+        if obj.is_locked:
+            return format_html(
+                '<span style="background:#fd7e14;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.8em">Locked</span>'
+            )
+        return "—"
+    lock_badge.short_description = "Lock"
+
     def hash_short(self, obj):
         return obj.content_hash[:12] + "…" if obj.content_hash else "—"
     hash_short.short_description = "SHA-256 (12 chars)"
 
-    def has_add_permission(self, request):
-        return False  # Documents are only created via the app workflow
-
-    def has_delete_permission(self, request, obj=None):
-        return False  # S3 Object Lock — never delete documents
-
 
 # ---------------------------------------------------------------------------
-# AuditEvent  (fully read-only)
+# AuditEvent  (Finance Head only — fully read-only)
 # ---------------------------------------------------------------------------
 
 @admin.register(AuditEvent)

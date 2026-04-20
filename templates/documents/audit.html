@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log — HR Docs{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Upload event row — subtle indigo tint */
+  tr.upload-row {
+    background: linear-gradient(90deg, #f0eeff 0%, #ffffff 60%);
+  }
+  tr.upload-row:hover {
+    background: linear-gradient(90deg, #e4deff 0%, #f5f5ff 60%) !important;
+  }
+  .badge-upload {
+    background: linear-gradient(135deg, #6f42c1, #8b5cf6);
+    color: #fff;
+    border: none;
+  }
+  .badge-upload-dl {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #fff;
+    border: none;
+  }
+  .badge-upload-del {
+    background: linear-gradient(135deg, #dc2626, #9333ea);
+    color: #fff;
+    border: none;
+  }
+  .source-pill-upload {
+    font-size: 0.68rem;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    color: #5b21b6;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .source-pill-doc {
+    font-size: 0.68rem;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: #e9f7ef;
+    color: #155724;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .doctype-chip {
+    font-size: 0.68rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #ede9fe;
+    color: #6d28d9;
+    font-weight: 500;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-bold mb-0"><i class="bi bi-shield-check me-2 text-success"></i>Audit Log</h4>
+  <span class="text-muted small">Tamper-proof record of all document activity</span>
+</div>
+
+<!-- Legend -->
+<div class="d-flex gap-3 mb-3 flex-wrap">
+  <span class="d-flex align-items-center gap-1 small text-muted">
+    <span class="source-pill-doc">HR Docs</span> Generated letters &amp; templates
+  </span>
+  <span class="d-flex align-items-center gap-1 small text-muted">
+    <span class="source-pill-upload">Other Docs</span> Uploaded receipts, slips &amp; files
+  </span>
+</div>
+
+<!-- Filters -->
+<form method="get" class="mb-4">
+  <div class="row g-2 align-items-end">
+    <div class="col-lg-3 col-md-6">
+      <label class="form-label small fw-semibold mb-1">Event Type</label>
+      <select name="event_type" class="form-select form-select-sm">
+        <option value="">All events</option>
+        <optgroup label="── HR Documents ──">
+          {% for value, label in event_types %}
+          {% if not value|slice:":7" == "upload." %}
+          <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endif %}
+          {% endfor %}
+        </optgroup>
+        <optgroup label="── Other Documents ──">
+          {% for value, label in event_types %}
+          {% if value|slice:":7" == "upload." %}
+          <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endif %}
+          {% endfor %}
+        </optgroup>
+      </select>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <label class="form-label small fw-semibold mb-1">Actor</label>
+      <input type="text" name="actor" value="{{ actor_filter }}" class="form-control form-control-sm"
+             placeholder="Username or name…">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">From</label>
+      <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <label class="form-label small fw-semibold mb-1">To</label>
+      <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-dark btn-sm">Filter</button>
+      {% if event_type_filter or actor_filter or date_from or date_to %}
+      <a href="{% url 'documents:audit' %}" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+{% if page_obj.object_list %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+    <span class="small text-muted fw-semibold">
+      {{ page_obj.paginator.count }} event{{ page_obj.paginator.count|pluralize }}
+      &nbsp;·&nbsp; Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-sm mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3" style="width:5%">Source</th>
+          <th style="width:20%">Event</th>
+          <th style="width:11%">Actor</th>
+          <th style="width:14%">Target</th>
+          <th style="width:10%">Doc Type</th>
+          <th style="width:26%">Metadata</th>
+          <th style="width:14%">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in page_obj %}
+        {% with is_upload=event.event_type|slice:":7" %}
+        <tr {% if is_upload == "upload." %}class="upload-row"{% endif %}>
+
+          <!-- Source pill -->
+          <td class="ps-3">
+            {% if is_upload == "upload." %}
+            <span class="source-pill-upload" title="Other Documents"><i class="bi bi-folder2-open"></i></span>
+            {% else %}
+            <span class="source-pill-doc" title="HR Documents"><i class="bi bi-file-earmark-text"></i></span>
+            {% endif %}
+          </td>
+
+          <!-- Event badge -->
+          <td>
+            {% if is_upload == "upload." %}
+              {% if event.event_type == "upload.created" %}
+              <span class="badge badge-upload">{{ event.get_event_type_display }}</span>
+              {% elif event.event_type == "upload.viewed" %}
+              <span class="badge" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;">{{ event.get_event_type_display }}</span>
+              {% elif event.event_type == "upload.downloaded" %}
+              <span class="badge badge-upload-dl">{{ event.get_event_type_display }}</span>
+              {% else %}
+              <span class="badge badge-upload-del">{{ event.get_event_type_display }}</span>
+              {% endif %}
+            {% elif "failed" in event.event_type or "mismatch" in event.event_type %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">{{ event.get_event_type_display }}</span>
+            {% elif "locked" in event.event_type %}
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ event.get_event_type_display }}</span>
+            {% elif "voided" in event.event_type %}
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ event.get_event_type_display }}</span>
+            {% elif "flag" in event.event_type %}
+            <span class="badge bg-orange-subtle text-danger border border-warning-subtle">{{ event.get_event_type_display }}</span>
+            {% else %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle">{{ event.get_event_type_display }}</span>
+            {% endif %}
+          </td>
+
+          <!-- Actor -->
+          <td class="text-muted small">
+            {% if event.actor %}{{ event.actor.username }}{% else %}<em>system</em>{% endif %}
+          </td>
+
+          <!-- Target — links to the right detail page -->
+          <td class="small">
+            {% if is_upload == "upload." and event.target_id %}
+            <a href="{% url 'uploads:detail' event.target_id %}" class="text-decoration-none text-purple">
+              <i class="bi bi-folder2-open me-1"></i>{{ event.target_id|slice:":8" }}…
+            </a>
+            {% elif event.target_type == "Document" and event.target_id %}
+            <a href="{% url 'documents:detail' event.target_id %}" class="text-decoration-none">
+              <i class="bi bi-file-earmark me-1"></i>{{ event.target_id|slice:":8" }}…
+            </a>
+            {% elif event.target_type %}
+            <span class="text-muted">{{ event.target_type }}</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+
+          <!-- Doc Type (from metadata for uploads; from target_type for HR docs) -->
+          <td class="small">
+            {% if is_upload == "upload." and event.metadata.doc_type_display %}
+            <span class="doctype-chip">{{ event.metadata.doc_type_display }}</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+
+          <!-- Metadata -->
+          <td class="small">
+            {% with meta=event.metadata|stringformat:"s" %}
+            {% if meta|length > 80 %}
+            <span data-bs-toggle="modal" data-bs-target="#meta-{{ event.id|slugify }}"
+                  style="cursor:pointer;" class="text-muted font-monospace">
+              {{ meta|slice:":80" }}&hellip;
+            </span>
+            <div class="modal fade" id="meta-{{ event.id|slugify }}" tabindex="-1">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h6 class="modal-title">{{ event.get_event_type_display }} — metadata</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <pre class="bg-light rounded p-3 small mb-0" style="white-space:pre-wrap;word-break:break-all;">{{ event.metadata }}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <span class="text-muted font-monospace">{{ meta }}</span>
+            {% endif %}
+            {% endwith %}
+          </td>
+
+          <!-- Time -->
+          <td class="text-muted small">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm justify-content-center">
+    {% if page_obj.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?event_type={{ event_type_filter }}&actor={{ actor_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.previous_page_number }}">&laquo; Prev</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
+    {% endif %}
+    <li class="page-item disabled">
+      <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    </li>
+    {% if page_obj.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?event_type={{ event_type_filter }}&actor={{ actor_filter }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.next_page_number }}">Next &raquo;</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-shield-check" style="font-size:3rem"></i>
+  <p class="mt-3">No audit events found{% if event_type_filter or actor_filter or date_from or date_to %} matching your filters{% endif %}.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -6,6 +6,7 @@ app_name = "documents"
 urlpatterns = [
     # Main views
     path("", views.DocumentListView.as_view(), name="list"),
+    path("audit/", views.AuditLogView.as_view(), name="audit"),
     path("generate/", views.GenerateDocumentView.as_view(), name="generate"),
     path("<uuid:pk>/", views.DocumentDetailView.as_view(), name="detail"),
     path("<uuid:pk>/download/", views.document_download, name="download"),

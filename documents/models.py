@@ -10,6 +10,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from documents.fields import EncryptedDecimalField, EncryptedJSONField
 
 
 # ---------------------------------------------------------------------------
@@ -99,8 +100,8 @@ class Employee(models.Model):
     role = models.CharField(max_length=200, help_text="Job role / function")
     department = models.CharField(max_length=200)
     joining_date = models.DateField()
-    salary_current = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True,
+    salary_current = EncryptedDecimalField(
+        null=True, blank=True,
         help_text="Current monthly gross salary (INR). Used as default in salary letters."
     )
     source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default=SOURCE_MANUAL)
@@ -189,7 +190,7 @@ class Document(models.Model):
     template = models.ForeignKey(LetterTemplate, on_delete=models.PROTECT, related_name="documents")
     recipient = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="documents")
     # Full snapshot of every value used to render the PDF — immutable record
-    variables_snapshot = models.JSONField()
+    variables_snapshot = EncryptedJSONField()
     # Storage key (relative path for filesystem; S3 key for cloud)
     s3_key = models.CharField(max_length=500)
     # SHA-256 hex digest of the raw PDF bytes
@@ -202,6 +203,19 @@ class Document(models.Model):
     generated_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_GENERATED)
     download_count = models.IntegerField(default=0)
+
+    # Legal hold / document lock — Finance Head only
+    is_locked = models.BooleanField(default=False)
+    locked_at = models.DateTimeField(null=True, blank=True)
+    locked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="locked_documents",
+    )
+    locked_reason = models.CharField(max_length=500, blank=True)
+    # Stub for future email delivery — populated when email is sent to employee
+    email_sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-generated_at"]
@@ -223,12 +237,21 @@ class AuditEvent(models.Model):
         ("document.generated", "Document Generated"),
         ("document.downloaded", "Document Downloaded"),
         ("document.voided", "Document Voided"),
+        ("document.viewed", "Document Viewed"),
+        ("document.access_denied", "Document Access Denied"),
+        ("document.locked", "Document Locked"),
+        ("document.unlocked", "Document Unlocked"),
         ("document.generation_failed", "Document Generation Failed"),
         ("template.published", "Template Published"),
         ("user.role_changed", "User Role Changed"),
         ("audit.flag.template_issuer_overlap", "Template-Issuer Overlap Flag"),
         ("reconciliation.mismatch", "Reconciliation Mismatch"),
         ("reconciliation.ok", "Reconciliation OK"),
+        # Other Documents (uploads) events
+        ("upload.created", "File Uploaded"),
+        ("upload.viewed", "File Viewed"),
+        ("upload.downloaded", "File Downloaded"),
+        ("upload.deleted", "File Deleted"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

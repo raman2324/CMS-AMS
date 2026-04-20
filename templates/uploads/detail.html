@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doc.title }} — HR Docs{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{% url 'uploads:list' %}" class="btn btn-link btn-sm text-muted p-0 me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="fw-bold mb-0 me-auto">
+    <i class="bi bi-file-earmark me-2"></i>{{ doc.title }}
+  </h4>
+  <a href="{% url 'uploads:download' doc.id %}" class="btn btn-dark btn-sm">
+    <i class="bi bi-download me-1"></i>Download
+  </a>
+</div>
+
+<div class="row">
+  <!-- Metadata -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-dark text-white fw-semibold">
+        <i class="bi bi-info-circle me-2"></i>Details
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4 text-muted">Type</dt>
+          <dd class="col-sm-8">
+            <span class="badge bg-secondary">{{ doc.get_document_type_display }}</span>
+          </dd>
+
+          <dt class="col-sm-4 text-muted">Company</dt>
+          <dd class="col-sm-8">{{ doc.company.name|default:"—" }}</dd>
+
+          <dt class="col-sm-4 text-muted">Original File</dt>
+          <dd class="col-sm-8 font-monospace small">{{ doc.original_filename }}</dd>
+
+          <dt class="col-sm-4 text-muted">File Size</dt>
+          <dd class="col-sm-8">{{ doc.file_size_display }}</dd>
+
+          <dt class="col-sm-4 text-muted">Uploaded By</dt>
+          <dd class="col-sm-8">{{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}</dd>
+
+          <dt class="col-sm-4 text-muted">Uploaded At</dt>
+          <dd class="col-sm-8">{{ doc.uploaded_at|date:"d M Y, H:i" }}</dd>
+
+          <dt class="col-sm-4 text-muted">Confidential</dt>
+          <dd class="col-sm-8">
+            {% if doc.is_confidential %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-lock-fill me-1"></i>Yes</span>
+            {% else %}
+            <span class="text-muted">No</span>
+            {% endif %}
+          </dd>
+
+          {% if doc.description %}
+          <dt class="col-sm-4 text-muted">Description</dt>
+          <dd class="col-sm-8">{{ doc.description }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-dark text-white fw-semibold">
+        <i class="bi bi-three-dots me-2"></i>Actions
+      </div>
+      <div class="card-body d-flex flex-column gap-2">
+        <a href="{% url 'uploads:download' doc.id %}" class="btn btn-dark btn-sm">
+          <i class="bi bi-download me-1"></i>Download File
+        </a>
+
+        {% if doc.uploaded_by == user or user.is_finance_head_role %}
+        <!-- Delete -->
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+          <i class="bi bi-trash me-1"></i>Delete Document
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+{% if doc.uploaded_by == user or user.is_finance_head_role %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Delete Document</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to permanently delete <strong>{{ doc.title }}</strong>?</p>
+        <p class="text-danger small mb-0">This action cannot be undone. The file will be removed from storage.</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <button type="submit" class="btn btn-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

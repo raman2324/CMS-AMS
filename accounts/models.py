@@ -5,16 +5,18 @@ from django.db import models
 
 class User(AbstractUser):
     ROLE_ADMIN = "admin"
+    ROLE_FINANCE_HEAD = "finance_head"
     ROLE_ISSUER = "issuer"
     ROLE_VIEWER = "viewer"
     ROLE_CHOICES = [
         (ROLE_ADMIN, "Admin"),
+        (ROLE_FINANCE_HEAD, "Finance Head"),
         (ROLE_ISSUER, "Issuer"),
         (ROLE_VIEWER, "Viewer"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_ISSUER)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_ISSUER)
     # Issuers are scoped to a department — they only see documents for employees
     # in their own department. Leave blank to grant access to all departments.
     department = models.CharField(max_length=100, blank=True)
@@ -34,6 +36,10 @@ class User(AbstractUser):
         return self.role == self.ROLE_ADMIN
 
     @property
+    def is_finance_head_role(self):
+        return self.role == self.ROLE_FINANCE_HEAD
+
+    @property
     def is_issuer_role(self):
         return self.role == self.ROLE_ISSUER
 
@@ -42,10 +48,46 @@ class User(AbstractUser):
         return self.role == self.ROLE_VIEWER
 
     def can_generate(self):
-        return self.role in (self.ROLE_ADMIN, self.ROLE_ISSUER)
+        return self.role in (self.ROLE_ADMIN, self.ROLE_FINANCE_HEAD, self.ROLE_ISSUER)
 
     def can_manage_templates(self):
-        return self.role == self.ROLE_ADMIN
+        return self.role in (self.ROLE_ADMIN, self.ROLE_FINANCE_HEAD)
 
     def can_view_audit_log(self):
-        return self.role in (self.ROLE_ADMIN, self.ROLE_VIEWER)
+        return self.role in (self.ROLE_ADMIN, self.ROLE_FINANCE_HEAD, self.ROLE_VIEWER)
+
+    def sees_all_documents(self):
+        """Finance Head sees every document; all others are restricted to their own."""
+        return self.role == self.ROLE_FINANCE_HEAD
+
+    def can_void_any_document(self):
+        """Finance Head can void any document. Issuers can only void their own."""
+        return self.role == self.ROLE_FINANCE_HEAD
+
+    def can_lock_document(self):
+        """Only Finance Head can lock/unlock documents (legal hold)."""
+        return self.role == self.ROLE_FINANCE_HEAD
+
+    # ------------------------------------------------------------------
+    # Django permission overrides — Finance Head and Admin get full access
+    # to the Django admin panel (equivalent to superuser, without the flag).
+    # ------------------------------------------------------------------
+
+    def save(self, *args, **kwargs):
+        # Finance Head and Admin must always be staff so they can enter /admin/
+        if self.is_admin_role or self.is_finance_head_role:
+            self.is_staff = True
+        super().save(*args, **kwargs)
+
+    def _is_power_user(self):
+        return self.is_active and (self.is_admin_role or self.is_finance_head_role)
+
+    def has_perm(self, perm, obj=None):
+        if self._is_power_user():
+            return True
+        return super().has_perm(perm, obj)
+
+    def has_module_perms(self, app_label):
+        if self._is_power_user():
+            return True
+        return super().has_module_perms(app_label)

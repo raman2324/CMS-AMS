@@ -12,6 +12,9 @@ services:
       - DEBUG=True
       - SECRET_KEY=dev-secret-key-change-in-production
       - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      # AES-256 Fernet key — encrypts files at rest AND salary/variables DB columns.
+      # For production: generate a fresh key, store in a secrets manager, never commit it.
+      - DOCUMENT_ENCRYPTION_KEY=jPt1rx-Lv_Ts7HYkUNnD9qtyADNzXhaiqL4qMJW4pnE=
       # SQLite (default). To switch to PostgreSQL, uncomment the block below
       # and add a `db` service.
       # - DB_ENGINE=django.db.backends.postgresql

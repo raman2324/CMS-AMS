@@ -4,6 +4,8 @@ Core document generation service.
 Public API:
     generate_document(template_id, employee_id, variables, actor) -> (Document, bytes)
     void_document(document_id, actor, reason) -> Document
+    lock_document(document_id, actor, reason) -> Document
+    unlock_document(document_id, actor, reason) -> Document
     download_document(document_id, actor) -> bytes
     build_letter_context(company, employee, variables) -> dict
     render_letter_html(template, context) -> str
@@ -11,13 +13,12 @@ Public API:
 import hashlib
 import uuid as _uuid
 
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.db import models as db_models
 from django.template import Template, Context
 from django.utils import timezone
 
 from documents.models import Document, AuditEvent, LetterTemplate, Employee, Company
+from documents.services.storage_service import save_document, read_document
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +65,11 @@ def render_letter_html(template: LetterTemplate, context_data: dict) -> str:
 
 
 def _generate_pdf_bytes(html_content: str) -> bytes:
-    """Convert rendered HTML string to PDF bytes via WeasyPrint."""
+    """Convert rendered HTML string to PDF bytes via WeasyPrint.
+
+    Determinism: identical HTML always produces identical bytes (and identical
+    SHA-256) because we suppress WeasyPrint's default timestamp and random /ID.
+    """
     from weasyprint import HTML, CSS
 
     base_css = CSS(string="""
@@ -82,7 +87,12 @@ def _generate_pdf_bytes(html_content: str) -> bytes:
         table { border-collapse: collapse; width: 100%; }
         td, th { padding: 4pt 8pt; }
     """)
-    return HTML(string=html_content).write_pdf(stylesheets=[base_css])
+    # Render to a Document object so we can strip the volatile metadata fields
+    # before writing bytes. Without this, every call embeds datetime.now() and a
+    # random /ID, making the SHA-256 non-deterministic across re-renders.
+    doc = HTML(string=html_content).render(stylesheets=[base_css])
+    doc.metadata.modification_date = None  # suppress embedded timestamp
+    return doc.write_pdf(identifier=b"\x00" * 16)  # fixed PDF /ID array
 
 
 def _compute_sha256(data: bytes) -> str:
@@ -102,10 +112,10 @@ def generate_document(template_id, employee_id, variables: dict, actor) -> tuple
       2. Idempotency guard — return existing doc if same actor/template/employee
          generated within the last 30 seconds (prevents double-click duplicates)
       3. Render HTML → PDF → SHA-256
-      4. Save PDF to default_storage (filesystem in dev, S3 in prod)
+      4. Save PDF via storage_service (encrypted if key configured)
       5. Create Document record with full variables snapshot
       6. Create AuditEvent
-      7. Flag Admin-Issuer overlap if applicable
+      7. Flag Finance-Head/Admin-Issuer overlap if applicable
 
     Returns: (Document, pdf_bytes)
     Raises:  Any exception from template rendering or storage is propagated
@@ -125,7 +135,7 @@ def generate_document(template_id, employee_id, variables: dict, actor) -> tuple
         status=Document.STATUS_GENERATED,
     ).first()
     if duplicate:
-        pdf_bytes = default_storage.open(duplicate.s3_key).read()
+        pdf_bytes = read_document(duplicate.s3_key)
         return duplicate, pdf_bytes
 
     # --- Render ---
@@ -145,11 +155,11 @@ def generate_document(template_id, employee_id, variables: dict, actor) -> tuple
 
     content_hash = _compute_sha256(pdf_bytes)
 
-    # --- Storage ---
+    # --- Storage (encrypted if DOCUMENT_ENCRYPTION_KEY is set) ---
     now = timezone.now()
     doc_id = _uuid.uuid4()
     s3_key = f"documents/{template.name}/{now.year}/{now.month:02d}/{doc_id}.pdf"
-    default_storage.save(s3_key, ContentFile(pdf_bytes))
+    save_document(s3_key, pdf_bytes)
 
     # --- Snapshot — everything used to render, frozen at generation time ---
     variables_snapshot = {
@@ -197,9 +207,9 @@ def generate_document(template_id, employee_id, variables: dict, actor) -> tuple
         },
     )
 
-    # --- Admin-Issuer overlap flag ---
+    # --- Admin/Finance-Head-Issuer overlap flag ---
     from accounts.models import User
-    if actor.role == User.ROLE_ADMIN:
+    if actor.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD):
         overlap_window = timezone.now() - timezone.timedelta(hours=24)
         if template.created_at >= overlap_window:
             AuditEvent.objects.create(
@@ -209,7 +219,7 @@ def generate_document(template_id, employee_id, variables: dict, actor) -> tuple
                 target_id=str(document.id),
                 metadata={
                     "template_id": str(template.id),
-                    "note": "Admin generated a document within 24h of creating/editing this template.",
+                    "note": "Privileged user generated a document within 24h of creating/editing this template.",
                 },
             )
 
@@ -218,7 +228,7 @@ def generate_document(template_id, employee_id, variables: dict, actor) -> tuple
 
 def void_document(document_id, actor, reason: str) -> Document:
     """
-    Mark a document as void. The S3 object is NOT deleted — Object Lock
+    Mark a document as void. The storage object is NOT deleted — Object Lock
     retention prevents deletion for compliance. Only the status changes.
     Idempotent: voiding an already-void document returns it unchanged.
     """
@@ -240,12 +250,68 @@ def void_document(document_id, actor, reason: str) -> Document:
     return document
 
 
+def lock_document(document_id, actor, reason: str) -> Document:
+    """
+    Place a legal hold on a document (Finance Head only).
+    While locked: downloads and voids are blocked for everyone except Finance Head.
+    Idempotent: locking an already-locked document returns it unchanged.
+    """
+    if not reason or len(reason.strip()) < 10:
+        raise ValueError("Lock reason must be at least 10 characters.")
+
+    document = Document.objects.get(id=document_id)
+    if document.is_locked:
+        return document
+
+    document.is_locked = True
+    document.locked_at = timezone.now()
+    document.locked_by = actor
+    document.locked_reason = reason.strip()
+    document.save(update_fields=["is_locked", "locked_at", "locked_by", "locked_reason"])
+
+    AuditEvent.objects.create(
+        event_type="document.locked",
+        actor=actor,
+        target_type="Document",
+        target_id=str(document.id),
+        content_hash=document.content_hash,
+        metadata={"reason": reason},
+    )
+    return document
+
+
+def unlock_document(document_id, actor, reason: str) -> Document:
+    """
+    Release a legal hold (Finance Head only).
+    Idempotent: unlocking a non-locked document returns it unchanged.
+    """
+    document = Document.objects.get(id=document_id)
+    if not document.is_locked:
+        return document
+
+    document.is_locked = False
+    document.locked_at = None
+    document.locked_by = None
+    document.locked_reason = ""
+    document.save(update_fields=["is_locked", "locked_at", "locked_by", "locked_reason"])
+
+    AuditEvent.objects.create(
+        event_type="document.unlocked",
+        actor=actor,
+        target_type="Document",
+        target_id=str(document.id),
+        content_hash=document.content_hash,
+        metadata={"reason": reason},
+    )
+    return document
+
+
 def download_document(document_id, actor) -> bytes:
     """
     Retrieve PDF bytes from storage, increment download counter, log audit event.
     """
     document = Document.objects.get(id=document_id)
-    pdf_bytes = default_storage.open(document.s3_key).read()
+    pdf_bytes = read_document(document.s3_key)
 
     Document.objects.filter(id=document_id).update(
         download_count=db_models.F("download_count") + 1

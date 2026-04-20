@@ -6,3 +6,5 @@ boto3==1.38.0
 python-decouple==3.8
 whitenoise==6.9.0
 gunicorn==23.0.0
+django-axes==7.0.1
+cryptography==44.0.2

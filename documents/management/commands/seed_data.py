@@ -13,7 +13,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.template.loader import get_template
 
-from documents.models import Company, Employee, LetterTemplate, TEMPLATE_EXTRA_SCHEMAS
+from documents.models import Company, Document, Employee, LetterTemplate, TEMPLATE_EXTRA_SCHEMAS
 
 User = get_user_model()
 
@@ -145,6 +145,7 @@ class Command(BaseCommand):
         admin_user = self._seed_users()
         self._seed_templates(admin_user, force=force)
         self._seed_employees()
+        self._seed_documents()
 
         self.stdout.write(self.style.SUCCESS("\n✓ Seed complete. See README.md for default credentials."))
 
@@ -165,8 +166,14 @@ class Command(BaseCommand):
         users = [
             dict(username="admin", email="admin@example.com", first_name="Admin",
                  last_name="User", role="admin", password="Admin@1234", is_staff=True, is_superuser=True),
+            dict(username="finance_head", email="finhead@example.com", first_name="Finance",
+                 last_name="Head", role="finance_head", password="Finance@1234", is_staff=True),
             dict(username="issuer", email="issuer@example.com", first_name="Issuer",
                  last_name="Demo", role="issuer", password="Issuer@1234"),
+            dict(username="issuer2", email="issuer2@example.com", first_name="Priya",
+                 last_name="Issuer", role="issuer", password="Issuer2@1234"),
+            dict(username="issuer3", email="issuer3@example.com", first_name="Arun",
+                 last_name="Issuer", role="issuer", password="Issuer3@1234"),
             dict(username="viewer", email="viewer@example.com", first_name="Viewer",
                  last_name="Demo", role="viewer", password="Viewer@1234"),
         ]
@@ -183,7 +190,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Created : {user.username} / {password}")
             else:
                 self.stdout.write(f"  Exists  : {user.username}")
-            if u["username"] == "admin" or user.username == "admin":
+            if u.get("username") == "admin" or user.username == "admin":
                 admin_user = user
         return admin_user or User.objects.filter(role="admin").first() or User.objects.first()
 
@@ -208,6 +215,40 @@ class Command(BaseCommand):
             # Restore for idempotency if re-run
             data["short_name"] = short_name
             data["joining_date"] = str(joining_date)
+
+    def _seed_documents(self):
+        self.stdout.write("Seeding demo documents…")
+        from documents.services import generate_document
+
+        issuer = User.objects.filter(username="issuer").first()
+        if not issuer:
+            self.stdout.write(self.style.WARNING("  Skipped: issuer user not found"))
+            return
+
+        # 5 document seeds: (employee_code, template_name, extra_variables)
+        seeds = [
+            ("CT001", "offer_letter",          {"position": "Senior Software Engineer", "start_date": "May 1, 2024", "ctc": "14,40,000"}),
+            ("CT002", "salary_letter",          {"month": "March 2024", "net_salary": "1,25,000"}),
+            ("VR001", "experience_certificate", {"last_working_day": "March 31, 2024"}),
+            ("VR002", "noc",                    {"purpose": "Bank loan application", "valid_until": "December 31, 2024"}),
+            ("CV3001", "offer_letter",          {"position": "Full Stack Developer", "start_date": "June 1, 2023", "ctc": "13,20,000"}),
+        ]
+
+        for emp_code, tmpl_name, variables in seeds:
+            # Idempotent: skip if a generated document already exists for this employee+template
+            employee = Employee.objects.filter(employee_code=emp_code).first()
+            template = LetterTemplate.objects.filter(name=tmpl_name, is_active=True).first()
+            if not employee or not template:
+                self.stdout.write(self.style.WARNING(f"  Skipped: {emp_code}/{tmpl_name} — not found"))
+                continue
+            if Document.objects.filter(recipient=employee, template=template).exists():
+                self.stdout.write(f"  Exists  : {tmpl_name} for {emp_code}")
+                continue
+            try:
+                document, _ = generate_document(template.id, employee.id, variables, issuer)
+                self.stdout.write(f"  Created : {tmpl_name} for {emp_code} → {document.id}")
+            except Exception as exc:
+                self.stdout.write(self.style.WARNING(f"  Failed  : {tmpl_name} for {emp_code}: {exc}"))
 
     def _seed_templates(self, created_by, force=False):
         self.stdout.write("Seeding letter templates…")

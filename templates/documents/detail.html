@@ -19,7 +19,12 @@
           {{ document.recipient.name }} · {{ document.recipient.employee_code }}
         </p>
       </div>
-      <div>
+      <div class="d-flex gap-2 align-items-start">
+        {% if document.is_locked %}
+        <span class="badge bg-danger fs-6 px-3 py-2">
+          <i class="bi bi-lock-fill me-1"></i>LOCKED
+        </span>
+        {% endif %}
         {% if document.is_void %}
         <span class="badge bg-danger fs-6 px-3 py-2">VOID</span>
         {% else %}
@@ -27,6 +32,23 @@
         {% endif %}
       </div>
     </div>
+
+    <!-- Lock notice banner -->
+    {% if document.is_locked %}
+    <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
+      <i class="bi bi-lock-fill fs-5 mt-1"></i>
+      <div>
+        <strong>Legal Hold Active</strong> — this document is locked.
+        Downloads and voids are blocked until Finance Head releases the hold.
+        {% if document.locked_reason %}
+        <div class="mt-1 small">Reason: <em>{{ document.locked_reason }}</em></div>
+        {% endif %}
+        {% if document.locked_by %}
+        <div class="small text-muted">Locked by {{ document.locked_by.get_full_name|default:document.locked_by.username }} on {{ document.locked_at|date:"d M Y, H:i" }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
 
     <!-- Document details -->
     <div class="card border-0 shadow-sm mb-3">
@@ -62,11 +84,15 @@
       </div>
     </div>
 
-    <!-- Variables snapshot -->
+    <!-- Variables snapshot — Finance Head only (contains salary/CTC data) -->
     <div class="card border-0 shadow-sm mb-3">
-      <div class="card-header bg-white fw-semibold small">
-        <i class="bi bi-clipboard-data me-1"></i>Variables Used (frozen at generation time)
+      <div class="card-header bg-white fw-semibold small d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-clipboard-data me-1"></i>Variables Used (frozen at generation time)</span>
+        {% if not user.is_finance_head_role %}
+        <span class="badge bg-warning text-dark"><i class="bi bi-lock-fill me-1"></i>Restricted</span>
+        {% endif %}
       </div>
+      {% if user.is_finance_head_role %}
       <div class="card-body">
         {% with snap=document.variables_snapshot.variables %}
         {% if snap %}
@@ -85,42 +111,145 @@
         {% endif %}
         {% endwith %}
       </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="d-flex gap-2 mb-4">
-      {% if not document.is_void %}
-      <a href="{% url 'documents:download' document.id %}" class="btn btn-dark">
-        <i class="bi bi-download me-1"></i>Download PDF
-      </a>
+      {% else %}
+      <div class="card-body text-center py-4">
+        <i class="bi bi-shield-lock text-muted" style="font-size:1.8rem"></i>
+        <p class="text-muted small mt-2 mb-0">
+          Variable data (salary, CTC, dates) is restricted to Finance Head only.
+        </p>
+      </div>
       {% endif %}
     </div>
 
-    <!-- Void section -->
+    <!-- Download action — hidden for viewers and when document is locked (unless Finance Head) -->
     {% if not document.is_void %}
-    <div class="card border-danger border-opacity-25 mb-3">
+    <div class="d-flex gap-2 mb-4">
+      {% if not user.is_viewer_role %}
+        {% if not document.is_locked or user.can_lock_document %}
+        <a href="{% url 'documents:download' document.id %}" class="btn btn-dark">
+          <i class="bi bi-download me-1"></i>Download PDF
+        </a>
+        {% else %}
+        <button class="btn btn-dark" disabled title="Document is locked">
+          <i class="bi bi-lock me-1"></i>Download Locked
+        </button>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Void section — hidden for viewers, admins, and locked docs -->
+    {% if not document.is_void and not user.is_viewer_role and not user.is_admin_role %}
+      {% if user.can_void_any_document or document.generated_by == user %}
+        {% if not document.is_locked %}
+        <div class="card border-danger border-opacity-25 mb-3">
+          <div class="card-body">
+            <h6 class="text-danger fw-semibold">
+              <i class="bi bi-exclamation-triangle me-1"></i>Void This Document
+            </h6>
+            <p class="small text-muted mb-3">
+              Voiding marks this letter as invalid. The PDF file is <strong>retained</strong> for compliance.
+              You must communicate the void manually to the recipient.
+            </p>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="void">
+              <div class="mb-3">
+                {{ void_form.reason.label_tag }}
+                {{ void_form.reason }}
+                {% if void_form.reason.errors %}
+                <div class="text-danger small mt-1">{{ void_form.reason.errors|join:", " }}</div>
+                {% endif %}
+              </div>
+              <button type="submit" class="btn btn-danger btn-sm"
+                      onclick="return confirm('Are you sure you want to void this document?')">
+                <i class="bi bi-x-circle me-1"></i>Void Document
+              </button>
+            </form>
+          </div>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary small">
+          <i class="bi bi-lock me-1"></i>Void is disabled — document is under legal hold.
+        </div>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+
+    <!-- Lock / Unlock section — Finance Head only -->
+    {% if user.can_lock_document %}
+    <div class="card border-warning border-opacity-50 mb-3">
       <div class="card-body">
-        <h6 class="text-danger fw-semibold">
-          <i class="bi bi-exclamation-triangle me-1"></i>Void This Document
+        {% if not document.is_locked %}
+        <h6 class="text-warning fw-semibold">
+          <i class="bi bi-lock me-1"></i>Lock Document (Legal Hold)
         </h6>
         <p class="small text-muted mb-3">
-          Voiding marks this letter as invalid. The PDF file is <strong>retained</strong> for compliance.
-          You must communicate the void manually to the recipient.
+          Locking blocks all downloads and voids until you release the hold.
+          Use this during audits or legal reviews.
         </p>
         <form method="post">
           {% csrf_token %}
+          <input type="hidden" name="action" value="lock">
           <div class="mb-3">
-            {{ void_form.reason.label_tag }}
-            {{ void_form.reason }}
-            {% if void_form.reason.errors %}
-            <div class="text-danger small mt-1">{{ void_form.reason.errors|join:", " }}</div>
-            {% endif %}
+            <label for="lock_reason" class="form-label small fw-semibold">Reason for lock <span class="text-danger">*</span></label>
+            <textarea name="lock_reason" id="lock_reason" class="form-control form-control-sm"
+                      rows="2" placeholder="e.g. Legal review – Q2 audit" required minlength="10"></textarea>
           </div>
-          <button type="submit" class="btn btn-danger btn-sm"
-                  onclick="return confirm('Are you sure you want to void this document?')">
-            <i class="bi bi-x-circle me-1"></i>Void Document
+          <button type="submit" class="btn btn-warning btn-sm"
+                  onclick="return confirm('Lock this document? Downloads and voids will be blocked.')">
+            <i class="bi bi-lock me-1"></i>Lock Document
           </button>
         </form>
+        {% else %}
+        <h6 class="text-success fw-semibold">
+          <i class="bi bi-unlock me-1"></i>Release Legal Hold
+        </h6>
+        <p class="small text-muted mb-3">
+          Provide a reason for releasing the lock. This will be recorded in the audit trail.
+        </p>
+        <div class="mb-3">
+          <label for="unlock_reason" class="form-label small fw-semibold">Reason for unlock <span class="text-danger">*</span></label>
+          <textarea name="unlock_reason" id="unlock_reason" class="form-control form-control-sm"
+                    rows="2" placeholder="e.g. Audit closed – no issues found"></textarea>
+        </div>
+        <button type="button" class="btn btn-success btn-sm" id="unlockTriggerBtn">
+          <i class="bi bi-unlock me-1"></i>Release Lock
+        </button>
+        <!-- Unlock confirmation modal -->
+        <div class="modal fade" id="unlockConfirmModal" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header border-0">
+                <h6 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Remove Legal Hold?</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body pt-0">
+                <p class="small text-muted mb-0">This will remove the legal hold on this document. Downloads and voids will be re-enabled. This action is recorded in the audit log.</p>
+              </div>
+              <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" id="unlockForm">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="unlock">
+                  <input type="hidden" name="unlock_reason" id="unlock_reason_hidden">
+                  <button type="submit" class="btn btn-success btn-sm">
+                    <i class="bi bi-unlock me-1"></i>Yes, release hold
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script>
+          document.getElementById('unlockTriggerBtn').addEventListener('click', function() {
+            var reason = document.getElementById('unlock_reason').value.trim();
+            if (!reason) { document.getElementById('unlock_reason').focus(); return; }
+            document.getElementById('unlock_reason_hidden').value = reason;
+            new bootstrap.Modal(document.getElementById('unlockConfirmModal')).show();
+          });
+        </script>
+        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -142,6 +271,10 @@
                 {% if event.event_type == "document.generated" %}<i class="bi bi-check-circle text-success me-1"></i>
                 {% elif event.event_type == "document.voided" %}<i class="bi bi-x-circle text-danger me-1"></i>
                 {% elif event.event_type == "document.downloaded" %}<i class="bi bi-download text-primary me-1"></i>
+                {% elif event.event_type == "document.viewed" %}<i class="bi bi-eye text-secondary me-1"></i>
+                {% elif event.event_type == "document.locked" %}<i class="bi bi-lock text-warning me-1"></i>
+                {% elif event.event_type == "document.unlocked" %}<i class="bi bi-unlock text-success me-1"></i>
+                {% elif event.event_type == "document.access_denied" %}<i class="bi bi-shield-x text-danger me-1"></i>
                 {% elif "flag" in event.event_type %}<i class="bi bi-flag text-warning me-1"></i>
                 {% else %}<i class="bi bi-info-circle me-1"></i>{% endif %}
                 {{ event.get_event_type_display }}

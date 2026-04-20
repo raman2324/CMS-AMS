@@ -1,6 +1,8 @@
 from documents.services.pdf_service import (
     generate_document,
     void_document,
+    lock_document,
+    unlock_document,
     download_document,
     build_letter_context,
     render_letter_html,
@@ -9,6 +11,8 @@ from documents.services.pdf_service import (
 __all__ = [
     "generate_document",
     "void_document",
+    "lock_document",
+    "unlock_document",
     "download_document",
     "build_letter_context",
     "render_letter_html",

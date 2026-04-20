@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document — HR Docs{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{% url 'uploads:list' %}" class="btn btn-link btn-sm text-muted p-0 me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="fw-bold mb-0"><i class="bi bi-cloud-upload me-2"></i>Upload Document</h4>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+          {% csrf_token %}
+
+          <!-- File picker -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">File <span class="text-danger">*</span></label>
+            <div class="upload-zone border rounded-3 p-4 text-center" id="upload-zone">
+              <i class="bi bi-cloud-arrow-up text-muted" style="font-size:2.5rem"></i>
+              <p class="text-muted mb-2 mt-1">Drag & drop or click to select</p>
+              <p class="small text-muted mb-3">PDF, Word, Excel, CSV, PNG, JPG — max {{ max_size_mb }} MB</p>
+              <input type="file" name="file" id="file-input" class="d-none"
+                     accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv,.docx,.doc">
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('file-input').click()">
+                <i class="bi bi-folder2-open me-1"></i>Choose File
+              </button>
+            </div>
+            <div id="file-preview" class="mt-2 d-none">
+              <div class="d-flex align-items-center gap-2 p-2 bg-light rounded">
+                <i class="bi bi-file-earmark text-secondary" id="file-icon" style="font-size:1.4rem"></i>
+                <div>
+                  <div class="fw-semibold small" id="file-name"></div>
+                  <div class="text-muted small" id="file-size"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="clearFile()">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Title -->
+          <div class="mb-3">
+            <label for="id_title" class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+            <input type="text" name="title" id="id_title" class="form-control"
+                   placeholder="e.g. March 2025 Office Rent Receipt" required>
+          </div>
+
+          <!-- Document Type -->
+          <div class="mb-3">
+            <label for="id_document_type" class="form-label fw-semibold">Type</label>
+            <select name="document_type" id="id_document_type" class="form-select">
+              {% for val, label in type_choices %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Company (optional) -->
+          <div class="mb-3">
+            <label for="id_company" class="form-label fw-semibold">Company <span class="text-muted fw-normal">(optional)</span></label>
+            <select name="company" id="id_company" class="form-select">
+              <option value="">— Not linked to any company —</option>
+              {% for c in companies %}
+              <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-3">
+            <label for="id_description" class="form-label fw-semibold">Description <span class="text-muted fw-normal">(optional)</span></label>
+            <textarea name="description" id="id_description" class="form-control" rows="3"
+                      placeholder="Brief note about this document…"></textarea>
+          </div>
+
+          <!-- Confidential -->
+          <div class="mb-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_confidential" id="id_confidential">
+              <label class="form-check-label fw-semibold" for="id_confidential">
+                Mark as Confidential
+              </label>
+            </div>
+            <div class="form-text">Confidential documents are only visible to you and Finance Head.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-dark">
+              <i class="bi bi-cloud-upload me-1"></i>Upload
+            </button>
+            <a href="{% url 'uploads:list' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const fileInput = document.getElementById('file-input');
+const uploadZone = document.getElementById('upload-zone');
+const filePreview = document.getElementById('file-preview');
+const titleInput = document.getElementById('id_title');
+
+const iconMap = {
+  pdf: 'bi-file-earmark-pdf text-danger',
+  png: 'bi-file-earmark-image text-info',
+  jpg: 'bi-file-earmark-image text-info',
+  jpeg: 'bi-file-earmark-image text-info',
+  xlsx: 'bi-file-earmark-excel text-success',
+  xls: 'bi-file-earmark-excel text-success',
+  csv: 'bi-file-earmark-spreadsheet text-success',
+  docx: 'bi-file-earmark-word text-primary',
+  doc: 'bi-file-earmark-word text-primary',
+};
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function showFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const icon = document.getElementById('file-icon');
+  icon.className = 'bi ' + (iconMap[ext] || 'bi-file-earmark text-secondary');
+  icon.style.fontSize = '1.4rem';
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-size').textContent = formatSize(file.size);
+  filePreview.classList.remove('d-none');
+  uploadZone.classList.add('d-none');
+  // Auto-fill title if empty
+  if (!titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '');
+}
+
+function clearFile() {
+  fileInput.value = '';
+  filePreview.classList.add('d-none');
+  uploadZone.classList.remove('d-none');
+}
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) showFile(fileInput.files[0]);
+});
+
+// Drag & drop
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('border-dark'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('border-dark'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('border-dark');
+  const dt = e.dataTransfer;
+  if (dt.files.length) {
+    // Create a DataTransfer to assign to the input
+    try {
+      const transfer = new DataTransfer();
+      transfer.items.add(dt.files[0]);
+      fileInput.files = transfer.files;
+    } catch (_) {}
+    showFile(dt.files[0]);
+  }
+});
+</script>
+{% endblock %}
