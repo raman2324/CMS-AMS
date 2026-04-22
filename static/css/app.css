@@ -68,6 +68,15 @@
   font-weight: 600;
 }
 
+/* Contract Lens collapse chevron */
+.sidebar-link[aria-expanded="true"] #cl-chevron,
+#cl-chevron.rotate-180 {
+  transform: rotate(180deg);
+}
+#cl-chevron {
+  transition: transform 0.2s ease;
+}
+
 .sidebar-footer {
   padding: 14px 18px;
   border-top: 1px solid rgba(255,255,255,0.08);

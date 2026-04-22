@@ -39,10 +39,30 @@
         <i class="bi bi-shield-check me-2"></i>Audit Log
       </a>
       {% endif %}
-      {% if user.is_admin_role or user.is_staff %}
-      <a class="sidebar-link" href="/admin/" target="_blank">
-        <i class="bi bi-gear me-2"></i>Admin
+      {% if user.role == 'finance_head' %}
+      <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
+         href="{% url 'documents:manage_dashboard' %}">
+        <i class="bi bi-gear me-2"></i>Manage
       </a>
+      {% endif %}
+
+      <!-- Contract Lens — Finance Head and Issuer only -->
+      {% if user.role == 'finance_head' or user.role == 'issuer' %}
+      <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#contractLensMenu"
+              aria-expanded="{% if 'contract-lens' in request.path %}true{% else %}false{% endif %}"
+              aria-controls="contractLensMenu">
+        <i class="bi bi-file-earmark-ruled me-2"></i>Contract Lens
+        <i class="bi bi-chevron-down ms-auto small {% if 'contract-lens' in request.path %}rotate-180{% endif %}" id="cl-chevron"></i>
+      </button>
+      <div class="collapse {% if 'contract-lens' in request.path %}show{% endif %}" id="contractLensMenu">
+        <a class="sidebar-link ps-4 {% if 'cadient' in request.path %}active{% endif %}"
+           href="{% url 'documents:cadient_talent' %}">
+          <i class="bi bi-dot me-1"></i>Cadient Talent
+        </a>
+      </div>
       {% endif %}
     </nav>
 

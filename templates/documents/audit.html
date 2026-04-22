@@ -4,49 +4,54 @@
 
 {% block extra_head %}
 <style>
-  /* Upload event row — subtle indigo tint */
-  tr.upload-row {
-    background: linear-gradient(90deg, #f0eeff 0%, #ffffff 60%);
-  }
-  tr.upload-row:hover {
-    background: linear-gradient(90deg, #e4deff 0%, #f5f5ff 60%) !important;
-  }
-  .badge-upload {
-    background: linear-gradient(135deg, #6f42c1, #8b5cf6);
-    color: #fff;
-    border: none;
-  }
-  .badge-upload-dl {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
-    color: #fff;
-    border: none;
-  }
-  .badge-upload-del {
-    background: linear-gradient(135deg, #dc2626, #9333ea);
-    color: #fff;
-    border: none;
-  }
-  .source-pill-upload {
-    font-size: 0.68rem;
-    padding: 1px 7px;
+  /* ── Row left-border accent by category ── */
+  tr.ev-success  { border-left: 3px solid #16a34a; }
+  tr.ev-info     { border-left: 3px solid #2563eb; }
+  tr.ev-download { border-left: 3px solid #7c3aed; }
+  tr.ev-warning  { border-left: 3px solid #d97706; }
+  tr.ev-danger   { border-left: 3px solid #dc2626; }
+  tr.ev-cl       { border-left: 3px solid #0891b2; }
+  tr.ev-upload   { border-left: 3px solid #9333ea; }
+
+  /* ── Event badges ── */
+  .ev-badge {
+    font-size: 0.72rem;
+    padding: 3px 9px;
     border-radius: 20px;
-    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-    color: #5b21b6;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+  }
+  /* Green — generated / published / ok / unlocked */
+  .ev-badge.success  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  /* Blue — viewed */
+  .ev-badge.info     { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  /* Indigo — downloaded */
+  .ev-badge.download { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+  /* Amber — locked / role change / flag */
+  .ev-badge.warning  { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+  /* Red — voided / access denied / failed / mismatch / deleted */
+  .ev-badge.danger   { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  /* Teal — contract lens */
+  .ev-badge.cl       { background: #cffafe; color: #0e7490; border: 1px solid #a5f3fc; }
+  /* Purple — upload created */
+  .ev-badge.upload   { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+
+  /* Source pills */
+  .src-pill {
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 20px;
     font-weight: 600;
     white-space: nowrap;
   }
-  .source-pill-doc {
-    font-size: 0.68rem;
-    padding: 1px 7px;
-    border-radius: 20px;
-    background: #e9f7ef;
-    color: #155724;
-    font-weight: 600;
-    white-space: nowrap;
-  }
+  .src-doc    { background: #dcfce7; color: #15803d; }
+  .src-upload { background: #f3e8ff; color: #7e22ce; }
+  .src-cl     { background: #cffafe; color: #0e7490; }
+
   .doctype-chip {
     font-size: 0.68rem;
-    padding: 1px 6px;
+    padding: 1px 7px;
     border-radius: 10px;
     background: #ede9fe;
     color: #6d28d9;
@@ -62,13 +67,24 @@
 </div>
 
 <!-- Legend -->
-<div class="d-flex gap-3 mb-3 flex-wrap">
-  <span class="d-flex align-items-center gap-1 small text-muted">
-    <span class="source-pill-doc">HR Docs</span> Generated letters &amp; templates
-  </span>
-  <span class="d-flex align-items-center gap-1 small text-muted">
-    <span class="source-pill-upload">Other Docs</span> Uploaded receipts, slips &amp; files
-  </span>
+<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+  <span class="src-pill src-doc"><i class="bi bi-file-earmark-text me-1"></i>HR Docs</span>
+  <span class="text-muted small me-2">Generated letters &amp; templates</span>
+  <span class="src-pill src-upload"><i class="bi bi-folder2-open me-1"></i>Other Docs</span>
+  <span class="text-muted small me-2">Uploaded receipts, slips &amp; files</span>
+  <span class="src-pill src-cl"><i class="bi bi-file-earmark-ruled me-1"></i>Contract Lens</span>
+  <span class="text-muted small">Contract analysis</span>
+</div>
+
+<!-- Color legend -->
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <span class="ev-badge success">Generated / OK</span>
+  <span class="ev-badge info">Viewed</span>
+  <span class="ev-badge download">Downloaded</span>
+  <span class="ev-badge warning">Locked / Changed</span>
+  <span class="ev-badge danger">Voided / Error</span>
+  <span class="ev-badge cl">Contract Lens</span>
+  <span class="ev-badge upload">Uploaded</span>
 </div>
 
 <!-- Filters -->
@@ -79,18 +95,19 @@
       <select name="event_type" class="form-select form-select-sm">
         <option value="">All events</option>
         <optgroup label="── HR Documents ──">
-          {% for value, label in event_types %}
-          {% if not value|slice:":7" == "upload." %}
+          {% for value, label in event_types %}{% if not value|slice:":7" == "upload." and not value|slice:":13" == "contractlens." %}
           <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
-          {% endif %}
-          {% endfor %}
+          {% endif %}{% endfor %}
         </optgroup>
         <optgroup label="── Other Documents ──">
-          {% for value, label in event_types %}
-          {% if value|slice:":7" == "upload." %}
+          {% for value, label in event_types %}{% if value|slice:":7" == "upload." %}
           <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
-          {% endif %}
-          {% endfor %}
+          {% endif %}{% endfor %}
+        </optgroup>
+        <optgroup label="── Contract Lens ──">
+          {% for value, label in event_types %}{% if value|slice:":13" == "contractlens." %}
+          <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endif %}{% endfor %}
         </optgroup>
       </select>
     </div>
@@ -128,116 +145,70 @@
     <table class="table table-hover table-sm mb-0 align-middle">
       <thead class="table-light">
         <tr>
-          <th class="ps-3" style="width:5%">Source</th>
-          <th style="width:20%">Event</th>
-          <th style="width:11%">Actor</th>
-          <th style="width:14%">Target</th>
-          <th style="width:10%">Doc Type</th>
-          <th style="width:26%">Metadata</th>
-          <th style="width:14%">Time</th>
+          <th class="ps-3" style="width:6%">Source</th>
+          <th style="width:24%">Event</th>
+          <th style="width:13%">Actor</th>
+          <th style="width:17%">Target</th>
+          <th style="width:13%">Doc Type</th>
+          <th style="width:16%">Time</th>
         </tr>
       </thead>
       <tbody>
         {% for event in page_obj %}
-        {% with is_upload=event.event_type|slice:":7" %}
-        <tr {% if is_upload == "upload." %}class="upload-row"{% endif %}>
 
-          <!-- Source pill -->
-          <td class="ps-3">
-            {% if is_upload == "upload." %}
-            <span class="source-pill-upload" title="Other Documents"><i class="bi bi-folder2-open"></i></span>
-            {% else %}
-            <span class="source-pill-doc" title="HR Documents"><i class="bi bi-file-earmark-text"></i></span>
-            {% endif %}
-          </td>
+        {# Determine category for row accent and badge colour #}
+        {% if event.event_type|slice:":13" == "contractlens." %}
+          {% with row_cls="ev-cl" badge_cls="cl" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
 
-          <!-- Event badge -->
-          <td>
-            {% if is_upload == "upload." %}
-              {% if event.event_type == "upload.created" %}
-              <span class="badge badge-upload">{{ event.get_event_type_display }}</span>
-              {% elif event.event_type == "upload.viewed" %}
-              <span class="badge" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;">{{ event.get_event_type_display }}</span>
-              {% elif event.event_type == "upload.downloaded" %}
-              <span class="badge badge-upload-dl">{{ event.get_event_type_display }}</span>
-              {% else %}
-              <span class="badge badge-upload-del">{{ event.get_event_type_display }}</span>
-              {% endif %}
-            {% elif "failed" in event.event_type or "mismatch" in event.event_type %}
-            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">{{ event.get_event_type_display }}</span>
-            {% elif "locked" in event.event_type %}
-            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ event.get_event_type_display }}</span>
-            {% elif "voided" in event.event_type %}
-            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ event.get_event_type_display }}</span>
-            {% elif "flag" in event.event_type %}
-            <span class="badge bg-orange-subtle text-danger border border-warning-subtle">{{ event.get_event_type_display }}</span>
-            {% else %}
-            <span class="badge bg-success-subtle text-success border border-success-subtle">{{ event.get_event_type_display }}</span>
-            {% endif %}
-          </td>
+        {% elif event.event_type == "upload.created" %}
+          {% with row_cls="ev-upload" badge_cls="upload" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
 
-          <!-- Actor -->
-          <td class="text-muted small">
-            {% if event.actor %}{{ event.actor.username }}{% else %}<em>system</em>{% endif %}
-          </td>
+        {% elif event.event_type == "upload.viewed" %}
+          {% with row_cls="ev-info" badge_cls="info" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
 
-          <!-- Target — links to the right detail page -->
-          <td class="small">
-            {% if is_upload == "upload." and event.target_id %}
-            <a href="{% url 'uploads:detail' event.target_id %}" class="text-decoration-none text-purple">
-              <i class="bi bi-folder2-open me-1"></i>{{ event.target_id|slice:":8" }}…
-            </a>
-            {% elif event.target_type == "Document" and event.target_id %}
-            <a href="{% url 'documents:detail' event.target_id %}" class="text-decoration-none">
-              <i class="bi bi-file-earmark me-1"></i>{{ event.target_id|slice:":8" }}…
-            </a>
-            {% elif event.target_type %}
-            <span class="text-muted">{{ event.target_type }}</span>
-            {% else %}
-            <span class="text-muted">—</span>
-            {% endif %}
-          </td>
+        {% elif event.event_type == "upload.downloaded" %}
+          {% with row_cls="ev-download" badge_cls="download" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
 
-          <!-- Doc Type (from metadata for uploads; from target_type for HR docs) -->
-          <td class="small">
-            {% if is_upload == "upload." and event.metadata.doc_type_display %}
-            <span class="doctype-chip">{{ event.metadata.doc_type_display }}</span>
-            {% else %}
-            <span class="text-muted">—</span>
-            {% endif %}
-          </td>
+        {% elif event.event_type == "upload.deleted" %}
+          {% with row_cls="ev-danger" badge_cls="danger" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
 
-          <!-- Metadata -->
-          <td class="small">
-            {% with meta=event.metadata|stringformat:"s" %}
-            {% if meta|length > 80 %}
-            <span data-bs-toggle="modal" data-bs-target="#meta-{{ event.id|slugify }}"
-                  style="cursor:pointer;" class="text-muted font-monospace">
-              {{ meta|slice:":80" }}&hellip;
-            </span>
-            <div class="modal fade" id="meta-{{ event.id|slugify }}" tabindex="-1">
-              <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h6 class="modal-title">{{ event.get_event_type_display }} — metadata</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-                  <div class="modal-body">
-                    <pre class="bg-light rounded p-3 small mb-0" style="white-space:pre-wrap;word-break:break-all;">{{ event.metadata }}</pre>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {% else %}
-            <span class="text-muted font-monospace">{{ meta }}</span>
-            {% endif %}
-            {% endwith %}
-          </td>
+        {% elif event.event_type == "document.generated" or event.event_type == "template.published" or event.event_type == "reconciliation.ok" or event.event_type == "document.unlocked" %}
+          {% with row_cls="ev-success" badge_cls="success" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
 
-          <!-- Time -->
-          <td class="text-muted small">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
-        </tr>
-        {% endwith %}
+        {% elif event.event_type == "document.viewed" %}
+          {% with row_cls="ev-info" badge_cls="info" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
+
+        {% elif event.event_type == "document.downloaded" %}
+          {% with row_cls="ev-download" badge_cls="download" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
+
+        {% elif event.event_type == "document.locked" or event.event_type == "user.role_changed" or event.event_type == "audit.flag.template_issuer_overlap" %}
+          {% with row_cls="ev-warning" badge_cls="warning" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
+
+        {% else %}
+          {# voided, access_denied, generation_failed, mismatch, etc. #}
+          {% with row_cls="ev-danger" badge_cls="danger" %}
+          {% include "documents/partials/audit_row.html" %}
+          {% endwith %}
+        {% endif %}
+
         {% endfor %}
       </tbody>
     </table>

@@ -1,96 +1,119 @@
-{% extends "letter_templates/base_letter.html" %}
-{% block content %}
-
-<div class="letterhead clearfix">
-  <div class="company-wrap">
-    <div class="company-name">{{ company.name }}</div>
-    <div class="company-meta">
-      {{ company.registered_address }}<br>
-      CIN: {{ company.cin }}{% if company.gstin %} &nbsp;|&nbsp; GSTIN: {{ company.gstin }}{% endif %}
-    </div>
-  </div>
-  {% if company.logo_url %}
-  <div class="logo-wrap"><img src="{{ company.logo_url }}" alt="{{ company.name }} logo"></div>
-  {% endif %}
-</div>
-
-<div class="date-line">Date: <strong>{{ issue_date }}</strong></div>
-
-{% if ref_number %}
-<div style="margin-bottom:10pt">Ref: <strong>{{ ref_number }}</strong></div>
-{% endif %}
-
-<div class="addressee">
-  <div class="to-label">To,</div>
-  <strong>{{ employee.name }}</strong>
-</div>
-
-<div class="subject-line">
-  <span class="subject-label">Sub:</span>
-  Offer of Employment — {{ employee.designation }}
-</div>
-
-<div class="salutation">Dear <strong>{{ employee.name }}</strong>,</div>
-
-<div class="body-text">
-  <p>
-    We are pleased to extend this offer of employment to you for the position of
-    <strong>{{ employee.designation }}</strong> in the <strong>{{ employee.department }}</strong>
-    department at <strong>{{ company.name }}</strong>.
-  </p>
-
-  <p>
-    Your appointment will be effective from <strong>{{ start_date }}</strong>,
-    subject to successful completion of documentation and background verification.
-  </p>
-
-  <p>
-    <strong>Compensation:</strong> Your annual Cost to Company (CTC) will be
-    <strong>INR {{ ctc_annual }}</strong> (Rupees {{ ctc_annual }} only), subject to applicable
-    tax deductions as per the prevailing income tax laws.
-  </p>
-
-  {% if probation_months %}
-  <p>
-    <strong>Probation Period:</strong> You will be on probation for
-    <strong>{{ probation_months }} month(s)</strong> from your date of joining.
-    Your employment will be confirmed upon satisfactory completion of the probation period.
-  </p>
-  {% endif %}
-
-  {% if reporting_to %}
-  <p>
-    <strong>Reporting:</strong> You will report to <strong>{{ reporting_to }}</strong>.
-  </p>
-  {% endif %}
-
-  {% if work_location %}
-  <p>
-    <strong>Work Location:</strong> {{ work_location }}. You may be required to work from
-    other locations or travel as per business requirements.
-  </p>
-  {% endif %}
-
-  <p>
-    This offer is contingent upon verification of your credentials, completion of joining
-    formalities, and execution of the Employee Agreement. Please sign and return a copy of
-    this letter as acknowledgement of your acceptance.
-  </p>
-
-  <p>We look forward to welcoming you to the team.</p>
-</div>
-
-<div class="signature-block">
-  Yours sincerely,
-  <div class="sign-line"></div>
-  <div class="sign-name">{{ company.signatory_name }}</div>
-  <div class="sign-desig">{{ company.signatory_designation }}</div>
-  <div class="sign-company">{{ company.name }}</div>
-</div>
-
-<div class="doc-footer">
-  This is a computer-generated document. | Document ID: <em>[auto]</em> |
-  Confidential — for the addressee only.
-</div>
-
-{% endblock %}
+<p>Name: {{ employee.name }}</p>
+<p>Dated: {{ issue_date }}</p>
+<p>Subject: {{ subject }}</p>
+<p>Dear {{ employee.name }} ,</p>
+<p>&nbsp;</p>
+<p>We are delighted to extend this offer of employment for the position of Growth Engineer at Basis Vectors. This offer follows your successful application and selection process. Your expected date of joining is {{ start_date }}.</p>
+<p>This offer letter outlines the key terms and conditions of your employment. A comprehensive Employment Agreement, Non-Disclosure Agreement, and Intellectual Property Assignment Agreement will be provided upon joining and must be signed before commencement.</p>
+<p><strong>1. Position and Duties</strong></p>
+<p>You will be employed on a full-time basis as Growth Engineer. Your role, responsibilities, and reporting structure will be as assigned from time to time by the Company. You shall abide by all Company policies, procedures, and code of conduct.</p>
+<p>Your employment will be on a permanent basis upon successful completion of the probationary period.</p>
+<p><strong>2. Compensation</strong></p>
+<p>Your Annual Cost to Company (CTC) will be INR {{ ctc_annual }}. This includes a Bring Your Own Device (BYOD) allowance of INR&nbsp;{{ byod_allowance }} and a variable performance-based pay of INR {{ variable_pay }}.</p>
+<p>The variable pay will be disbursed at the discretion of the management, based on periodic performance evaluations and in accordance with the company&rsquo;s policy.</p>
+<p>A detailed breakdown of your compensation is provided in Annexure 1.</p>
+<p><strong>3. Probation and Termination</strong></p>
+<p><strong>Probationary Period</strong></p>
+<p>Your employment will be subject to a probationary period of {{ probation_months }} months from your date of joining.</p>
+<p><strong>(a) </strong>During probation, either party may terminate employment by providing ten (10) working days&rsquo; written notice or payment of an equivalent amount in lieu of notice.</p>
+<p><strong>(b) </strong>On successful completion of probation, you shall be deemed confirmed in your role unless the Company explicitly communicates an extension of the probation period in writing.</p>
+<p><strong>Termination After Confirmation</strong></p>
+<p><strong>(c) </strong>Until the completion of one (1) year of continuous service: either party may terminate employment by providing thirty (30) days&rsquo; prior written notice or payment in lieu.</p>
+<p><strong>(d) </strong>After completing one (1) year of continuous service: either party may terminate employment by providing sixty (60) days&rsquo; prior written notice or payment in lieu.</p>
+<p><strong>(e) </strong>Any waiver or reduction of the notice period shall be at the sole discretion of the Company and must be confirmed in writing.</p>
+<p><strong>Training Recovery</strong></p>
+<p>If employment is discontinued within the first six (6) months of joining, the Company reserves the right to recover reasonable and actual training or onboarding costs incurred by the Company, subject to applicable law.</p>
+<p><strong>Summary Dismissal</strong></p>
+<p>The Company reserves the right to terminate your employment immediately and without notice in cases of gross misconduct, serious breach of Company policy, fraud, or dishonesty.</p>
+<p><strong>4. Additional Terms</strong></p>
+<p><strong>(a) </strong>Confidentiality: You are required to maintain strict confidentiality of all proprietary, technical, commercial, and client information of the Company at all times. A detailed Non-Disclosure Agreement (NDA) will be provided and must be signed as a condition of employment.</p>
+<p><strong>(b) </strong>Intellectual Property: All work, inventions, code, designs, content, and deliverables created during your employment shall be the exclusive property of the Company. You agree to assign all rights, title, and interest in such work to the Company. An IP Assignment Agreement will be provided upon joining.</p>
+<p><strong>(c) </strong>Data Privacy: You shall adhere to the Company&rsquo;s data protection policies and comply with all applicable data privacy laws, including the Digital Personal Data Protection Act, 2023 and the Information Technology Act, 2000.</p>
+<p><strong>(d) </strong>Non-Solicitation: During employment and for a period of six (6) months following separation, you agree not to solicit, recruit, or attempt to entice away any employee, client, or business partner of the Company with whom you had material business dealings during the course of your employment, using confidential information of the Company.</p>
+<p><strong>(e) </strong>Governing Law: This offer and any resulting employment shall be governed by the laws of India, with jurisdiction in the courts of Gurugram, Haryana.</p>
+<p><strong>5. Joining Conditions</strong></p>
+<p>This offer is contingent upon your acceptance and joining on or before {{ offer_expiry_date }}. Failure to join by this date will render this offer null and void.</p>
+<p><strong>(a) </strong>Satisfactory completion of the Company&rsquo;s pre-employment screening, including verification of your educational qualifications, prior employment history, and character references.</p>
+<p><strong>(b) </strong>Confirmation that you have no existing non-compete, non-solicitation, or other restrictive covenants with a prior employer that would prevent you from performing your duties under this offer.</p>
+<p>&nbsp;</p>
+<p>Upon joining, you will receive a detailed Employment Agreement covering all terms and conditions of your employment. We are excited to have you join the team at Basis Vectors.</p>
+<p>&nbsp;</p>
+<p>Congratulations and welcome aboard!</p>
+<p>&nbsp;</p>
+<p>Sincerely,</p>
+<p>Basis Vectors Portfolio Services India Private Limited</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>Authorized Signatory</p>
+<p>&nbsp;</p>
+<p>Accepted by</p>
+<p>&nbsp;</p>
+<table>
+<tbody>
+<tr>
+<td>
+<p><strong>Candidate Signature</strong></p>
+<p>{{ candidate_signature }}</p>
+<p>Date: {{ candidate_signature_date }}</p>
+</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Annexure 1</strong></p>
+<table style="width: 501px;">
+<tbody>
+<tr>
+<td style="width: 227.988px;">&nbsp;</td>
+<td style="width: 127.012px;">Per annum</td>
+<td style="width: 157px;">Monthly</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">Base Salary</td>
+<td style="width: 127.012px;">{{ base_salary_annual }}</td>
+<td style="width: 157px;">{{ base_salary_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">HRA</td>
+<td style="width: 127.012px;">{{ hra_annual }}</td>
+<td style="width: 157px;">{{ hra_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">Special Allowance</td>
+<td style="width: 127.012px;">{{ special_allowance_annual }}</td>
+<td style="width: 157px;">{{ special_allowance_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">BYOD</td>
+<td style="width: 127.012px;">{{ byod_annual }}</td>
+<td style="width: 157px;">{{ byod_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">Employer Provident Fund</td>
+<td style="width: 127.012px;">{{ employer_pf_annual }}</td>
+<td style="width: 157px;">{{ employer_pf_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">Employee Provident Fund</td>
+<td style="width: 127.012px;">{{ employee_pf_annual }}</td>
+<td style="width: 157px;">{{ employee_pf_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">Total Fixed</td>
+<td style="width: 127.012px;">{{ total_fixed_annual }}</td>
+<td style="width: 157px;">{{ total_fixed_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">Variable</td>
+<td style="width: 127.012px;">{{ variable_annual }}</td>
+<td style="width: 157px;">{{ variable_monthly }}</td>
+</tr>
+<tr>
+<td style="width: 227.988px;">Total Gross Pay</td>
+<td style="width: 127.012px;">{{ total_gross_annual }}</td>
+<td style="width: 157px;">{{ total_gross_monthly }}</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>

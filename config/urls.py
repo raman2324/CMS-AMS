@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.http import HttpResponseForbidden
 from django.urls import path, include, re_path
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect, render
@@ -17,8 +18,13 @@ def custom_404(request, exception=None, reason=None):
 
 handler404 = custom_404
 
+# Disable Django admin for all users — management is done via /documents/manage/
+admin.site.has_permission = lambda request: False
+
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("admin/", lambda request, *a, **kw: HttpResponseForbidden(
+        "Django admin is disabled. Use the Manage panel instead."
+    )),
     path("login/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("documents/", include("documents.urls", namespace="documents")),

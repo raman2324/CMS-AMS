@@ -74,20 +74,10 @@ class User(AbstractUser):
     # ------------------------------------------------------------------
 
     def save(self, *args, **kwargs):
-        # Finance Head and Admin must always be staff so they can enter /admin/
-        if self.is_admin_role or self.is_finance_head_role:
-            self.is_staff = True
         super().save(*args, **kwargs)
 
-    def _is_power_user(self):
-        return self.is_active and (self.is_admin_role or self.is_finance_head_role)
-
     def has_perm(self, perm, obj=None):
-        if self._is_power_user():
-            return True
         return super().has_perm(perm, obj)
 
     def has_module_perms(self, app_label):
-        if self._is_power_user():
-            return True
         return super().has_module_perms(app_label)

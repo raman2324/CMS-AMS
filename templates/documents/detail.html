@@ -12,7 +12,7 @@
           <i class="bi bi-arrow-left me-1"></i>Back to Documents
         </a>
         <h4 class="fw-bold mt-1 mb-0">
-          {{ document.template.get_name_display }}
+          {{ document.template.name }}
           <span class="text-muted fs-6">v{{ document.template.version }}</span>
         </h4>
         <p class="text-muted mb-0">
@@ -85,40 +85,49 @@
     </div>
 
     <!-- Variables snapshot — Finance Head only (contains salary/CTC data) -->
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-header bg-white fw-semibold small d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-clipboard-data me-1"></i>Variables Used (frozen at generation time)</span>
-        {% if not user.is_finance_head_role %}
-        <span class="badge bg-warning text-dark"><i class="bi bi-lock-fill me-1"></i>Restricted</span>
-        {% endif %}
-      </div>
-      {% if user.is_finance_head_role %}
-      <div class="card-body">
-        {% with snap=document.variables_snapshot.variables %}
-        {% if snap %}
-        <table class="table table-sm table-borderless mb-0">
-          <tbody>
-            {% for k, v in snap.items %}
-            <tr>
-              <td class="text-muted small fw-semibold pe-3" style="width:40%">{{ k }}</td>
-              <td class="small">{{ v|default:"—" }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+    <div class="mb-3 text-end">
+      <button class="btn btn-sm btn-outline-secondary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#vars-snapshot"
+              aria-expanded="false"
+              title="View frozen variables">
+        <i class="bi bi-info-circle me-1"></i>Variables Used
+      </button>
+    </div>
+    <div class="collapse mb-3" id="vars-snapshot">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold small">
+          <i class="bi bi-clipboard-data me-1"></i>Variables Used <span class="text-muted fw-normal">(frozen at generation time)</span>
+        </div>
+        {% if user.is_finance_head_role %}
+        <div class="card-body">
+          {% with snap=document.variables_snapshot.variables %}
+          {% if snap %}
+          <table class="table table-sm table-borderless mb-0">
+            <tbody>
+              {% for k, v in snap.items %}
+              <tr>
+                <td class="text-muted small fw-semibold pe-3" style="width:40%">{{ k }}</td>
+                <td class="small">{{ v|default:"—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <span class="text-muted small">No extra variables.</span>
+          {% endif %}
+          {% endwith %}
+        </div>
         {% else %}
-        <span class="text-muted small">No extra variables.</span>
+        <div class="card-body text-center py-4">
+          <i class="bi bi-shield-lock text-muted" style="font-size:1.8rem"></i>
+          <p class="text-muted small mt-2 mb-0">
+            Variable data (salary, CTC, dates) is restricted to Finance Head only.
+          </p>
+        </div>
         {% endif %}
-        {% endwith %}
       </div>
-      {% else %}
-      <div class="card-body text-center py-4">
-        <i class="bi bi-shield-lock text-muted" style="font-size:1.8rem"></i>
-        <p class="text-muted small mt-2 mb-0">
-          Variable data (salary, CTC, dates) is restricted to Finance Head only.
-        </p>
-      </div>
-      {% endif %}
     </div>
 
     <!-- Download action — hidden for viewers and when document is locked (unless Finance Head) -->

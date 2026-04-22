@@ -81,7 +81,7 @@
             <strong>{{ doc.recipient.name }}</strong>
             <div class="small text-muted">{{ doc.recipient.employee_code }} · {{ doc.recipient.department }}</div>
           </td>
-          <td>{{ doc.template.get_name_display }} <span class="text-muted small">v{{ doc.template.version }}</span></td>
+          <td>{{ doc.template.name }} <span class="text-muted small">v{{ doc.template.version }}</span></td>
           <td>{{ doc.company.short_name }}</td>
           <td>
             <div>{{ doc.generated_at|date:"d M Y" }}</div>

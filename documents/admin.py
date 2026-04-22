@@ -60,7 +60,7 @@ class LetterTemplateAdmin(admin.ModelAdmin):
             '<span class="badge" style="background:#198754;color:#fff;padding:2px 8px;border-radius:4px">Active</span>'
             if obj.is_active else ""
         )
-        return format_html("{} v{} {}", obj.get_name_display(), obj.version, badge)
+        return format_html("{} v{} {}", obj.name, obj.version, badge)
     display_name.short_description = "Template"
 
     def get_readonly_fields(self, request, obj=None):
@@ -126,7 +126,7 @@ class DocumentAdmin(admin.ModelAdmin):
     recipient_name.short_description = "Recipient"
 
     def template_name(self, obj):
-        return f"{obj.template.get_name_display()} v{obj.template.version}"
+        return f"{obj.template.name} v{obj.template.version}"
     template_name.short_description = "Template"
 
     def status_badge(self, obj):

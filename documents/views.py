@@ -23,30 +23,37 @@ Access control rules:
   - Finance Head: list (all documents), detail (all docs, lock/unlock, void any)
   - Admin:        generate documents, manage templates — NO document read access
 """
+import base64
+import json
+import re
 import uuid as _uuid_mod
 from datetime import date
 
+import anthropic
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.http import require_POST
 
 from accounts.models import User
 from documents.forms import GenerateDocumentForm, VoidDocumentForm
 from documents.models import (
-    AuditEvent, Company, Document, Employee,
+    AuditEvent, Company, ContractLensRecord, Document, Employee,
     LetterTemplate, BASE_VARIABLES_SCHEMA, TEMPLATE_NAME_CHOICES,
 )
 from documents.services import (
     build_letter_context, download_document, generate_document,
     lock_document, render_letter_html, unlock_document, void_document,
 )
+from documents.services.storage_service import save_document
 
 
 # ---------------------------------------------------------------------------
@@ -137,10 +144,25 @@ def template_fields(request, template_id):
     """
     template = get_object_or_404(LetterTemplate, id=template_id, is_active=True)
     schema = template.full_schema  # base + template-specific fields
+
+    # Split schema: regular fields vs. annexure table rows (paired _annual/_monthly)
+    regular_fields = {k: v for k, v in schema.items() if v.get("section") != "annexure1"}
+    annexure_rows = []
+    for k, v in schema.items():
+        if v.get("section") != "annexure1" or not k.endswith("_annual"):
+            continue
+        monthly_key = k[:-7] + "_monthly"
+        annexure_rows.append({
+            "label": v.get("row_label", v["label"]),
+            "annual_name": k,
+            "monthly_name": monthly_key,
+            "monthly_def": schema.get(monthly_key, {}),
+        })
+
     return render(
         request,
         "documents/partials/template_fields.html",
-        {"schema": schema, "template": template},
+        {"schema": regular_fields, "annexure_rows": annexure_rows, "template": template},
     )
 
 
@@ -474,7 +496,7 @@ def document_download(request, pk):
         return redirect("documents:detail", pk=pk)
 
     employee_name = document.recipient.name.replace(" ", "_")
-    tmpl_name = document.template.get_name_display().replace(" ", "_")
+    tmpl_name = document.template.name.replace(" ", "_")
     date_str = document.generated_at.strftime("%Y%m%d")
     filename = f"{tmpl_name}_{employee_name}_{date_str}.pdf"
 
@@ -532,3 +554,308 @@ class AuditLogView(LoginRequiredMixin, View):
             "date_from": date_from,
             "date_to": date_to,
         })
+
+
+# ── Contract Lens ──────────────────────────────────────────────────────────────
+
+@login_required
+def cadient_talent_view(request):
+    if request.user.role not in ("finance_head", "issuer"):
+        raise PermissionDenied
+    return render(request, "contractlens/cadient_talent_app.html")
+
+
+def _anthropic_client():
+    return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+
+def _parse_json_response(text):
+    raw = re.sub(r"```json|```", "", text).strip()
+    return json.loads(raw)
+
+
+def _save_cl_files(record_id, files):
+    """
+    Persist base64-encoded files to encrypted storage.
+    Returns a list of {name, type, s3_key, mime_type} for source_files_meta.
+    files: list of {name, type, content_b64, mime_type}
+    """
+    from datetime import datetime
+    meta = []
+    now = datetime.utcnow()
+    for f in files:
+        content_b64 = f.get("content_b64", "")
+        if not content_b64:
+            continue
+        raw_bytes = base64.b64decode(content_b64)
+        safe_name = re.sub(r"[^\w.\-]", "_", f.get("name", "file"))
+        s3_key = f"contractlens/cadient/{now.year}/{now.month:02d}/{record_id}/{safe_name}"
+        save_document(s3_key, raw_bytes)
+        meta.append({
+            "name": f.get("name", ""),
+            "type": f.get("type", "other"),
+            "s3_key": s3_key,
+            "mime_type": f.get("mime_type", "application/octet-stream"),
+        })
+    return meta
+
+
+@login_required
+@require_POST
+def cadient_talent_extract(request):
+    try:
+        data = json.loads(request.body)
+        pdf_b64 = data.get("pdf_b64", "")
+        override_name = data.get("override_name", "").strip()
+        if not pdf_b64:
+            return JsonResponse({"error": "No PDF data provided"}, status=400)
+
+        client = _anthropic_client()
+        msg = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1000,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_b64},
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            'Extract contract fields and return ONLY valid JSON, no markdown:\n'
+                            '{"customer_name":"","contract_number":null,"start_date":null,'
+                            '"end_date":null,"notice_period_days":null,"renewal_type":null,'
+                            '"contract_value":null,"payment_terms":null,"governing_law":null,"notes":null}'
+                        ),
+                    },
+                ],
+            }],
+        )
+        result = _parse_json_response(msg.content[0].text)
+        if override_name:
+            result["customer_name"] = override_name
+
+        # Persist record + file (encrypted)
+        record = ContractLensRecord.objects.create(
+            customer_name=result.get("customer_name", ""),
+            record_type=ContractLensRecord.RECORD_EXTRACT,
+            is_group=False,
+            contract_data=result,
+            created_by=request.user,
+        )
+        files_meta = _save_cl_files(str(record.id), [{"name": data.get("source_file_name", "contract.pdf"), "type": "contract", "content_b64": pdf_b64, "mime_type": "application/pdf"}])
+        record.source_files_meta = files_meta
+        record.save()
+
+        # Audit log
+        AuditEvent.objects.create(
+            event_type="contractlens.extracted",
+            actor=request.user,
+            target_type="ContractLensRecord",
+            target_id=str(record.id),
+            metadata={
+                "customer_name": result.get("customer_name", ""),
+                "record_id": str(record.id),
+                "files_stored": len(files_meta),
+            },
+        )
+
+        result["_server_record_id"] = str(record.id)
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def cadient_talent_analyse_group(request):
+    try:
+        data = json.loads(request.body)
+        name = data.get("name", "")
+        note = data.get("note", "")
+        files = data.get("files", [])
+
+        if not name:
+            return JsonResponse({"error": "Customer name required"}, status=400)
+        if not files:
+            return JsonResponse({"error": "No files provided"}, status=400)
+
+        DTYPE = {"contract": "Contract", "email": "Email", "amendment": "Amendment", "other": "Other"}
+        blocks = []
+        fdesc = []
+
+        for f in files:
+            fname = f.get("name", "")
+            ftype = f.get("type", "other")
+            content_b64 = f.get("content_b64", "")
+            mime_type = f.get("mime_type", "application/pdf")
+            label = DTYPE.get(ftype, ftype)
+            fdesc.append(f"[{label}] {fname}")
+
+            if mime_type == "application/pdf":
+                blocks.append({
+                    "type": "document",
+                    "source": {"type": "base64", "media_type": "application/pdf", "data": content_b64},
+                    "title": f"[{label}] {fname}",
+                })
+            elif mime_type.startswith("image/"):
+                blocks.append({"type": "image", "source": {"type": "base64", "media_type": mime_type, "data": content_b64}})
+                blocks.append({"type": "text", "text": f"[Above image: {label} — {fname}]"})
+            else:
+                text_content = base64.b64decode(content_b64).decode("utf-8", errors="replace")
+                blocks.append({"type": "text", "text": f"=== [{label}: {fname}] ===\n{text_content}\n=== END ==="})
+
+        context_line = f"Context: {note}" if note else ""
+        blocks.append({
+            "type": "text",
+            "text": (
+                f'Analyse ALL documents together for customer "{name}".\n'
+                f'Documents: {", ".join(fdesc)}\n'
+                f'{context_line}\n\n'
+                'Return ONLY valid JSON, no markdown:\n'
+                f'{{"customer_name":"{name}","contract_number":null,"start_date":null,'
+                '"end_date":null,"notice_period_days":null,"renewal_type":null,'
+                '"contract_value":null,"payment_terms":null,"governing_law":null,'
+                '"renewal_confirmed":false,"notes":"2-3 sentence summary of combined document analysis and current contract status"}}'
+            ),
+        })
+
+        client = _anthropic_client()
+        msg = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1400,
+            messages=[{"role": "user", "content": blocks}],
+        )
+        result = _parse_json_response(msg.content[0].text)
+
+        # Persist record + all files (encrypted)
+        record = ContractLensRecord.objects.create(
+            customer_name=result.get("customer_name", name),
+            record_type=ContractLensRecord.RECORD_GROUP,
+            is_group=True,
+            contract_data={**result, "context_note": note},
+            created_by=request.user,
+        )
+        files_meta = _save_cl_files(str(record.id), files)
+        record.source_files_meta = files_meta
+        record.save()
+
+        # Audit log
+        AuditEvent.objects.create(
+            event_type="contractlens.group_analysed",
+            actor=request.user,
+            target_type="ContractLensRecord",
+            target_id=str(record.id),
+            metadata={
+                "customer_name": result.get("customer_name", name),
+                "record_id": str(record.id),
+                "files_stored": len(files_meta),
+                "file_types": [f.get("type") for f in files],
+            },
+        )
+
+        result["_server_record_id"] = str(record.id)
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def cadient_talent_merge(request):
+    try:
+        data = json.loads(request.body)
+        name = data.get("name", "")
+        contracts_in = data.get("contracts", [])
+
+        if not name:
+            return JsonResponse({"error": "Group name required"}, status=400)
+        if len(contracts_in) < 2:
+            return JsonResponse({"error": "Need at least 2 contracts to merge"}, status=400)
+
+        blocks = []
+        fdesc = []
+
+        for c in contracts_in:
+            label = c.get("source_label", "Contract")
+            src = c.get("source_file", c.get("customer_name", ""))
+            fdesc.append(f"[{label}] {src}")
+
+            for f in c.get("files", []):
+                content_b64 = f.get("content_b64", "")
+                mime_type = f.get("mime_type", "application/pdf")
+                fname = f.get("name", "")
+                if mime_type == "application/pdf" and content_b64:
+                    blocks.append({
+                        "type": "document",
+                        "source": {"type": "base64", "media_type": "application/pdf", "data": content_b64},
+                        "title": f"Contract: {fname}",
+                    })
+
+            extracted = c.get("extracted_data", {})
+            blocks.append({
+                "type": "text",
+                "text": (
+                    f'=== Previously extracted data for "{c.get("customer_name", "")}" ===\n'
+                    f'{json.dumps(extracted, indent=2)}\n=== END ==='
+                ),
+            })
+
+        blocks.append({
+            "type": "text",
+            "text": (
+                f'These documents all belong to the same customer: "{name}".\n'
+                "Analyse them together as one complete contract record.\n"
+                "Return ONLY valid JSON, no markdown:\n"
+                f'{{"customer_name":"{name}","contract_number":null,"start_date":null,'
+                '"end_date":null,"notice_period_days":null,"renewal_type":null,'
+                '"contract_value":null,"payment_terms":null,"governing_law":null,'
+                '"renewal_confirmed":false,"notes":"Summary of the combined contract status based on all provided documents"}}'
+            ),
+        })
+
+        client = _anthropic_client()
+        msg = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1400,
+            messages=[{"role": "user", "content": blocks}],
+        )
+        result = _parse_json_response(msg.content[0].text)
+
+        # Collect all files from all input contracts for encrypted storage
+        all_files = [f for c in contracts_in for f in c.get("files", [])]
+        record = ContractLensRecord.objects.create(
+            customer_name=name,
+            record_type=ContractLensRecord.RECORD_MERGE,
+            is_group=True,
+            contract_data={
+                **result,
+                "merged_from": [c.get("customer_name", "") for c in contracts_in],
+            },
+            created_by=request.user,
+        )
+        files_meta = _save_cl_files(str(record.id), all_files)
+        record.source_files_meta = files_meta
+        record.save()
+
+        # Audit log
+        AuditEvent.objects.create(
+            event_type="contractlens.merged",
+            actor=request.user,
+            target_type="ContractLensRecord",
+            target_id=str(record.id),
+            metadata={
+                "customer_name": name,
+                "record_id": str(record.id),
+                "merged_from": [c.get("customer_name", "") for c in contracts_in],
+                "contracts_merged": len(contracts_in),
+                "files_stored": len(files_meta),
+            },
+        )
+
+        result["_server_record_id"] = str(record.id)
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

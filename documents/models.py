@@ -34,11 +34,34 @@ TEMPLATE_NAME_CHOICES = [
 # Per-template extra field schemas — merged with BASE_VARIABLES_SCHEMA at runtime.
 TEMPLATE_EXTRA_SCHEMAS = {
     "offer_letter": {
-        "ctc_annual": {"type": "number", "label": "Annual CTC (INR)", "required": True},
-        "start_date": {"type": "date", "label": "Start Date", "required": True},
+        # Header fields
+        "subject": {"type": "text", "label": "Subject", "required": True},
+        "start_date": {"type": "date", "label": "Date of Joining", "required": True},
         "probation_months": {"type": "number", "label": "Probation Period (months)", "required": False, "default": "3"},
-        "reporting_to": {"type": "text", "label": "Reporting To", "required": True},
-        "work_location": {"type": "text", "label": "Work Location", "required": True},
+        "offer_expiry_date": {"type": "date", "label": "Offer Expiry Date", "required": True},
+        # Compensation summary (body)
+        "ctc_annual": {"type": "text", "label": "Annual CTC (INR)", "required": True},
+        "byod_allowance": {"type": "text", "label": "BYOD Allowance (INR)", "required": True},
+        "variable_pay": {"type": "text", "label": "Variable Pay (INR)", "required": True},
+        # Annexure 1 — compensation table rows (section="annexure1" triggers table rendering)
+        "base_salary_annual":        {"type": "text", "label": "Base Salary — Annual",        "section": "annexure1", "row_label": "Base Salary",        "required": False},
+        "base_salary_monthly":       {"type": "text", "label": "Base Salary — Monthly",       "section": "annexure1", "required": False},
+        "hra_annual":                {"type": "text", "label": "HRA — Annual",                "section": "annexure1", "row_label": "HRA",                "required": False},
+        "hra_monthly":               {"type": "text", "label": "HRA — Monthly",               "section": "annexure1", "required": False},
+        "special_allowance_annual":  {"type": "text", "label": "Special Allowance — Annual",  "section": "annexure1", "row_label": "Special Allowance",  "required": False},
+        "special_allowance_monthly": {"type": "text", "label": "Special Allowance — Monthly", "section": "annexure1", "required": False},
+        "byod_annual":               {"type": "text", "label": "BYOD — Annual",               "section": "annexure1", "row_label": "BYOD",               "required": False},
+        "byod_monthly":              {"type": "text", "label": "BYOD — Monthly",              "section": "annexure1", "required": False},
+        "employer_pf_annual":        {"type": "text", "label": "Employer PF — Annual",        "section": "annexure1", "row_label": "Employer PF",        "required": False},
+        "employer_pf_monthly":       {"type": "text", "label": "Employer PF — Monthly",       "section": "annexure1", "required": False},
+        "employee_pf_annual":        {"type": "text", "label": "Employee PF — Annual",        "section": "annexure1", "row_label": "Employee PF",        "required": False},
+        "employee_pf_monthly":       {"type": "text", "label": "Employee PF — Monthly",       "section": "annexure1", "required": False},
+        "total_fixed_annual":        {"type": "text", "label": "Total Fixed — Annual",        "section": "annexure1", "row_label": "Total Fixed",        "required": False},
+        "total_fixed_monthly":       {"type": "text", "label": "Total Fixed — Monthly",       "section": "annexure1", "required": False},
+        "variable_annual":           {"type": "text", "label": "Variable — Annual",           "section": "annexure1", "row_label": "Variable",           "required": False},
+        "variable_monthly":          {"type": "text", "label": "Variable — Monthly",          "section": "annexure1", "required": False},
+        "total_gross_annual":        {"type": "text", "label": "Total Gross Pay — Annual",    "section": "annexure1", "row_label": "Total Gross Pay",    "required": False},
+        "total_gross_monthly":       {"type": "text", "label": "Total Gross Pay — Monthly",   "section": "annexure1", "required": False},
     },
     "salary_letter": {
         "salary_monthly": {"type": "number", "label": "Monthly Gross Salary (INR)", "required": True},
@@ -123,7 +146,7 @@ class Employee(models.Model):
 
 class LetterTemplate(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=50, choices=TEMPLATE_NAME_CHOICES)
+    name = models.CharField(max_length=100)
     version = models.PositiveIntegerField(default=1, editable=False)
     html_content = models.TextField(
         help_text="Django template syntax. Variables: {{ company }}, {{ employee }}, {{ issue_date }}, etc."
@@ -152,7 +175,7 @@ class LetterTemplate(models.Model):
 
     def __str__(self):
         status = "Active" if self.is_active else "Inactive"
-        return f"{self.get_name_display()} v{self.version} ({status})"
+        return f"{self.name} v{self.version} ({status})"
 
     def save(self, *args, **kwargs):
         if self._state.adding:
@@ -221,7 +244,7 @@ class Document(models.Model):
         ordering = ["-generated_at"]
 
     def __str__(self):
-        return f"{self.template.get_name_display()} — {self.recipient.name} ({self.generated_at.strftime('%Y-%m-%d')})"
+        return f"{self.template.name} — {self.recipient.name} ({self.generated_at.strftime('%Y-%m-%d')})"
 
     @property
     def is_void(self):
@@ -252,6 +275,10 @@ class AuditEvent(models.Model):
         ("upload.viewed", "File Viewed"),
         ("upload.downloaded", "File Downloaded"),
         ("upload.deleted", "File Deleted"),
+        # Contract Lens (Cadient Talent)
+        ("contractlens.extracted", "ContractLens: PDF Extracted"),
+        ("contractlens.group_analysed", "ContractLens: Group Analysed"),
+        ("contractlens.merged", "ContractLens: Contracts Merged"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -287,3 +314,44 @@ class AuditEvent(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValueError("AuditEvent records are immutable and cannot be deleted.")
+
+
+# ---------------------------------------------------------------------------
+# Contract Lens — Cadient Talent
+# ---------------------------------------------------------------------------
+
+class ContractLensRecord(models.Model):
+    """Server-side store for ContractLens contracts with encrypted fields."""
+
+    RECORD_EXTRACT = "extract"
+    RECORD_GROUP   = "group"
+    RECORD_MERGE   = "merge"
+    RECORD_TYPES = [
+        (RECORD_EXTRACT, "Single PDF Extraction"),
+        (RECORD_GROUP,   "Document Group Analysis"),
+        (RECORD_MERGE,   "Merged Contracts"),
+    ]
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    frontend_id  = models.CharField(max_length=60, blank=True, db_index=True)
+    customer_name = models.CharField(max_length=500, blank=True)
+    record_type  = models.CharField(max_length=20, choices=RECORD_TYPES, default=RECORD_EXTRACT)
+    is_group     = models.BooleanField(default=False)
+    # All extracted/analysed fields — encrypted at rest
+    contract_data = EncryptedJSONField(default=dict)
+    # [{name, type, s3_key, mime_type}] — file paths stored encrypted
+    source_files_meta = EncryptedJSONField(default=list)
+    created_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="contractlens_records",
+    )
+    created_at   = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "ContractLens Record"
+
+    def __str__(self):
+        return f"{self.customer_name} ({self.record_type}) — {self.created_at.strftime('%Y-%m-%d')}"
