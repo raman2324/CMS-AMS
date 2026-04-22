@@ -511,8 +511,8 @@ def document_download(request, pk):
 
 class AuditLogView(LoginRequiredMixin, View):
     """
-    Dedicated audit log page — Finance Head and Viewer only.
-    Issuers and Admins get 403 (they operate the tool, they don't audit it).
+    CMS audit log — Documents + Other Documents events only (excludes Contract Lens).
+    Finance Head and Viewer only.
     """
     template_name = "documents/audit.html"
 
@@ -520,7 +520,12 @@ class AuditLogView(LoginRequiredMixin, View):
         if request.user.role not in (User.ROLE_FINANCE_HEAD, User.ROLE_VIEWER):
             raise PermissionDenied
 
-        qs = AuditEvent.objects.select_related("actor").order_by("-occurred_at")
+        qs = (
+            AuditEvent.objects
+            .exclude(event_type__startswith="contractlens.")
+            .select_related("actor")
+            .order_by("-occurred_at")
+        )
 
         # Filters
         event_type_filter = request.GET.get("event_type", "").strip()
@@ -546,9 +551,70 @@ class AuditLogView(LoginRequiredMixin, View):
         paginator = Paginator(qs, 50)
         page_obj = paginator.get_page(request.GET.get("page"))
 
+        cms_event_types = [
+            (v, l) for v, l in AuditEvent.EVENT_TYPES
+            if not v.startswith("contractlens.")
+        ]
+
         return render(request, self.template_name, {
             "page_obj": page_obj,
-            "event_types": AuditEvent.EVENT_TYPES,
+            "event_types": cms_event_types,
+            "event_type_filter": event_type_filter,
+            "actor_filter": actor_filter,
+            "date_from": date_from,
+            "date_to": date_to,
+        })
+
+
+class ContractLensAuditLogView(LoginRequiredMixin, View):
+    """
+    Contract Lens audit log — contractlens.* events only.
+    Finance Head and Viewer only.
+    """
+    template_name = "documents/contractlens_audit.html"
+
+    def get(self, request):
+        if request.user.role not in (User.ROLE_FINANCE_HEAD, User.ROLE_VIEWER):
+            raise PermissionDenied
+
+        qs = (
+            AuditEvent.objects
+            .filter(event_type__startswith="contractlens.")
+            .select_related("actor")
+            .order_by("-occurred_at")
+        )
+
+        event_type_filter = request.GET.get("event_type", "").strip()
+        if event_type_filter:
+            qs = qs.filter(event_type=event_type_filter)
+
+        actor_filter = request.GET.get("actor", "").strip()
+        if actor_filter:
+            qs = qs.filter(
+                Q(actor__username__icontains=actor_filter) |
+                Q(actor__first_name__icontains=actor_filter) |
+                Q(actor__last_name__icontains=actor_filter)
+            )
+
+        date_from = request.GET.get("date_from", "").strip()
+        if date_from:
+            qs = qs.filter(occurred_at__date__gte=date_from)
+
+        date_to = request.GET.get("date_to", "").strip()
+        if date_to:
+            qs = qs.filter(occurred_at__date__lte=date_to)
+
+        paginator = Paginator(qs, 50)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+        cl_event_types = [
+            (v, l) for v, l in AuditEvent.EVENT_TYPES
+            if v.startswith("contractlens.")
+        ]
+
+        return render(request, self.template_name, {
+            "page_obj": page_obj,
+            "event_types": cl_event_types,
             "event_type_filter": event_type_filter,
             "actor_filter": actor_filter,
             "date_from": date_from,

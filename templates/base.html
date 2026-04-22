@@ -25,20 +25,34 @@
     </div>
 
     <nav class="sidebar-nav">
-      <a class="sidebar-link {% if request.resolver_match.url_name == 'list' %}active{% endif %}"
-         href="{% url 'documents:list' %}">
-        <i class="bi bi-files me-2"></i>Documents
-      </a>
-      <a class="sidebar-link {% if request.resolver_match.app_name == 'uploads' %}active{% endif %}"
-         href="{% url 'uploads:list' %}">
-        <i class="bi bi-folder2-open me-2"></i>Other Documents
-      </a>
-      {% if user.role == 'finance_head' or user.role == 'viewer' %}
-      <a class="sidebar-link {% if request.resolver_match.url_name == 'audit' %}active{% endif %}"
-         href="{% url 'documents:audit' %}">
-        <i class="bi bi-shield-check me-2"></i>Audit Log
-      </a>
-      {% endif %}
+
+      <!-- CMS Section -->
+      <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#cmsMenu"
+              aria-expanded="{% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}true{% else %}false{% endif %}"
+              aria-controls="cmsMenu">
+        <i class="bi bi-files me-2"></i>CMS
+        <i class="bi bi-chevron-down ms-auto small {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}rotate-180{% endif %}"></i>
+      </button>
+      <div class="collapse {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}show{% endif %}" id="cmsMenu">
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' %}active{% endif %}"
+           href="{% url 'documents:list' %}">
+          <i class="bi bi-dot me-1"></i>Documents
+        </a>
+        <a class="sidebar-link ps-4 {% if request.resolver_match.app_name == 'uploads' %}active{% endif %}"
+           href="{% url 'uploads:list' %}">
+          <i class="bi bi-dot me-1"></i>Other Documents
+        </a>
+        {% if user.role == 'finance_head' or user.role == 'viewer' %}
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'audit' %}active{% endif %}"
+           href="{% url 'documents:audit' %}">
+          <i class="bi bi-dot me-1"></i>Audit Log
+        </a>
+        {% endif %}
+      </div>
+
       {% if user.role == 'finance_head' %}
       <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
          href="{% url 'documents:manage_dashboard' %}">
@@ -55,15 +69,22 @@
               aria-expanded="{% if 'contract-lens' in request.path %}true{% else %}false{% endif %}"
               aria-controls="contractLensMenu">
         <i class="bi bi-file-earmark-ruled me-2"></i>Contract Lens
-        <i class="bi bi-chevron-down ms-auto small {% if 'contract-lens' in request.path %}rotate-180{% endif %}" id="cl-chevron"></i>
+        <i class="bi bi-chevron-down ms-auto small {% if 'contract-lens' in request.path %}rotate-180{% endif %}"></i>
       </button>
       <div class="collapse {% if 'contract-lens' in request.path %}show{% endif %}" id="contractLensMenu">
         <a class="sidebar-link ps-4 {% if 'cadient' in request.path %}active{% endif %}"
            href="{% url 'documents:cadient_talent' %}">
           <i class="bi bi-dot me-1"></i>Cadient Talent
         </a>
+        {% if user.role == 'finance_head' or user.role == 'viewer' %}
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'contractlens_audit' %}active{% endif %}"
+           href="{% url 'documents:contractlens_audit' %}">
+          <i class="bi bi-dot me-1"></i>Audit Log
+        </a>
+        {% endif %}
       </div>
       {% endif %}
+
     </nav>
 
     <div class="sidebar-footer">

@@ -33,6 +33,7 @@ urlpatterns = [
     path("manage/templates/convert-docx/", manage_views.manage_template_convert_docx, name="manage_template_convert_docx"),
 
     # Contract Lens
+    path("contract-lens/audit/", views.ContractLensAuditLogView.as_view(), name="contractlens_audit"),
     path("contract-lens/cadient/", views.cadient_talent_view, name="cadient_talent"),
     path("contract-lens/api/extract/", views.cadient_talent_extract, name="cadient_talent_extract"),
     path("contract-lens/api/analyse-group/", views.cadient_talent_analyse_group, name="cadient_talent_analyse_group"),
