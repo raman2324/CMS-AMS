@@ -4,27 +4,58 @@ services:
   web:
     build: .
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
-      - .:/app                        # live-reload: code changes reflect immediately
-      - pdf_storage:/app/local_pdfs   # persisted PDF storage
+      - .:/app
+      - pdf_storage:/app/local_pdfs
+      - ams_receipts_shared:/app/local_pdfs/shared_receipts
     environment:
       - DEBUG=True
       - SECRET_KEY=dev-secret-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
-      # AES-256 Fernet key — encrypts files at rest AND salary/variables DB columns.
-      # For production: generate a fresh key, store in a secrets manager, never commit it.
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,192.168.80.233
       - DOCUMENT_ENCRYPTION_KEY=jPt1rx-Lv_Ts7HYkUNnD9qtyADNzXhaiqL4qMJW4pnE=
-      # SQLite (default). To switch to PostgreSQL, uncomment the block below
-      # and add a `db` service.
-      # - DB_ENGINE=django.db.backends.postgresql
-      # - DB_NAME=cms_db
-      # - DB_USER=cms_user
-      # - DB_PASSWORD=cms_password
-      # - DB_HOST=db
-      # - DB_PORT=5432
-    depends_on: []
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=cms_db
+      - DB_USER=admin
+      - DB_PASSWORD=secret
+      - DB_HOST=shared_mysql
+      - DB_PORT=3306
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+    networks:
+      - shared_network
+
+  db:
+    image: mysql:8.0
+    container_name: shared_mysql
+    command: --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE: cms_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: secret
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init-mysql.sql:/docker-entrypoint-initdb.d/init-mysql.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "admin", "-psecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - shared_network
 
 volumes:
   pdf_storage:
+  db_data:
+  ams_receipts_shared:
+    external: true
+
+networks:
+  shared_network:
+    external: true

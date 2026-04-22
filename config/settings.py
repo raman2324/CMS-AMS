@@ -75,6 +75,8 @@ DATABASES = {
         "PASSWORD": config("DB_PASSWORD", default=""),
         "HOST": config("DB_HOST", default=""),
         "PORT": config("DB_PORT", default=""),
+        **({"OPTIONS": {"charset": "utf8mb4"}}
+           if _db_engine.endswith("mysql") else {}),
     }
 }
 
@@ -171,3 +173,8 @@ AXES_VERBOSE = False
 #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # ---------------------------------------------------------------------------
 # DOCUMENT_ENCRYPTION_KEY is read directly from env by storage_service.py
+
+# ---------------------------------------------------------------------------
+# Anthropic API key — required for Contract Lens features
+# ---------------------------------------------------------------------------
+ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")

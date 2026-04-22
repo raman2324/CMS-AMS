@@ -39,6 +39,26 @@
         <i class="bi bi-shield-check me-2"></i>Audit Log
       </a>
       {% endif %}
+      {% if user.role == 'finance_head' %}
+      <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
+         href="{% url 'documents:manage_dashboard' %}">
+        <i class="bi bi-gear me-2"></i>Manage
+      </a>
+      {% endif %}
+
+      {% if user.role == 'finance_head' or user.role == 'issuer' %}
+      <a class="sidebar-link {% if 'contract-lens' in request.path and 'audit' not in request.path %}active{% endif %}"
+         href="{% url 'documents:cadient_talent' %}">
+        <i class="bi bi-file-earmark-ruled me-2"></i>Contract Lens
+      </a>
+      {% if user.role == 'finance_head' or user.role == 'viewer' %}
+      <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'contractlens_audit' %}active{% endif %}"
+         href="{% url 'documents:contractlens_audit' %}">
+        <i class="bi bi-dot me-1"></i>CL Audit Log
+      </a>
+      {% endif %}
+      {% endif %}
+
       {% if user.is_admin_role or user.is_staff %}
       <a class="sidebar-link" href="/admin/" target="_blank">
         <i class="bi bi-gear me-2"></i>Admin

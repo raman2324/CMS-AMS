@@ -252,6 +252,10 @@ class AuditEvent(models.Model):
         ("upload.viewed", "File Viewed"),
         ("upload.downloaded", "File Downloaded"),
         ("upload.deleted", "File Deleted"),
+        # Contract Lens (Cadient Talent)
+        ("contractlens.extracted", "ContractLens: PDF Extracted"),
+        ("contractlens.group_analysed", "ContractLens: Group Analysed"),
+        ("contractlens.merged", "ContractLens: Contracts Merged"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -287,3 +291,42 @@ class AuditEvent(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValueError("AuditEvent records are immutable and cannot be deleted.")
+
+
+# ---------------------------------------------------------------------------
+# Contract Lens — Cadient Talent
+# ---------------------------------------------------------------------------
+
+class ContractLensRecord(models.Model):
+    """Server-side store for ContractLens contracts with encrypted fields."""
+
+    RECORD_EXTRACT = "extract"
+    RECORD_GROUP   = "group"
+    RECORD_MERGE   = "merge"
+    RECORD_TYPES = [
+        (RECORD_EXTRACT, "Single PDF Extraction"),
+        (RECORD_GROUP,   "Document Group Analysis"),
+        (RECORD_MERGE,   "Merged Contracts"),
+    ]
+
+    id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    frontend_id   = models.CharField(max_length=60, blank=True, db_index=True)
+    customer_name = models.CharField(max_length=500, blank=True)
+    record_type   = models.CharField(max_length=20, choices=RECORD_TYPES, default=RECORD_EXTRACT)
+    is_group      = models.BooleanField(default=False)
+    contract_data      = EncryptedJSONField(default=dict)
+    source_files_meta  = EncryptedJSONField(default=list)
+    created_by    = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="contractlens_records",
+    )
+    created_at    = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "ContractLens Record"
+
+    def __str__(self):
+        return f"{self.customer_name} ({self.record_type}) — {self.created_at.strftime('%Y-%m-%d')}"

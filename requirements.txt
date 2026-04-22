@@ -8,3 +8,6 @@ whitenoise==6.9.0
 gunicorn==23.0.0
 django-axes==7.0.1
 cryptography==44.0.2
+mysqlclient>=2.2.0
+mammoth==1.9.0
+anthropic
