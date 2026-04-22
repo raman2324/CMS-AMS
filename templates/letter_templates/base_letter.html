@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* ---- Page layout ---- */
+  @page {
+    size: A4;
+    margin: 2.5cm 2.5cm 3.5cm 2.5cm;
+
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #666;
+    }
+  }
+
+  /* ---- Base typography ---- */
+  body {
+    font-family: "Liberation Serif", "Times New Roman", serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #111;
+    margin: 0;
+  }
+
+  /* ---- Letterhead ---- */
+  .letterhead {
+    border-bottom: 2px solid #111;
+    padding-bottom: 10pt;
+    margin-bottom: 18pt;
+    overflow: hidden;
+  }
+  .letterhead .company-name {
+    font-size: 16pt;
+    font-weight: bold;
+    letter-spacing: 0.5pt;
+  }
+  .letterhead .company-meta {
+    font-size: 8.5pt;
+    color: #444;
+    margin-top: 3pt;
+    line-height: 1.4;
+  }
+  .letterhead .logo-wrap {
+    float: right;
+    text-align: right;
+    max-width: 120pt;
+  }
+  .letterhead .logo-wrap img {
+    max-height: 48pt;
+    max-width: 120pt;
+  }
+  .letterhead .company-wrap {
+    float: left;
+  }
+
+  /* ---- Body ---- */
+  .date-line { margin-bottom: 14pt; }
+
+  .addressee { margin-bottom: 14pt; }
+  .addressee .to-label { font-size: 9pt; color: #666; }
+
+  .subject-line {
+    font-weight: bold;
+    text-decoration: underline;
+    margin-bottom: 14pt;
+  }
+  .subject-label { font-size: 9.5pt; color: #555; margin-right: 4pt; }
+
+  .salutation { margin-bottom: 10pt; }
+
+  .body-text p { margin: 0 0 10pt 0; }
+
+  /* ---- Signature block ---- */
+  .signature-block {
+    margin-top: 36pt;
+    page-break-inside: avoid;
+  }
+  .signature-block .sign-line {
+    border-top: 1px solid #555;
+    width: 160pt;
+    margin-top: 36pt;
+    margin-bottom: 3pt;
+  }
+  .signature-block .sign-name { font-weight: bold; font-size: 10.5pt; }
+  .signature-block .sign-desig { font-size: 9.5pt; color: #444; }
+  .signature-block .sign-company { font-size: 9.5pt; color: #444; }
+
+  /* ---- Footer note (ref, confidential) ---- */
+  .doc-footer {
+    margin-top: 24pt;
+    padding-top: 6pt;
+    border-top: 1px solid #ccc;
+    font-size: 8pt;
+    color: #888;
+  }
+
+  /* ---- Tables (salary breakdowns) ---- */
+  .salary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12pt 0;
+    font-size: 10pt;
+  }
+  .salary-table th {
+    background: #f0f0f0;
+    padding: 5pt 8pt;
+    text-align: left;
+    border: 1pt solid #ccc;
+    font-weight: bold;
+  }
+  .salary-table td {
+    padding: 5pt 8pt;
+    border: 1pt solid #ccc;
+  }
+  .salary-table .total-row td {
+    font-weight: bold;
+    background: #f8f8f8;
+  }
+
+  /* ---- Utility ---- */
+  strong { font-weight: bold; }
+  .clearfix::after { content: ""; display: table; clear: both; }
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

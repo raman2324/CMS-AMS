@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} — Manage — HR Docs{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-1 small">
+      <li class="breadcrumb-item"><a href="{% url 'documents:manage_dashboard' %}">Manage</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'documents:manage_companies' %}">Companies</a></li>
+      <li class="breadcrumb-item active">{{ action }}</li>
+    </ol>
+  </nav>
+  <h4 class="mb-0 fw-bold">{{ action }}</h4>
+  {% if company %}<div class="text-muted small">Editing: {{ company.name }}</div>{% endif %}
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width: 700px;">
+  <div class="card-body p-4">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label fw-medium">Company Name <span class="text-danger">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Short Name (slug) <span class="text-danger">*</span></label>
+          {{ form.short_name }}
+          {% if form.short_name.errors %}<div class="invalid-feedback d-block">{{ form.short_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-medium">Registered Address <span class="text-danger">*</span></label>
+          {{ form.registered_address }}
+          {% if form.registered_address.errors %}<div class="invalid-feedback d-block">{{ form.registered_address.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">CIN <span class="text-danger">*</span></label>
+          {{ form.cin }}
+          {% if form.cin.errors %}<div class="invalid-feedback d-block">{{ form.cin.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">GSTIN</label>
+          {{ form.gstin }}
+          {% if form.gstin.errors %}<div class="invalid-feedback d-block">{{ form.gstin.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Signatory Name <span class="text-danger">*</span></label>
+          {{ form.signatory_name }}
+          {% if form.signatory_name.errors %}<div class="invalid-feedback d-block">{{ form.signatory_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Signatory Designation <span class="text-danger">*</span></label>
+          {{ form.signatory_designation }}
+          {% if form.signatory_designation.errors %}<div class="invalid-feedback d-block">{{ form.signatory_designation.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-medium">Company Logo</label>
+          {{ form.logo }}
+          {% if form.logo.errors %}<div class="invalid-feedback d-block">{{ form.logo.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            {{ form.is_active }}
+            <label class="form-check-label fw-medium" for="{{ form.is_active.id_for_label }}">Active</label>
+            <div class="form-text text-muted">Inactive companies will not appear in document generation.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-check-lg me-1"></i>Save Company
+        </button>
+        <a href="{% url 'documents:manage_companies' %}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

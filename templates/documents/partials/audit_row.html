@@ -1,0 +1,55 @@
+{% with is_upload=event.event_type|slice:":7" is_cl=event.event_type|slice:":13" %}
+<tr class="{{ row_cls }}">
+
+  <!-- Source pill -->
+  <td class="ps-3">
+    {% if is_cl == "contractlens." %}
+    <span class="src-pill src-cl" title="Contract Lens"><i class="bi bi-file-earmark-ruled"></i></span>
+    {% elif is_upload == "upload." %}
+    <span class="src-pill src-upload" title="Other Documents"><i class="bi bi-folder2-open"></i></span>
+    {% else %}
+    <span class="src-pill src-doc" title="HR Documents"><i class="bi bi-file-earmark-text"></i></span>
+    {% endif %}
+  </td>
+
+  <!-- Event badge -->
+  <td>
+    <span class="ev-badge {{ badge_cls }}">{{ event.get_event_type_display }}</span>
+  </td>
+
+  <!-- Actor -->
+  <td class="text-muted small">
+    {% if event.actor %}{{ event.actor.username }}{% else %}<em>system</em>{% endif %}
+  </td>
+
+  <!-- Target -->
+  <td class="small">
+    {% if is_upload == "upload." and event.target_id %}
+    <a href="{% url 'uploads:detail' event.target_id %}" class="text-decoration-none" style="color:#7e22ce">
+      <i class="bi bi-folder2-open me-1"></i>{{ event.target_id|slice:":8" }}…
+    </a>
+    {% elif event.target_type == "Document" and event.target_id %}
+    <a href="{% url 'documents:detail' event.target_id %}" class="text-decoration-none text-dark">
+      <i class="bi bi-file-earmark me-1"></i>{{ event.target_id|slice:":8" }}…
+    </a>
+    {% elif event.target_type %}
+    <span class="text-muted">{{ event.target_type }}</span>
+    {% else %}
+    <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+
+  <!-- Doc Type -->
+  <td class="small">
+    {% if is_upload == "upload." and event.metadata.doc_type_display %}
+    <span class="doctype-chip">{{ event.metadata.doc_type_display }}</span>
+    {% else %}
+    <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+
+  <!-- Time -->
+  <td class="text-muted small">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
+
+</tr>
+{% endwith %}

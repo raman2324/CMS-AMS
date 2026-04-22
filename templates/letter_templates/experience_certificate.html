@@ -1,0 +1,65 @@
+{% extends "letter_templates/base_letter.html" %}
+{% block content %}
+
+<div class="letterhead clearfix">
+  <div class="company-wrap">
+    <div class="company-name">{{ company.name }}</div>
+    <div class="company-meta">
+      {{ company.registered_address }}<br>
+      CIN: {{ company.cin }}{% if company.gstin %} &nbsp;|&nbsp; GSTIN: {{ company.gstin }}{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="date-line">Date: <strong>{{ issue_date }}</strong></div>
+
+{% if ref_number %}
+<div style="margin-bottom:10pt">Ref: <strong>{{ ref_number }}</strong></div>
+{% endif %}
+
+<div style="text-align:center; margin:18pt 0 14pt 0;">
+  <div style="font-size:14pt; font-weight:bold; text-decoration:underline; letter-spacing:1pt;">
+    EXPERIENCE CERTIFICATE
+  </div>
+</div>
+
+<div class="body-text">
+  <p>To Whomsoever It May Concern,</p>
+
+  <p>
+    This is to certify that <strong>{{ employee.name }}</strong> was employed with
+    <strong>{{ company.name }}</strong> as <strong>{{ employee.designation }}</strong>
+    in the <strong>{{ employee.department }}</strong> department.
+  </p>
+
+  <p>
+    <strong>{{ employee.name }}</strong> joined us on <strong>{{ employee.joining_date }}</strong>
+    and has served until <strong>{{ last_working_date }}</strong>.
+  </p>
+
+  <p>
+    During their tenure, {{ employee.name }} demonstrated dedication, professionalism, and
+    a thorough understanding of their responsibilities.
+    {% if performance_note %}
+    {{ performance_note }}
+    {% endif %}
+  </p>
+
+  <p>
+    We wish {{ employee.name }} the very best in all their future endeavours.
+  </p>
+</div>
+
+<div class="signature-block">
+  For <strong>{{ company.name }}</strong>
+  <div class="sign-line"></div>
+  <div class="sign-name">{{ company.signatory_name }}</div>
+  <div class="sign-desig">{{ company.signatory_designation }}</div>
+  <div class="sign-company">{{ company.name }}</div>
+</div>
+
+<div class="doc-footer">
+  This is a computer-generated document. | Document ID: <em>[auto]</em>
+</div>
+
+{% endblock %}

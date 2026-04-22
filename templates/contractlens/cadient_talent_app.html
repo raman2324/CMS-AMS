@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContractLens</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#1a1a18;--ink2:#4a4a44;--ink3:#8a8a80;
+  --paper:#f5f3ee;--paper2:#eceae3;--paper3:#e2dfd6;
+  --gold:#c8973a;--gold-lt:#f0d9a8;
+  --green:#2d6a4f;--green-lt:#d8f3dc;
+  --red:#9b2335;--red-lt:#fde8eb;
+  --amber:#b45309;--amber-lt:#fef3c7;
+  --blue:#1e4d8c;--blue-lt:#dbeafe;
+  --r:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:14px;}
+.header{background:var(--ink);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;}
+.logo{font-family:'Fraunces',serif;font-size:20px;font-weight:300;color:var(--gold-lt);letter-spacing:.02em;}
+.logo span{color:var(--gold);font-weight:600;}
+.tabs{display:flex;background:var(--paper2);border-bottom:1px solid var(--paper3);padding:0 32px;}
+.tab{padding:12px 20px;font-size:11px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.05em;font-family:'DM Mono',monospace;text-transform:uppercase;white-space:nowrap;}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--ink);border-bottom-color:var(--gold);}
+.main{padding:32px;max-width:1200px;margin:0 auto;}
+.panel{display:none;}.panel.active{display:block;}
+.section-title{font-family:'Fraunces',serif;font-size:26px;font-weight:300;margin-bottom:6px;}
+.section-sub{color:var(--ink3);font-size:13px;margin-bottom:28px;}
+/* API bar */
+.api-bar{background:var(--ink);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.api-bar label{color:var(--gold-lt);font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;letter-spacing:.06em;text-transform:uppercase;}
+.api-bar input{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:7px 12px;color:#fff;font-family:'DM Mono',monospace;font-size:12px;outline:none;}
+.api-bar input:focus{border-color:var(--gold);}
+.api-bar input::placeholder{color:rgba(255,255,255,.3);}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.btn-primary{background:var(--ink);color:#fff;}.btn-primary:hover{background:#2d2d28;}.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.btn-outline{background:transparent;border:1px solid var(--paper3);color:var(--ink2);}.btn-outline:hover{border-color:var(--ink3);}
+.btn-gold{background:var(--gold);color:#fff;}.btn-gold:hover{background:#b8872e;}
+.btn-blue{background:var(--blue);color:#fff;}.btn-blue:hover{background:#163a6b;}
+.btn-sm{padding:6px 14px;font-size:12px;}
+/* Upload */
+.upload-zone{border:2px dashed var(--paper3);border-radius:10px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.5);margin-bottom:16px;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(200,151,58,.06);}
+.upload-icon{width:44px;height:44px;margin:0 auto 12px;background:var(--paper2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.upload-zone h3{font-family:'Fraunces',serif;font-weight:300;font-size:17px;margin-bottom:4px;}
+.upload-zone p{color:var(--ink3);font-size:13px;}
+/* Queue */
+.queue{margin-bottom:16px;display:flex;flex-direction:column;gap:8px;}
+.queue-item{background:#fff;border:1px solid var(--paper3);border-radius:var(--r);padding:10px 14px;display:flex;align-items:flex-start;gap:10px;}
+.fname{flex:1;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink2);min-width:0;}
+.queue-badge{font-size:11px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:20px;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.badge-pending{background:var(--paper2);color:var(--ink3);}
+.badge-processing{background:var(--amber-lt);color:var(--amber);}
+.badge-done{background:var(--green-lt);color:var(--green);}
+.badge-error{background:var(--red-lt);color:var(--red);}
+.prog-wrap{background:var(--paper2);border-radius:4px;height:5px;overflow:hidden;margin-top:5px;}
+.prog-fill{height:100%;background:var(--gold);border-radius:4px;transition:width .3s;}
+/* Group builder */
+.group-builder{background:#fff;border:1px solid var(--paper3);border-radius:10px;overflow:hidden;margin-bottom:28px;}
+.gb-header{padding:16px 20px;background:var(--blue);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.gb-header h3{font-family:'Fraunces',serif;font-weight:300;font-size:17px;color:#fff;}
+.gb-header p{color:rgba(255,255,255,.65);font-size:12px;margin-top:2px;}
+.gb-body{padding:20px;}
+.group-name-input{width:100%;border:1px solid var(--paper3);border-radius:var(--r);padding:10px 14px;font-size:14px;outline:none;font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);margin-bottom:16px;}
+.group-name-input:focus{border-color:var(--blue);}
+.group-name-input::placeholder{color:var(--ink3);}
+.type-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.type-pill{font-size:11px;font-family:'DM Mono',monospace;padding:5px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--paper3);color:var(--ink3);background:#fff;transition:all .15s;}
+.type-pill.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.group-drop{border:1.5px dashed var(--paper3);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;color:var(--ink3);font-size:13px;transition:all .15s;margin-bottom:14px;}
+.group-drop:hover,.group-drop.drag{border-color:var(--blue);color:var(--blue);background:var(--blue-lt);}
+.gfiles{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;min-height:44px;}
+.gfile-row{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--paper3);border-radius:var(--r);padding:8px 12px;}
+.gfile-name{flex:1;font-size:12px;font-family:'DM Mono',monospace;color:var(--ink2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dtype{font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:10px;text-transform:uppercase;flex-shrink:0;}
+.dt-contract{background:var(--blue-lt);color:var(--blue);}
+.dt-email{background:var(--green-lt);color:var(--green);}
+.dt-amendment{background:var(--amber-lt);color:var(--amber);}
+.dt-other{background:var(--paper2);color:var(--ink3);}
+.gfile-rm{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;flex-shrink:0;}
+.gfile-rm:hover{color:var(--red);}
+/* Groups list */
+.groups-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.group-card{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;}
+.gc-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid transparent;}
+.gc-header:hover{background:#faf9f6;}
+.gc-name{flex:1;font-weight:500;font-size:14px;}
+.gc-files-body{padding:10px 16px 14px;flex-direction:column;gap:6px;}
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:#fff;border:1px solid var(--paper3);border-radius:8px;padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.stat-card.total::before{background:var(--ink);}
+.stat-card.active::before{background:var(--green);}
+.stat-card.expiring::before{background:var(--amber);}
+.stat-card.expired::before{background:var(--red);}
+.stat-label{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:8px;}
+.stat-value{font-family:'Fraunces',serif;font-size:36px;font-weight:600;line-height:1;}
+.stat-sub{font-size:12px;color:var(--ink3);margin-top:4px;}
+/* Table */
+.table-wrap{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;margin-bottom:28px;}
+.table-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--paper2);gap:12px;flex-wrap:wrap;}
+.table-title{font-family:'Fraunces',serif;font-size:16px;font-weight:300;}
+.search-input{border:1px solid var(--paper3);border-radius:var(--r);padding:7px 12px;font-size:13px;outline:none;width:200px;font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);}
+.search-input:focus{border-color:var(--gold);}
+.filter-select{border:1px solid var(--paper3);border-radius:var(--r);padding:7px 10px;font-size:13px;background:var(--paper);color:var(--ink);outline:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--paper2);background:var(--paper);}
+tbody tr{border-bottom:1px solid var(--paper2);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#faf9f6;}
+tbody td{padding:11px 14px;vertical-align:middle;}
+.cname{font-weight:500;}
+.cid{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);}
+.spill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;font-family:'DM Mono',monospace;}
+.spill::before{content:'';width:6px;height:6px;border-radius:50%;}
+.s-active{background:var(--green-lt);color:var(--green);}.s-active::before{background:var(--green);}
+.s-expiring{background:var(--amber-lt);color:var(--amber);}.s-expiring::before{background:var(--amber);}
+.s-expired{background:var(--red-lt);color:var(--red);}.s-expired::before{background:var(--red);}
+.days-badge{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;}
+.days-ok{color:var(--green);}.days-warn{color:var(--amber);}.days-over{color:var(--red);}
+.row-act{background:none;border:none;color:var(--ink3);cursor:pointer;padding:4px 8px;border-radius:4px;font-size:17px;line-height:1;transition:all .1s;}
+.row-act:hover{background:var(--paper2);color:var(--ink);}
+/* Timeline */
+.tl-wrap{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;margin-bottom:28px;}
+.tl-head{padding:16px 20px;border-bottom:1px solid var(--paper2);font-family:'Fraunces',serif;font-size:16px;font-weight:300;}
+/* Alerts */
+.alerts-wrap{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;margin-bottom:28px;}
+.alert-row{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--paper2);}
+.alert-row:last-child{border-bottom:none;}
+.alert-text{flex:1;font-size:13px;}
+.alert-text strong{font-weight:500;}
+.alert-days{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--amber);}
+/* Modal */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(26,26,24,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.moverlay.open{display:flex;}
+.modal{background:#fff;border-radius:10px;width:620px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-top{padding:20px 24px 16px;border-bottom:1px solid var(--paper2);display:flex;justify-content:space-between;align-items:flex-start;}
+.modal-top h2{font-family:'Fraunces',serif;font-weight:300;font-size:20px;}
+.mclose{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3);line-height:1;padding:2px 6px;}
+.mclose:hover{color:var(--ink);}
+.modal-body{padding:24px;}
+.fl{margin-bottom:14px;}
+.flabel{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:4px;}
+.fval{font-size:14px;color:var(--ink);}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;}
+.src-doc-row{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--paper3);border-radius:var(--r);padding:8px 12px;margin-bottom:6px;}
+.src-doc-name{flex:1;font-size:12px;font-family:'DM Mono',monospace;color:var(--ink2);}
+/* Empty */
+.empty{text-align:center;padding:56px 20px;color:var(--ink3);}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.4;}
+.empty h3{font-family:'Fraunces',serif;font-weight:300;font-size:20px;color:var(--ink2);margin-bottom:6px;}
+.empty p{font-size:13px;}
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 18px;border-radius:var(--r);font-size:13px;z-index:2000;transition:all .3s;opacity:0;transform:translateY(8px);}
+.toast.show{opacity:1;transform:translateY(0);}
+/* Edit mode */
+.edit-field{width:100%;border:1px solid var(--paper3);border-radius:var(--r);padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;color:var(--ink);outline:none;transition:border-color .15s;}
+.edit-field:focus{border-color:var(--blue);}
+.edit-field.changed{border-color:var(--amber);background:var(--amber-lt);}
+select.edit-field{cursor:pointer;}
+textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
+.field-edit-wrap{position:relative;}
+.edit-mode-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:var(--amber-lt);color:var(--amber);font-weight:500;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--paper3);border-radius:3px;}
+@media(max-width:800px){.stats-grid{grid-template-columns:1fr 1fr;}.main,.header,.tabs{padding-left:20px;padding-right:20px;}}
+@media(max-width:500px){.stats-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div style="background:#111;padding:6px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);">
+  <a href="/documents/" style="color:rgba(255,255,255,.5);font-size:11px;font-family:'DM Mono',monospace;text-decoration:none;display:flex;align-items:center;gap:6px;letter-spacing:.04em;transition:color .15s;" onmouseover="this.style.color='#f0d9a8'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+    &#8592; Back to HR Docs
+  </a>
+  <span style="color:rgba(255,255,255,.15);font-size:12px;">|</span>
+  <span style="color:rgba(255,255,255,.3);font-size:11px;font-family:'DM Mono',monospace;">Cadient Talent</span>
+</div>
+<div class="header">
+  <div class="logo">Contract<span>Lens</span></div>
+  <div style="color:rgba(255,255,255,.35);font-size:12px;font-family:'DM Mono',monospace;">AI contract management</div>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('extract')">Extract PDFs</div>
+  <div class="tab" onclick="switchTab('groups')">Document Groups</div>
+  <div class="tab" onclick="switchTab('dashboard')">Dashboard</div>
+</div>
+<div class="main">
+
+<!-- EXTRACT -->
+<div class="panel active" id="panel-extract">
+  <div class="section-title">Extract from PDFs</div>
+  <div class="section-sub">Upload scanned contracts. Claude extracts all key fields automatically.</div>
+  <div style="margin-bottom:16px;background:var(--blue-lt);border:1px solid var(--blue);border-radius:var(--r);padding:14px 16px;">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);margin-bottom:6px;">Optional: assign all files to one customer name</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <input id="batch-name" placeholder="e.g. Tata Consultancy Services  (leave blank to auto-detect from each PDF)"
+        style="flex:1;border:1px solid var(--blue);border-radius:var(--r);padding:8px 12px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;background:#fff;color:var(--ink);" />
+      <div style="font-size:12px;color:var(--blue);white-space:nowrap;">All files in this batch<br>will use this name</div>
+    </div>
+  </div>
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+       ondragover="e_dragover(event,'upload-zone')" ondragleave="e_dragleave('upload-zone')" ondrop="e_drop(event)">
+    <div class="upload-icon">&#128193;</div>
+    <h3>Drop PDF files here</h3>
+    <p>or click to select &mdash; supports scanned / image PDFs</p>
+  </div>
+  <input type="file" id="file-input" multiple accept=".pdf" onchange="addFiles(this.files)" style="display:none"/>
+  <div class="queue" id="queue"></div>
+  <div style="display:none;gap:10px;align-items:center;flex-wrap:wrap;" id="extract-controls">
+    <button class="btn btn-primary" id="extract-btn" onclick="extractAll()" disabled>
+      <span id="extract-label">Extract All Contracts</span>
+    </button>
+    <button class="btn btn-outline" onclick="clearQueue()">Clear</button>
+    <span id="extract-progress" style="color:var(--ink3);font-size:13px;"></span>
+  </div>
+  <div id="demo-bar" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--paper3);text-align:center;">
+    <div style="color:var(--ink3);font-size:13px;margin-bottom:12px">No contracts yet? Try demo data.</div>
+    <button class="btn btn-outline" onclick="loadDemo()">Load 6 demo contracts</button>
+  </div>
+</div>
+
+<!-- GROUPS -->
+<div class="panel" id="panel-groups">
+  <div class="section-title">Document Groups</div>
+  <div class="section-sub">Bundle multiple files (contracts, emails, amendments) under one customer name. Claude analyses them together as one complete contract record.</div>
+
+  <div class="group-builder">
+    <div class="gb-header">
+      <div>
+        <h3>Create a document group</h3>
+        <p>e.g. Expired contract PDF + email renewal confirmation + amendment</p>
+      </div>
+      <button class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" onclick="resetBuilder()">Reset</button>
+    </div>
+    <div class="gb-body">
+      <input class="group-name-input" id="gname" placeholder="Customer name  e.g. Tata Consultancy Services" />
+
+      <div style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:8px;">Select document type before adding each file</div>
+      <div class="type-bar">
+        <div class="type-pill active" data-t="contract" onclick="selType(this)">Original Contract</div>
+        <div class="type-pill" data-t="email" onclick="selType(this)">Email / Confirmation</div>
+        <div class="type-pill" data-t="amendment" onclick="selType(this)">Amendment / Addendum</div>
+        <div class="type-pill" data-t="other" onclick="selType(this)">Other Document</div>
+      </div>
+
+      <div class="group-drop" id="group-drop"
+           onclick="document.getElementById('gfile-input').click()"
+           ondragover="e_dragover(event,'group-drop')" ondragleave="e_dragleave('group-drop')" ondrop="gfile_drop(event)">
+        Click or drop files here &mdash; PDF, PNG, JPG, .eml, .txt accepted
+      </div>
+      <input type="file" id="gfile-input" multiple accept=".pdf,.png,.jpg,.jpeg,.eml,.txt,.docx" onchange="addGFiles(this.files)" style="display:none"/>
+
+      <div class="gfiles" id="gfiles"><div style="color:var(--ink3);font-size:13px;text-align:center;padding:8px;">No files added yet</div></div>
+
+      <div style="margin-bottom:16px;">
+        <div class="flabel" style="margin-bottom:6px;">Context note (optional)</div>
+        <textarea id="gnote" placeholder="e.g. Original contract expired 31 Dec 2024. Customer confirmed renewal by email on 15 Jan 2025."
+          style="width:100%;border:1px solid var(--paper3);border-radius:var(--r);padding:10px 14px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;min-height:72px;background:var(--paper);color:var(--ink);"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-blue" onclick="analyseGroup()"><span id="g-anlbl">Analyse Group with AI</span></button>
+        <button class="btn btn-outline" onclick="saveDraft()">Save as Draft</button>
+      </div>
+      <div id="g-err" style="margin-top:10px;font-size:13px;color:var(--red);display:none;"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:300;">Saved groups</div>
+    <span id="gcount" style="font-size:13px;color:var(--ink3);"></span>
+  </div>
+  <div class="groups-list" id="groups-list"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="panel" id="panel-dashboard">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="section-title">Contract Dashboard</div>
+      <div class="section-sub" style="margin:0">Individual contracts and grouped document sets</div>
+    </div>
+    <button class="btn btn-outline" onclick="switchTab('extract')">+ Add Contracts</button>
+  </div>
+  <div class="stats-grid" id="stats"></div>
+  <div id="alerts-section"></div>
+  <div class="tl-wrap" id="tl-section" style="display:none">
+    <div class="tl-head">Contract timeline</div>
+    <div style="padding:20px;overflow-x:auto;"><canvas id="tl-canvas" height="160"></canvas></div>
+  </div>
+  <div class="table-wrap">
+    <div id="merge-bar" style="display:none;padding:12px 20px;background:var(--blue-lt);border-bottom:1px solid var(--blue);align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--blue);font-weight:500;" id="merge-count">0 selected</span>
+      <input id="merge-name" placeholder="Enter group name for these contracts..."
+        style="flex:1;min-width:180px;border:1px solid var(--blue);border-radius:var(--r);padding:7px 12px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;" />
+      <button class="btn btn-blue btn-sm" onclick="mergeSelected()">Merge into one record</button>
+      <button class="btn btn-outline btn-sm" onclick="clearSelection()">Cancel</button>
+    </div>
+    <div class="table-header">
+      <div class="table-title">All contracts</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input class="search-input" type="text" placeholder="Search customer..." id="search-input" oninput="renderTable()">
+        <select class="filter-select" id="filter-status" onchange="renderTable()">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="expiring">Expiring soon</option>
+          <option value="expired">Expired</option>
+        </select>
+        <button class="btn btn-outline btn-sm" id="merge-toggle-btn" onclick="toggleMergeMode()" style="white-space:nowrap;">Select to merge</button>
+      </div>
+    </div>
+    <div id="table-body"></div>
+  </div>
+</div>
+</div>
+
+<!-- Modal -->
+<div class="moverlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-top">
+      <div><h2 id="m-title">Contract</h2><div id="m-id" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);margin-top:2px;"></div></div>
+      <button class="mclose" onclick="document.getElementById('modal').classList.remove('open')">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// — IndexedDB ————————————————————————————————————
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('cl_cadient',1);r.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains('f'))e.target.result.createObjectStore('f');};r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});}
+async function idbSet(k,v){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').put(v,k);tx.oncomplete=()=>res(1);tx.onerror=e=>rej(e.target.error);});}
+async function idbGet(k){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('f','readonly');const r=tx.objectStore('f').get(k);r.onsuccess=e=>res(e.target.result||null);r.onerror=e=>rej(e.target.error);});}
+async function idbDel(k){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').delete(k);tx.oncomplete=()=>res(1);tx.onerror=e=>rej(e.target.error);});}
+
+// — State ————————————————————————————————————————
+const LS_CONTRACTS = 'cl_cadient_c';
+const LS_GROUPS    = 'cl_cadient_g';
+let contracts=JSON.parse(localStorage.getItem(LS_CONTRACTS)||'[]');
+let groups=JSON.parse(localStorage.getItem(LS_GROUPS)||'[]');
+let queue=[];
+let gfiles=[];
+let activeType='contract';
+
+function saveC(){localStorage.setItem(LS_CONTRACTS,JSON.stringify(contracts));}
+function saveG(){localStorage.setItem(LS_GROUPS,JSON.stringify(groups));}
+
+// — Tabs —————————————————————————————————————————
+function switchTab(t){
+  ['extract','groups','dashboard'].forEach((id,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',id===t);
+    document.getElementById('panel-'+id).classList.toggle('active',id===t);
+  });
+  if(t==='dashboard')renderDashboard();
+  if(t==='groups')renderGroupsList();
+}
+
+// — Backend API helpers ——————————————————————————
+function getCsrf(){return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrftoken='))?.split('=')[1]||'';}
+async function djPost(url,body){
+  const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},body:JSON.stringify(body)});
+  if(!resp.ok){let msg='Server error '+resp.status;try{const e=await resp.json();msg=e.error||msg;}catch(_){}throw new Error(msg);}
+  return resp.json();
+}
+async function djExtract(pdfB64,overrideName){return djPost('/documents/contract-lens/api/extract/',{pdf_b64:pdfB64,override_name:overrideName||''});}
+async function djAnalyseGroup(name,note,files){return djPost('/documents/contract-lens/api/analyse-group/',{name,note,files});}
+async function djMerge(name,contracts){return djPost('/documents/contract-lens/api/merge/',{name,contracts});}
+
+// — Extract queue ————————————————————————————————
+function addFiles(files){
+  for(const f of files){
+    if(!f.name.toLowerCase().endsWith('.pdf'))continue;
+    if(queue.find(q=>q.name===f.name))continue;
+    queue.push({file:f,name:f.name,status:'pending'});
+  }
+  renderQ();updateBtn();
+}
+function e_dragover(e,id){e.preventDefault();document.getElementById(id)?.classList.add('drag');}
+function e_dragleave(id){document.getElementById(id)?.classList.remove('drag');}
+function e_drop(e){e.preventDefault();e_dragleave('upload-zone');addFiles(e.dataTransfer.files);}
+function removeQ(i){queue.splice(i,1);renderQ();updateBtn();}
+function retryQ(i){if(queue[i]){queue[i].status='pending';queue[i].err=null;renderQ();updateBtn();}}
+function clearQueue(){queue=queue.filter(q=>q.status==='processing');renderQ();updateBtn();}
+function updateBtn(){const b=document.getElementById('extract-btn');if(b)b.disabled=!queue.filter(q=>q.status==='pending').length;}
+
+const SLBL={pending:'Pending',processing:'Processing...',done:'Done',error:'Error'};
+function renderQ(){
+  const el=document.getElementById('queue');
+  if(!queue.length){el.innerHTML='';document.getElementById('extract-controls').style.display='none';return;}
+  document.getElementById('extract-controls').style.display='flex';
+  el.innerHTML=queue.map((item,i)=>`
+    <div class="queue-item">
+      <span style="font-size:16px;flex-shrink:0">&#128196;</span>
+      <div class="fname">
+        <div>${esc(item.name)}</div>
+        ${item.status==='processing'?`<div class="prog-wrap"><div class="prog-fill" style="width:${item.prog||20}%"></div></div>`:''}
+        ${item.status==='error'&&item.err?`<div style="font-size:11px;color:var(--red);margin-top:2px;">${esc(item.err)}</div>`:''}
+      </div>
+      <span class="queue-badge badge-${item.status}">${SLBL[item.status]||item.status}</span>
+      ${item.status==='pending'?`<button class="row-act" onclick="removeQ(${i})">&#x2715;</button>`:''}
+      ${item.status==='error'?`<button class="row-act" onclick="retryQ(${i})" style="color:var(--amber)">&#8635;</button>`:''}
+    </div>`).join('');
+}
+
+async function extractAll(){
+  document.getElementById('extract-btn').disabled=true;
+  const lbl=document.getElementById('extract-label');
+  const batchName=(document.getElementById('batch-name')?.value||'').trim();
+  for(let i=0;i<queue.length;i++){
+    const item=queue[i];if(item.status!=='pending')continue;
+    item.status='processing';item.prog=15;renderQ();
+    lbl.textContent=`Extracting ${i+1}/${queue.length}...`;
+    try{
+      const b64=await toB64(item.file);item.prog=50;renderQ();
+      const result=await djExtract(b64,batchName);item.prog=90;renderQ();
+      result.id='C-'+Date.now().toString(36).toUpperCase();
+      result.source_file=item.name;result.extracted_at=new Date().toISOString();
+      contracts.push(result);saveC();
+      try{await idbSet('pdf:'+result.id,b64);}catch(e2){console.warn('PDF store:',e2.message);}
+      item.status='done';
+    }catch(e){item.status='error';item.err=e.message;console.error(e);}
+    renderQ();
+  }
+  lbl.textContent='Extract All Contracts';
+  document.getElementById('extract-progress').textContent=`${contracts.length} contract(s) total`;
+  toast('Extraction complete');updateBtn();
+  document.getElementById('demo-bar').style.display='none';
+}
+
+function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Read failed'));r.readAsDataURL(file);});}
+function toText(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(new Error('Read failed'));r.readAsText(file);});}
+
+
+function parseContract(txt,fname,overrideName){
+  let raw=txt.replace(/```json|```/g,'').trim();
+  try{
+    const o=JSON.parse(raw);
+    if(overrideName) o.customer_name=overrideName;
+    o.id='C-'+Date.now().toString(36).toUpperCase();
+    o.source_file=fname;o.extracted_at=new Date().toISOString();
+    return o;
+  }catch(e){
+    return{id:'C-'+Date.now().toString(36).toUpperCase(),customer_name:overrideName||fname.replace('.pdf',''),source_file:fname,extracted_at:new Date().toISOString(),start_date:null,end_date:null,notes:'Parse error'};
+  }
+}
+
+// — Groups ———————————————————————————————————————
+function selType(el){document.querySelectorAll('.type-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');activeType=el.getAttribute('data-t');}
+function gfile_drop(e){e.preventDefault();e_dragleave('group-drop');addGFiles(e.dataTransfer.files);}
+function addGFiles(files){for(const f of files){if(gfiles.find(x=>x.name===f.name))continue;gfiles.push({file:f,name:f.name,type:activeType,b64:null});}renderGFiles();}
+function removeGFile(i){gfiles.splice(i,1);renderGFiles();}
+
+const DTYPE_LABEL={contract:'Contract',email:'Email',amendment:'Amendment',other:'Other'};
+const DTYPE_CLS={contract:'dt-contract',email:'dt-email',amendment:'dt-amendment',other:'dt-other'};
+function dtLbl(t){return DTYPE_LABEL[t]||t;}
+function dtCls(t){return DTYPE_CLS[t]||'dt-other';}
+function fileIcon(name){const e=(name||'').split('.').pop().toLowerCase();return['pdf'].includes(e)?'&#128196;':['png','jpg','jpeg'].includes(e)?'&#128247;':['eml','txt'].includes(e)?'&#128231;':'&#128196;';}
+
+function renderGFiles(){
+  const el=document.getElementById('gfiles');
+  if(!gfiles.length){el.innerHTML='<div style="color:var(--ink3);font-size:13px;text-align:center;padding:8px;">No files added yet</div>';return;}
+  el.innerHTML=gfiles.map((f,i)=>`
+    <div class="gfile-row">
+      <span>${fileIcon(f.name)}</span>
+      <span class="gfile-name">${esc(f.name)}</span>
+      <span class="dtype ${dtCls(f.type)}">${dtLbl(f.type)}</span>
+      <button class="gfile-rm" onclick="removeGFile(${i})">&#x2715;</button>
+    </div>`).join('');
+}
+
+function resetBuilder(){
+  gfiles=[];
+  document.getElementById('gname').value='';
+  document.getElementById('gnote').value='';
+  document.getElementById('g-err').style.display='none';
+  document.getElementById('g-anlbl').textContent='Analyse Group with AI';
+  renderGFiles();
+  selType(document.querySelector('.type-pill[data-t="contract"]'));
+}
+
+function showGErr(msg){const el=document.getElementById('g-err');el.textContent=msg;el.style.display='block';}
+
+async function saveDraft(){
+  const name=document.getElementById('gname').value.trim();
+  if(!name){showGErr('Enter a customer name');return;}
+  if(!gfiles.length){showGErr('Add at least one file');return;}
+  const g={id:'G-'+Date.now().toString(36).toUpperCase(),name,note:document.getElementById('gnote').value.trim(),files:gfiles.map(f=>({name:f.name,type:f.type})),status:'draft',created_at:new Date().toISOString(),contract_id:null};
+  for(const f of gfiles){try{const b=await toB64(f.file);await idbSet('gf:'+g.id+':'+f.name,b);}catch(e){console.warn(e.message);}}
+  groups.push(g);saveG();toast('Saved as draft');resetBuilder();renderGroupsList();
+}
+
+async function analyseGroup(){
+  const name=document.getElementById('gname').value.trim();
+  if(!name){showGErr('Enter a customer name');return;}
+  if(!gfiles.length){showGErr('Add at least one document');return;}
+  document.getElementById('g-err').style.display='none';
+  const lbl=document.getElementById('g-anlbl');
+  lbl.textContent='Analysing...';
+
+  try{
+    const filePayload=[];
+    for(const gf of gfiles){
+      const ext=gf.name.split('.').pop().toLowerCase();
+      let content_b64,mime_type;
+      if(ext==='pdf'){
+        content_b64=await toB64(gf.file);gf.b64=content_b64;mime_type='application/pdf';
+      }else if(['png','jpg','jpeg'].includes(ext)){
+        content_b64=await toB64(gf.file);gf.b64=content_b64;mime_type=ext==='jpg'?'image/jpeg':`image/${ext}`;
+      }else{
+        const t=await toText(gf.file);
+        content_b64=btoa(unescape(encodeURIComponent(t)));mime_type='text/plain';
+      }
+      filePayload.push({name:gf.name,type:gf.type,content_b64,mime_type});
+    }
+    const note=document.getElementById('gnote').value.trim();
+    const parsed=await djAnalyseGroup(name,note,filePayload);
+    parsed.id='C-'+Date.now().toString(36).toUpperCase();
+    parsed.source_file=filePayload.map(f=>`[${dtLbl(f.type)}] ${f.name}`).join(', ');
+    parsed.extracted_at=new Date().toISOString();
+    parsed.is_group=true;
+    parsed.group_files=gfiles.map(f=>({name:f.name,type:f.type}));
+    contracts.push(parsed);saveC();
+
+    for(const gf of gfiles){
+      if(gf.b64)try{await idbSet('pdf:'+parsed.id+':'+gf.name,gf.b64);}catch(e){}
+    }
+
+    const g={id:'G-'+Date.now().toString(36).toUpperCase(),name,note:document.getElementById('gnote').value.trim(),files:gfiles.map(f=>({name:f.name,type:f.type})),status:'analysed',created_at:new Date().toISOString(),contract_id:parsed.id};
+    groups.push(g);saveG();
+    toast('Group analysed and added to dashboard');
+    resetBuilder();renderGroupsList();
+    document.getElementById('demo-bar').style.display='none';
+  }catch(e){showGErr('Error: '+e.message);console.error(e);}
+  lbl.textContent='Analyse Group with AI';
+}
+
+function renderGroupsList(){
+  const el=document.getElementById('groups-list');
+  const cnt=document.getElementById('gcount');
+  if(!groups.length){el.innerHTML=`<div class="empty"><div class="empty-icon">&#128193;</div><h3>No groups yet</h3><p>Create a group above to bundle related documents</p></div>`;cnt.textContent='';return;}
+  cnt.textContent=groups.length+' group(s)';
+  el.innerHTML=groups.slice().reverse().map((g,ri)=>{
+    const i=groups.length-1-ri;
+    const sc=g.status==='analysed'?'var(--green)':'var(--amber)';
+    return`<div class="group-card">
+      <div class="gc-header" onclick="toggleGCard(${i})">
+        <span style="font-size:18px">&#128193;</span>
+        <div class="gc-name">${esc(g.name)}</div>
+        <div style="font-size:12px;color:var(--ink3);">${g.files.length} file(s)</div>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:${sc}22;color:${sc};font-weight:500;">${g.status==='analysed'?'Analysed':'Draft'}</span>
+        ${g.contract_id?`<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();goToContract('${g.contract_id}')">View contract</button>`:`<button class="btn btn-blue btn-sm" onclick="event.stopPropagation();prefillGroup(${i})">Load &amp; re-analyse</button>`}
+        <button class="row-act" onclick="event.stopPropagation();delGroup(${i})" style="color:var(--ink3)">&#x2715;</button>
+      </div>
+      <div class="gc-files-body" id="gc-${i}" style="display:none;">
+        ${g.note?`<div style="font-size:12px;color:var(--ink2);margin-bottom:8px;padding:8px 10px;background:var(--amber-lt);border-radius:var(--r);">&#128221; ${esc(g.note)}</div>`:''}
+        ${g.files.map(f=>`<div class="gfile-row" style="margin-bottom:4px;"><span>${fileIcon(f.name)}</span><span class="gfile-name">${esc(f.name)}</span><span class="dtype ${dtCls(f.type)}">${dtLbl(f.type)}</span></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleGCard(i){const el=document.getElementById('gc-'+i);if(el)el.style.display=el.style.display==='none'?'flex':'none';}
+function delGroup(i){groups.splice(i,1);saveG();renderGroupsList();toast('Group deleted');}
+function goToContract(id){const idx=contracts.findIndex(c=>c.id===id);if(idx>=0){switchTab('dashboard');setTimeout(()=>openModal(idx),120);}else toast('Contract not found');}
+function prefillGroup(i){const g=groups[i];document.getElementById('gname').value=g.name;document.getElementById('gnote').value=g.note||'';switchTab('groups');toast('Group loaded — add files and click Analyse');}
+
+// — Dashboard ————————————————————————————————————
+let mergeMode = false;
+let selectedIds = new Set();
+let sortCol = 'customer_name';
+let sortDir = 1;
+
+function toggleMergeMode(){
+  mergeMode = !mergeMode;
+  selectedIds.clear();
+  const btn = document.getElementById('merge-toggle-btn');
+  if(btn) btn.textContent = mergeMode ? 'Cancel selection' : 'Select to merge';
+  document.getElementById('merge-bar').style.display = mergeMode ? 'flex' : 'none';
+  renderTable();
+}
+
+function clearSelection(){
+  mergeMode = false;
+  selectedIds.clear();
+  document.getElementById('merge-bar').style.display = 'none';
+  const btn = document.getElementById('merge-toggle-btn');
+  if(btn) btn.textContent = 'Select to merge';
+  renderTable();
+}
+
+function toggleSelect(id){
+  if(selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  const cnt = document.getElementById('merge-count');
+  if(cnt) cnt.textContent = selectedIds.size + ' selected';
+  renderTable();
+}
+
+async function mergeSelected(){
+  const name = (document.getElementById('merge-name')?.value||'').trim();
+  if(!name){ toast('Enter a group name for the merged record'); return; }
+  if(selectedIds.size < 2){ toast('Select at least 2 contracts to merge'); return; }
+
+  const toMerge = contracts.filter(c => selectedIds.has(c.id));
+  const lbl = document.querySelector('#merge-bar .btn-blue');
+  if(lbl) lbl.textContent = 'Merging...';
+
+  try{
+    const contractsPayload=[];
+    const allGroupFiles=[];
+    for(const c of toMerge){
+      const files=[];
+      allGroupFiles.push(...(c.group_files||[{name:c.source_file||c.id,type:'contract'}]));
+      if(c.is_group && c.group_files){
+        for(const gf of c.group_files){
+          const b=await idbGet('pdf:'+c.id+':'+gf.name).catch(()=>null);
+          if(b) files.push({name:gf.name,type:gf.type,content_b64:b,mime_type:'application/pdf'});
+        }
+      } else {
+        const b=await idbGet('pdf:'+c.id).catch(()=>null);
+        if(b) files.push({name:c.source_file||c.id,type:'contract',content_b64:b,mime_type:'application/pdf'});
+      }
+      contractsPayload.push({
+        customer_name:c.customer_name,
+        source_label:c.is_group?'Group':'Contract',
+        source_file:c.source_file||c.customer_name,
+        extracted_data:{start_date:c.start_date,end_date:c.end_date,contract_number:c.contract_number,renewal_type:c.renewal_type,contract_value:c.contract_value,payment_terms:c.payment_terms,governing_law:c.governing_law,notes:c.notes},
+        files
+      });
+    }
+
+    const parsed=await djMerge(name,contractsPayload);
+    parsed.id='C-'+Date.now().toString(36).toUpperCase();
+    parsed.customer_name=name;
+    parsed.source_file=toMerge.map(c=>c.source_file||c.customer_name).join(', ');
+    parsed.extracted_at=new Date().toISOString();
+    parsed.is_group=true;
+    parsed.group_files=allGroupFiles;
+
+    for(const c of toMerge){
+      if(c.is_group && c.group_files){
+        for(const gf of c.group_files){
+          const b=await idbGet('pdf:'+c.id+':'+gf.name).catch(()=>null);
+          if(b) await idbSet('pdf:'+parsed.id+':'+gf.name,b).catch(()=>{});
+        }
+      } else {
+        const b=await idbGet('pdf:'+c.id).catch(()=>null);
+        if(b) await idbSet('pdf:'+parsed.id+':'+(c.source_file||c.id),b).catch(()=>{});
+      }
+    }
+
+    const idsToRemove=new Set(toMerge.map(c=>c.id));
+    contracts=contracts.filter(c=>!idsToRemove.has(c.id));
+    contracts.push(parsed);saveC();
+    toast(`Merged ${toMerge.length} contracts into "${name}" with AI analysis`);
+  }catch(e){
+    mergeWithoutAI(toMerge,name);
+  }
+
+  clearSelection();
+  renderDashboard();
+  if(lbl) lbl.textContent='Merge into one record';
+}
+
+function mergeWithoutAI(toMerge, name){
+  const best = (arr, key) => arr.map(c=>c[key]).filter(Boolean).sort((a,b)=>String(b).localeCompare(String(a)))[0]||null;
+  const dates = arr => arr.map(c=>c.end_date).filter(Boolean).sort();
+  const latestEnd = dates(toMerge).pop()||null;
+  const earliestStart = toMerge.map(c=>c.start_date).filter(Boolean).sort()[0]||null;
+  const groupFiles = toMerge.flatMap(c=>c.group_files||[{name:c.source_file||c.id,type:'contract'}]);
+  const fdesc = toMerge.map(c=>c.source_file||c.customer_name).join(', ');
+
+  const merged = {
+    id:'C-'+Date.now().toString(36).toUpperCase(),
+    customer_name:name,
+    contract_number:best(toMerge,'contract_number'),
+    start_date:earliestStart,
+    end_date:latestEnd,
+    notice_period_days:best(toMerge,'notice_period_days'),
+    renewal_type:toMerge.find(c=>c.renewal_confirmed)?'confirmed-by-email':best(toMerge,'renewal_type'),
+    renewal_confirmed:toMerge.some(c=>c.renewal_confirmed),
+    contract_value:best(toMerge,'contract_value'),
+    payment_terms:best(toMerge,'payment_terms'),
+    governing_law:best(toMerge,'governing_law'),
+    notes:toMerge.map(c=>c.notes).filter(Boolean).join(' | '),
+    source_file:fdesc,
+    extracted_at:new Date().toISOString(),
+    is_group:true,
+    group_files:groupFiles
+  };
+
+  const idsToRemove = new Set(toMerge.map(c=>c.id));
+  contracts = contracts.filter(c=>!idsToRemove.has(c.id));
+  contracts.push(merged);
+  saveC();
+  toast(`Merged ${toMerge.length} contracts into "${name}"`);
+}
+
+function getStatus(c){if(!c.end_date)return'active';const t=new Date();t.setHours(0,0,0,0);const d=Math.round((new Date(c.end_date)-t)/86400000);return d<0?'expired':d<=90?'expiring':'active';}
+function daysUntil(d){if(!d)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(d)-t)/86400000);}
+function fmtDate(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch{return d;}}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderDashboard(){renderStats();renderAlerts();renderTimeline();renderTable();}
+
+function renderStats(){
+  const tot=contracts.length,act=contracts.filter(c=>getStatus(c)==='active').length;
+  const exp=contracts.filter(c=>getStatus(c)==='expiring').length,xpd=contracts.filter(c=>getStatus(c)==='expired').length;
+  const grp=contracts.filter(c=>c.is_group).length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat-card total"><div class="stat-label">Total</div><div class="stat-value">${tot}</div><div class="stat-sub">${grp} grouped</div></div>
+    <div class="stat-card active"><div class="stat-label">Active</div><div class="stat-value">${act}</div><div class="stat-sub">In good standing</div></div>
+    <div class="stat-card expiring"><div class="stat-label">Expiring soon</div><div class="stat-value">${exp}</div><div class="stat-sub">Within 90 days</div></div>
+    <div class="stat-card expired"><div class="stat-label">Expired</div><div class="stat-value">${xpd}</div><div class="stat-sub">Past end date</div></div>`;
+}
+
+function renderAlerts(){
+  const exp=contracts.filter(c=>getStatus(c)==='expiring').sort((a,b)=>new Date(a.end_date)-new Date(b.end_date));
+  if(!exp.length){document.getElementById('alerts-section').innerHTML='';return;}
+  document.getElementById('alerts-section').innerHTML=`<div class="alerts-wrap">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--paper2);font-family:'Fraunces',serif;font-size:16px;font-weight:300;">Renewal alerts</div>
+    ${exp.map(c=>{const d=daysUntil(c.end_date);return`<div class="alert-row">
+      <span style="font-size:15px">${d<=30?'&#128308;':d<=60?'&#128992;':'&#128993;'}</span>
+      <div class="alert-text"><strong>${esc(c.customer_name)}</strong>${c.renewal_confirmed?` <span style="background:var(--green-lt);color:var(--green);font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;">renewal confirmed</span>`:''} &mdash; expires ${fmtDate(c.end_date)}${c.notice_period_days?` <span style="color:var(--ink3);font-size:12px">· ${c.notice_period_days}d notice</span>`:''}</div>
+      <span class="alert-days">${d}d left</span>
+    </div>`;}).join('')}
+  </div>`;
+}
+
+function renderTimeline(){
+  const wd=contracts.filter(c=>c.start_date&&c.end_date);
+  if(!wd.length){document.getElementById('tl-section').style.display='none';return;}
+  document.getElementById('tl-section').style.display='';
+  const canvas=document.getElementById('tl-canvas');
+  const W=canvas.parentElement.offsetWidth||700;
+  canvas.width=W;canvas.height=40+wd.length*36;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,W,canvas.height);
+  const all=wd.flatMap(c=>[new Date(c.start_date),new Date(c.end_date)]);
+  const mn=new Date(Math.min(...all)),mx=new Date(Math.max(...all)),sp=mx-mn||1;
+  const L=195,R=W-20,BW=R-L,td=new Date();
+  const tx=L+((td-mn)/sp)*BW;
+  if(tx>L&&tx<R){ctx.strokeStyle='#c8973a';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(tx,0);ctx.lineTo(tx,canvas.height);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#c8973a';ctx.font='10px DM Mono,monospace';ctx.fillText('Today',tx+4,12);}
+  wd.forEach((c,i)=>{
+    const y=24+i*36,x1=L+((new Date(c.start_date)-mn)/sp)*BW,x2=L+((new Date(c.end_date)-mn)/sp)*BW,bw=Math.max(x2-x1,4);
+    const s=getStatus(c);const col={active:'#2d6a4f',expiring:'#b45309',expired:'#9b2335'}[s];
+    ctx.fillStyle='#4a4a44';ctx.font=(c.is_group?'italic ':'')+'12px DM Sans,sans-serif';ctx.textAlign='right';
+    ctx.fillText((c.customer_name||'').slice(0,24)+(c.is_group?' [G]':''),L-8,y+13);
+    ctx.fillStyle=col+'30';ctx.strokeStyle=col;ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x1,y,bw,18,4);ctx.fill();ctx.stroke();
+  });
+  ctx.textAlign='left';
+}
+
+function renderTable(){
+  const srch=(document.getElementById('search-input')?.value||'').toLowerCase();
+  const sf=document.getElementById('filter-status')?.value||'';
+  let f=contracts.filter(c=>{
+    const ms=!srch||(c.customer_name||'').toLowerCase().includes(srch)||(c.contract_number||'').toLowerCase().includes(srch);
+    const mst=!sf||getStatus(c)===sf;return ms&&mst;
+  });
+  if(!contracts.length){document.getElementById('table-body').innerHTML=`<div class="empty"><div class="empty-icon">&#128203;</div><h3>No contracts yet</h3><p>Extract individual PDFs or create a document group</p></div>`;return;}
+  if(!f.length){document.getElementById('table-body').innerHTML=`<div class="empty"><div class="empty-icon">&#128269;</div><h3>No matches</h3></div>`;return;}
+  f.sort((a,b)=>{
+    let av,bv;
+    if(sortCol==='customer_name'){av=(a.customer_name||'').toLowerCase();bv=(b.customer_name||'').toLowerCase();}
+    else if(sortCol==='end_date'){av=a.end_date?new Date(a.end_date):new Date('9999');bv=b.end_date?new Date(b.end_date):new Date('9999');}
+    else if(sortCol==='start_date'){av=a.start_date?new Date(a.start_date):new Date('9999');bv=b.start_date?new Date(b.start_date):new Date('9999');}
+    else if(sortCol==='status'){av=getStatus(a);bv=getStatus(b);}
+    else if(sortCol==='contract_value'){av=parseFloat((a.contract_value||'0').replace(/[^0-9.]/g,''))||0;bv=parseFloat((b.contract_value||'0').replace(/[^0-9.]/g,''))||0;}
+    else{av=(a[sortCol]||'').toString().toLowerCase();bv=(b[sortCol]||'').toString().toLowerCase();}
+    if(av<bv)return -1*sortDir;if(av>bv)return 1*sortDir;return 0;
+  });
+
+  function sth(label,col){
+    const active=sortCol===col;
+    const arrow=active?(sortDir===1?' &#9650;':' &#9660;'):'';
+    return `<th onclick="setSort('${col}')" style="cursor:pointer;user-select:none;white-space:nowrap;${active?'color:var(--ink);':''}">${label}${arrow}</th>`;
+  }
+
+  document.getElementById('table-body').innerHTML=`<table><thead><tr>
+    ${mergeMode?'<th style="width:36px"></th>':''}
+    ${sth('Customer','customer_name')}${sth('Ref #','contract_number')}${sth('Start','start_date')}${sth('End','end_date')}${sth('Days left','end_date')}${sth('Renewal','renewal_type')}${sth('Value','contract_value')}${sth('Status','status')}<th>Files</th><th></th>
+  </tr></thead><tbody>${f.map(c=>{
+    const st=getStatus(c),d=daysUntil(c.end_date);
+    const dc=d===null?'':d<0?'days-over':d<=90?'days-warn':'days-ok';
+    const dl=d===null?'—':d<0?`${Math.abs(d)}d ago`:`${d}d`;
+    const ci=contracts.indexOf(c);
+    const rl=c.renewal_confirmed?`<span style="color:var(--green);font-size:11px">&#10003; confirmed</span>`:esc(c.renewal_type||'—');
+    return`<tr style="${mergeMode&&selectedIds.has(c.id)?'background:var(--blue-lt);':''}" onclick="${mergeMode?`toggleSelect('${c.id}')`:''}" ${mergeMode?'style="cursor:pointer"':''}>
+      ${mergeMode?`<td><input type="checkbox" ${selectedIds.has(c.id)?'checked':''} onclick="event.stopPropagation();toggleSelect('${c.id}')" style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue);"></td>`:''}
+      <td>
+        <div class="cname">${esc(c.customer_name||'—')}${c.is_group?` <span style="font-size:10px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:8px;background:var(--blue-lt);color:var(--blue);">GROUP</span>`:''}</div>
+        ${c.is_group&&c.group_files?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">${c.group_files.map(gf=>`<span class="dtype ${dtCls(gf.type)}" style="font-size:9px;">${dtLbl(gf.type)}</span>`).join('')}</div>`:``}
+      </td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${esc(c.contract_number||'—')}</td>
+      <td style="font-size:13px">${fmtDate(c.start_date)}</td>
+      <td style="font-size:13px">${fmtDate(c.end_date)}</td>
+      <td><span class="days-badge ${dc}">${dl}</span></td>
+      <td style="font-size:12px">${rl}</td>
+      <td style="font-size:13px">${esc(c.contract_value||'—')}</td>
+      <td><span class="spill s-${st}">${st}</span></td>
+      <td><span class="pdf-badge" data-id="${c.id}" data-grp="${c.is_group?'1':''}" style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:10px;background:var(--paper2);color:var(--ink3);">—</span></td>
+      <td><button class="row-act" onclick="openModal(${ci})">&#8943;</button></td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+  checkBadges();
+}
+
+function setSort(col){
+  if(sortCol===col) sortDir*=-1;
+  else { sortCol=col; sortDir=1; }
+  renderTable();
+}
+
+async function checkBadges(){
+  for(const badge of document.querySelectorAll('.pdf-badge[data-id]')){
+    const id=badge.getAttribute('data-id'), isG=badge.getAttribute('data-grp')==='1';
+    try{
+      let ok=false;
+      const c=contracts.find(x=>x.id===id);
+      if(isG && c && c.group_files){
+        for(const gf of c.group_files){
+          const found=await findFileInStorage(id, gf.name);
+          if(found){ok=true;break;}
+        }
+      } else {
+        const found=await idbGet('pdf:'+id).catch(()=>null);
+        if(found) ok=true;
+      }
+      if(ok){badge.textContent='Stored';badge.style.background='var(--green-lt)';badge.style.color='var(--green)';}
+      else {badge.textContent='No PDF';badge.style.background='var(--paper2)';badge.style.color='var(--ink3)';}
+    }catch(e){badge.textContent='No PDF';}
+  }
+}
+
+// — Modal ————————————————————————————————————————
+let modalEditMode = false;
+
+function openModal(i, editMode){
+  modalEditMode = !!editMode;
+  const c=contracts[i];if(!c)return;
+  document.getElementById('m-title').textContent=c.customer_name||'Contract';
+  document.getElementById('m-id').textContent=c.id+(c.contract_number?' · '+c.contract_number:'')+(c.is_group?' · GROUP':'');
+  const st=getStatus(c),d=daysUntil(c.end_date);
+  const dl=d===null?'No end date':d<0?`Expired ${Math.abs(d)} days ago`:`${d} days remaining`;
+
+  let srcDocs='';
+  if(c.is_group&&c.group_files&&c.group_files.length){
+    srcDocs='<div class="fl" style="margin-top:4px"><div class="flabel" style="margin-bottom:8px;">Source documents</div>'
+      + c.group_files.map((f,fi)=>{
+          const safen=f.name.replace(/\\/g,'').replace(/'/g,"\\'");
+          return '<div class="src-doc-row" id="sdrow-'+i+'-'+fi+'">'
+            +'<span>'+fileIcon(f.name)+'</span>'
+            +'<span class="src-doc-name">'+esc(f.name)+'</span>'
+            +'<span class="dtype '+dtCls(f.type)+'">'+dtLbl(f.type)+'</span>'
+            +'<span class="pdf-slot-badge" id="slot-'+i+'-'+fi+'" style="font-size:10px;font-family:\'DM Mono\',monospace;padding:2px 8px;border-radius:10px;background:var(--paper2);color:var(--ink3);">checking...</span>'
+            +'<button class="btn btn-outline btn-sm" id="view-gf-'+i+'-'+fi+'" onclick="viewGFile('+i+',\''+safen+'\','+fi+')">View</button>'
+            +'<button class="btn btn-outline btn-sm" id="dl-gf-'+i+'-'+fi+'" onclick="dlGFile('+i+',\''+safen+'\','+fi+')">Download</button>'
+            +'<label class="btn btn-outline btn-sm" id="attach-gf-'+i+'-'+fi+'" style="cursor:pointer;display:none;">Attach file<input type="file" style="display:none" onchange="attachGFile(event,'+i+','+fi+',\''+safen+'\')"></label>'
+            +'</div>';
+        }).join('')
+      +'</div>';
+  }
+  const em = modalEditMode;
+
+  function vf(label, fieldKey, type, opts){
+    const val = c[fieldKey];
+    const display = type==='date' ? fmtDate(val) : (val===null||val===undefined||val===''?'—':String(val));
+    if(!em) return mf(label, esc(display));
+    let input;
+    if(type==='select'){
+      input=`<select class="edit-field" id="ef-${fieldKey}" onchange="markChanged(this)">
+        ${opts.map(o=>`<option value="${o.v}" ${val===o.v?'selected':''}>${o.l}</option>`).join('')}
+      </select>`;
+    } else if(type==='textarea'){
+      input=`<textarea class="edit-field" id="ef-${fieldKey}" oninput="markChanged(this)">${esc(val||'')}</textarea>`;
+    } else {
+      const inputType = type==='date'?'date':type==='number'?'number':'text';
+      input=`<input class="edit-field" type="${inputType}" id="ef-${fieldKey}" value="${esc(val||'')}" oninput="markChanged(this)" placeholder="${label}">`;
+    }
+    return `<div class="fl"><div class="flabel">${label}</div>${input}</div>`;
+  }
+
+  document.getElementById('m-body').innerHTML=`
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span class="spill s-${st}">${st}</span>
+      ${c.renewal_confirmed?`<span style="background:var(--green-lt);color:var(--green);font-size:12px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;">&#10003; Renewal confirmed</span>`:''}
+      <span style="font-size:13px;color:var(--ink3)">${dl}</span>
+      ${em?`<span class="edit-mode-badge">&#9998; Editing</span>`:''}
+    </div>
+
+    ${em?`<div class="fl" style="margin-bottom:12px">
+      <div class="flabel">Customer name</div>
+      <input class="edit-field" type="text" id="ef-customer_name" value="${esc(c.customer_name||'')}" oninput="markChanged(this)" placeholder="Customer name" style="font-size:15px;font-weight:500;">
+    </div>`:''}
+
+    <div class="fgrid">
+      ${vf('Start date','start_date','date')}
+      ${vf('End date','end_date','date')}
+      ${vf('Notice period (days)','notice_period_days','number')}
+      ${vf('Renewal type','renewal_type','select',[
+        {v:'',l:'— not set —'},{v:'auto',l:'Auto'},{v:'manual',l:'Manual'},
+        {v:'confirmed-by-email',l:'Confirmed by email'},{v:'none',l:'None'}
+      ])}
+      ${vf('Contract value','contract_value','text')}
+      ${vf('Payment terms','payment_terms','text')}
+      ${vf('Governing law','governing_law','text')}
+      ${vf('Contract number','contract_number','text')}
+    </div>
+
+    ${em?`<div class="fl" style="margin-top:4px">
+      <div class="flabel">Renewal confirmed</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+        <input type="checkbox" id="ef-renewal_confirmed" ${c.renewal_confirmed?'checked':''} onchange="markChanged(this)" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;">
+        Mark as renewal confirmed
+      </label>
+    </div>`
+    :(c.notes?`<div class="fl" style="margin-top:8px"><div class="flabel">AI summary</div><div class="fval" style="font-size:13px;line-height:1.6;color:var(--ink2)">${esc(c.notes)}</div></div>`:'')}
+
+    ${em?`<div class="fl" style="margin-top:4px">
+      <div class="flabel">Notes / AI summary</div>
+      <textarea class="edit-field" id="ef-notes" oninput="markChanged(this)" placeholder="Add notes about this contract...">${esc(c.notes||'')}</textarea>
+    </div>`:''}
+
+    ${srcDocs}
+
+    <div style="margin-top:24px;display:flex;gap:8px;flex-wrap:wrap;" id="m-actions-${i}">
+      ${em
+        ? `<button class="btn btn-gold" onclick="saveEdits(${i})">&#10003; Save changes</button>
+           <button class="btn btn-outline" onclick="openModal(${i},false)">Cancel</button>
+           <button class="btn btn-outline" onclick="delContract(${i})" style="margin-left:auto;color:var(--red);border-color:var(--red-lt);">Remove</button>`
+        : `<button class="btn btn-blue" onclick="openModal(${i},true)">&#9998; Edit</button>
+           <button class="btn btn-outline" onclick="delContract(${i})">Remove</button>
+           ${!c.is_group?`<button class="btn btn-outline" id="dl-btn-${i}" onclick="dlPdf(${i})">Download PDF</button><button class="btn btn-gold" id="view-btn-${i}" onclick="viewPdf(${i})">View PDF</button>`:''}
+           <button class="btn btn-outline" onclick="document.getElementById('modal').classList.remove('open')">Close</button>`
+      }
+    </div>`;
+
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>checkModalSlots(i), 50);
+}
+
+async function checkModalSlots(i){
+  const c=contracts[i]; if(!c) return;
+  if(c.is_group && c.group_files){
+    for(let fi=0;fi<c.group_files.length;fi++){
+      const f=c.group_files[fi];
+      const badge=document.getElementById('slot-'+i+'-'+fi);
+      const viewBtn=document.getElementById('view-gf-'+i+'-'+fi);
+      const dlBtn=document.getElementById('dl-gf-'+i+'-'+fi);
+      const attachBtn=document.getElementById('attach-gf-'+i+'-'+fi);
+      if(!badge) continue;
+      const b = await findFileInStorage(c.id, f.name);
+      if(b){
+        badge.textContent='Stored'; badge.style.background='var(--green-lt)'; badge.style.color='var(--green)';
+        if(attachBtn) attachBtn.style.display='none';
+      } else {
+        badge.textContent='Not stored'; badge.style.background='var(--red-lt)'; badge.style.color='var(--red)';
+        if(viewBtn){ viewBtn.style.opacity='0.4'; }
+        if(dlBtn){ dlBtn.style.opacity='0.4'; }
+        if(attachBtn){ attachBtn.style.display='inline-flex'; }
+      }
+    }
+  } else {
+    const b = await idbGet('pdf:'+c.id).catch(()=>null);
+    const div = document.getElementById('m-actions-'+i);
+    if(!div) return;
+    if(!b){
+      if(!document.getElementById('attach-single-'+i)){
+        const lbl=document.createElement('label');
+        lbl.className='btn btn-outline'; lbl.style.cursor='pointer'; lbl.id='attach-single-'+i;
+        lbl.innerHTML='Attach PDF <input type="file" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="attachPdf(event,'+i+')">';
+        div.insertBefore(lbl, div.children[1]);
+      }
+    }
+  }
+}
+
+function mf(label,val){return`<div class="fl"><div class="flabel">${label}</div><div class="fval">${val}</div></div>`;}
+function markChanged(el){ el.classList.add('changed'); }
+
+function saveEdits(i){
+  const c = contracts[i]; if(!c) return;
+  function gv(id){ const el=document.getElementById('ef-'+id); return el?el.value.trim():undefined; }
+  function gvRaw(id){ const el=document.getElementById('ef-'+id); return el?el.value:undefined; }
+  function gvCb(id){ const el=document.getElementById('ef-'+id); return el?el.checked:undefined; }
+
+  const fields = ['customer_name','start_date','end_date','contract_number',
+                  'contract_value','payment_terms','governing_law','notes'];
+  let changed = false;
+
+  for(const f of fields){
+    const v = gv(f);
+    if(v !== undefined){
+      const newVal = v===''?null:v;
+      if(c[f] !== newVal){ c[f]=newVal; changed=true; }
+    }
+  }
+
+  const npd = gv('notice_period_days');
+  if(npd !== undefined){
+    const n = npd===''?null:parseInt(npd);
+    if(c.notice_period_days !== n){ c.notice_period_days=n; changed=true; }
+  }
+
+  const rt = gvRaw('renewal_type');
+  if(rt !== undefined){
+    const newVal = rt===''?null:rt;
+    if(c.renewal_type !== newVal){ c.renewal_type=newVal; changed=true; }
+  }
+
+  const rc = gvCb('renewal_confirmed');
+  if(rc !== undefined && c.renewal_confirmed !== rc){ c.renewal_confirmed=rc; changed=true; }
+
+  if(changed){
+    saveC();
+    toast('Changes saved for '+( c.customer_name||'contract'));
+    renderDashboard();
+  }
+  openModal(i, false);
+}
+
+async function findFileInStorage(contractId, fname){
+  const keys=['pdf:'+contractId+':'+fname,'pdf:'+contractId];
+  for(const k of keys){
+    try{ const v=await idbGet(k); if(v) return v; }catch(e){}
+  }
+  return null;
+}
+
+async function viewPdf(i){
+  const c=contracts[i];if(!c)return;
+  const btn=document.getElementById('view-btn-'+i);if(btn)btn.textContent='Loading...';
+  try{
+    const b=await idbGet('pdf:'+c.id);
+    if(!b){toast('PDF not in storage — click Attach PDF below');if(btn)btn.textContent='View PDF';return;}
+    openBlob(b,'application/pdf',c.source_file||c.customer_name+'.pdf');
+  }catch(e){toast('Error: '+e.message);}
+  if(btn)btn.textContent='View PDF';
+}
+async function dlPdf(i){
+  const c=contracts[i];if(!c)return;
+  const btn=document.getElementById('dl-btn-'+i);if(btn)btn.textContent='...';
+  try{
+    const b=await idbGet('pdf:'+c.id);
+    if(!b){toast('PDF not in storage — click Attach PDF below');if(btn)btn.textContent='Download PDF';return;}
+    dlBlob(b,'application/pdf',c.source_file||c.customer_name+'.pdf');
+  }catch(e){toast('Error: '+e.message);}
+  if(btn)btn.textContent='Download PDF';
+}
+async function viewGFile(ci,fname,fi){
+  const c=contracts[ci];if(!c)return;
+  const btn=document.getElementById('view-gf-'+ci+'-'+(fi??0));
+  if(btn){btn.textContent='Loading...';}
+  try{
+    const b=await findFileInStorage(c.id,fname);
+    if(!b){toast('File not stored — click Attach file to link it');if(btn)btn.textContent='View';return;}
+    const ext=fname.split('.').pop().toLowerCase();
+    const mime=ext==='pdf'?'application/pdf':ext==='png'?'image/png':ext==='jpg'||ext==='jpeg'?'image/jpeg':'application/octet-stream';
+    openBlob(b,mime,fname);
+  }catch(e){toast('Error: '+e.message);}
+  if(btn)btn.textContent='View';
+}
+async function dlGFile(ci,fname,fi){
+  const c=contracts[ci];if(!c)return;
+  const btn=document.getElementById('dl-gf-'+ci+'-'+(fi??0));
+  if(btn){btn.textContent='...';}
+  try{
+    const b=await findFileInStorage(c.id,fname);
+    if(!b){toast('File not stored — click Attach file to link it');if(btn)btn.textContent='Download';return;}
+    const ext=fname.split('.').pop().toLowerCase();
+    const mime=ext==='pdf'?'application/pdf':ext==='png'?'image/png':'application/octet-stream';
+    dlBlob(b,mime,fname);
+  }catch(e){toast('Error: '+e.message);}
+  if(btn)btn.textContent='Download';
+}
+function openBlob(b64,mime,name){const b=atob(b64),a=new Uint8Array(b.length);for(let j=0;j<b.length;j++)a[j]=b.charCodeAt(j);const url=URL.createObjectURL(new Blob([a],{type:mime}));window.open(url,'_blank');setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function dlBlob(b64,mime,name){const b=atob(b64),a=new Uint8Array(b.length);for(let j=0;j<b.length;j++)a[j]=b.charCodeAt(j);const url=URL.createObjectURL(new Blob([a],{type:mime}));const el=document.createElement('a');el.href=url;el.download=name;el.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+async function attachPdf(ev,i){
+  const f=ev.target.files[0];if(!f)return;const c=contracts[i];if(!c)return;
+  try{const b=await toB64(f);await idbSet('pdf:'+c.id,b);toast('PDF attached to '+c.customer_name);openModal(i);checkBadges();}catch(e){toast('Failed: '+e.message);}
+}
+async function attachGFile(ev,ci,fi,expectedName){
+  const f=ev.target.files[0];if(!f)return;
+  const c=contracts[ci];if(!c)return;
+  try{
+    const b=await toB64(f);
+    await idbSet('pdf:'+c.id+':'+expectedName, b);
+    toast('File attached: '+expectedName);
+    checkBadges();
+    checkModalSlots(ci);
+  }catch(e){toast('Failed: '+e.message);}
+}
+async function delContract(i){
+  const c=contracts[i];
+  if(c){try{if(c.is_group&&c.group_files){for(const gf of c.group_files)await idbDel('pdf:'+c.id+':'+gf.name).catch(()=>{});}else await idbDel('pdf:'+c.id).catch(()=>{});}catch(e){}}
+  contracts.splice(i,1);saveC();document.getElementById('modal').classList.remove('open');renderDashboard();toast('Contract removed');
+}
+
+// — Demo —————————————————————————————————————————
+function loadDemo(){
+  const d=off=>{const x=new Date();x.setDate(x.getDate()+off);return x.toISOString().split('T')[0];};
+  contracts=[
+    {id:'C-D1',customer_name:'Tata Consultancy Services',contract_number:'TCS-2024-0091',start_date:d(-365),end_date:d(45),notice_period_days:30,renewal_type:'manual',contract_value:'12,00,000',payment_terms:'Quarterly',governing_law:'India',notes:'Software services agreement for ERP implementation.',source_file:'TCS_Contract.pdf',extracted_at:new Date().toISOString()},
+    {id:'C-D2',customer_name:'Infosys BPM',contract_number:'INFY-BPM-441',start_date:d(-180),end_date:d(200),notice_period_days:60,renewal_type:'auto',contract_value:'8,50,000',payment_terms:'Monthly',governing_law:'India',notes:'BPO services with auto-renewal.',source_file:'Infosys_BPM.pdf',extracted_at:new Date().toISOString()},
+    {id:'C-D3',customer_name:'Wipro Technologies',contract_number:'WIP-2023-553',start_date:d(-500),end_date:d(-30),notice_period_days:45,renewal_type:'manual',contract_value:'5,75,000',payment_terms:'Annual',governing_law:'India',notes:'IT maintenance contract. Expired.',source_file:'Wipro_Contract.pdf',extracted_at:new Date().toISOString()},
+    {id:'C-D4',customer_name:'HCL Technologies',contract_number:'HCL-INT-229',start_date:d(-90),end_date:d(275),notice_period_days:30,renewal_type:'auto',contract_value:'22,00,000',payment_terms:'Net 45',governing_law:'India',notes:'Digital transformation project.',source_file:'HCL_Contract.pdf',extracted_at:new Date().toISOString()},
+    {id:'C-D5',customer_name:'Mahindra Tech (Renewed via Email)',contract_number:'MT-2024-071',start_date:d(-60),end_date:d(340),notice_period_days:30,renewal_type:'confirmed-by-email',renewal_confirmed:true,contract_value:'3,20,000',payment_terms:'Monthly',governing_law:'Maharashtra',notes:'Original contract expired 31 Dec 2024. Customer confirmed 12-month auto-renewal by email on 15 Jan 2025. New end date extended accordingly.',source_file:'MT_Contract.pdf, renewal_email.eml',extracted_at:new Date().toISOString(),is_group:true,group_files:[{name:'MT_Contract.pdf',type:'contract'},{name:'renewal_email.eml',type:'email'}]},
+    {id:'C-D6',customer_name:'Reliance Jio Infocomm',contract_number:'RJI-2022-008',start_date:d(-730),end_date:d(400),notice_period_days:90,renewal_type:'manual',contract_value:'45,00,000',payment_terms:'Bi-annual',governing_law:'India',notes:'Enterprise connectivity and cloud services agreement.',source_file:'RelianceJio.pdf',extracted_at:new Date().toISOString()},
+  ];
+  saveC();renderDashboard();document.getElementById('demo-bar').style.display='none';
+  toast('Demo loaded — Mahindra Tech shows a grouped contract example');
+}
+
+// — Toast ————————————————————————————————————————
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
+
+// — Init —————————————————————————————————————————
+window.addEventListener('DOMContentLoaded',()=>{
+  if(contracts.length)document.getElementById('demo-bar').style.display='none';
+  updateBtn();
+});
+</script>
+</body>
+</html>

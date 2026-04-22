@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app                        # live-reload: code changes reflect immediately
+      - pdf_storage:/app/local_pdfs   # persisted PDF storage
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      # AES-256 Fernet key — encrypts files at rest AND salary/variables DB columns.
+      # For production: generate a fresh key, store in a secrets manager, never commit it.
+      - DOCUMENT_ENCRYPTION_KEY=jPt1rx-Lv_Ts7HYkUNnD9qtyADNzXhaiqL4qMJW4pnE=
+      # SQLite (default). To switch to PostgreSQL, uncomment the block below
+      # and add a `db` service.
+      # - DB_ENGINE=django.db.backends.postgresql
+      # - DB_NAME=cms_db
+      # - DB_USER=cms_user
+      # - DB_PASSWORD=cms_password
+      # - DB_HOST=db
+      # - DB_PORT=5432
+    depends_on: []
+    restart: unless-stopped
+
+volumes:
+  pdf_storage:

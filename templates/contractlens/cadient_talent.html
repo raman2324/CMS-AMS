@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Contract Lens — Cadient Talent{% endblock %}
+
+{% block extra_head %}
+<style>
+  .cl-iframe-wrap {
+    position: relative;
+    height: calc(100vh - 32px);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+  }
+  .cl-iframe-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cl-iframe-wrap">
+  <iframe
+    src="{% url 'documents:cadient_talent_app' %}"
+    title="Contract Lens — Cadient Talent"
+    allow="clipboard-read; clipboard-write"
+  ></iframe>
+</div>
+{% endblock %}
