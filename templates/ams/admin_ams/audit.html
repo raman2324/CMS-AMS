@@ -1,7 +1,7 @@
 {% extends "ams/base.html" %}
 {% block title %}Audit Log — AMS{% endblock %}
 
-{% block content %}
+{% block ams_content %}
 <div class="mb-6 flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-900">Audit Log</h1>
     <a href="?{% if filters.date_from %}date_from={{ filters.date_from }}&{% endif %}{% if filters.date_to %}date_to={{ filters.date_to }}&{% endif %}{% if filters.action_type %}action_type={{ filters.action_type }}&{% endif %}{% if filters.actor_id %}actor_id={{ filters.actor_id }}&{% endif %}export=csv"
