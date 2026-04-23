@@ -736,6 +736,121 @@ def cadient_talent_extract(request):
 
 @login_required
 @require_POST
+def cadient_talent_confirm(request):
+    try:
+        from datetime import datetime as _dt
+        data = json.loads(request.body)
+        record_id = data.get("record_id", "").strip()
+        if not record_id:
+            return JsonResponse({"error": "record_id required"}, status=400)
+
+        try:
+            record = ContractLensRecord.objects.get(id=record_id)
+        except ContractLensRecord.DoesNotExist:
+            return JsonResponse({"error": "Record not found"}, status=404)
+
+        editable = ["customer_name", "contract_number", "start_date", "end_date",
+                    "notice_period_days", "renewal_type", "contract_value",
+                    "payment_terms", "governing_law", "notes"]
+
+        updated = dict(record.contract_data)
+        for f in editable:
+            if f in data:
+                val = data[f]
+                updated[f] = None if val == "" else val
+
+        confirmed_at = _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        confirmed_by = request.user.get_full_name() or request.user.username
+        updated["confirmed"] = True
+        updated["confirmed_at"] = confirmed_at
+        updated["confirmed_by"] = confirmed_by
+
+        record.customer_name = updated.get("customer_name") or record.customer_name
+        record.contract_data = updated
+        record.save()
+
+        AuditEvent.objects.create(
+            event_type="contractlens.confirmed",
+            actor=request.user,
+            target_type="ContractLensRecord",
+            target_id=str(record.id),
+            metadata={
+                "customer_name": record.customer_name,
+                "record_id": str(record.id),
+                "confirmed_by": confirmed_by,
+                "confirmed_by_id": str(request.user.id),
+                "confirmed_at": confirmed_at,
+            },
+        )
+
+        return JsonResponse({"ok": True, "confirmed_by": confirmed_by, "confirmed_at": confirmed_at})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def cadient_talent_download_file(request, record_id):
+    from django.http import Http404
+    from documents.services.storage_service import read_document
+
+    try:
+        record = ContractLensRecord.objects.get(id=record_id)
+    except ContractLensRecord.DoesNotExist:
+        raise Http404
+
+    user = request.user
+    is_creator = record.created_by_id == user.id
+    is_privileged = getattr(user, "role", "") in ("finance_head", "admin")
+    if not (is_creator or is_privileged):
+        raise PermissionDenied
+
+    files_meta = record.source_files_meta or []
+    if not files_meta:
+        raise Http404
+
+    # Match by name if provided, else use first file
+    requested_name = request.GET.get("name", "").strip()
+    if requested_name:
+        meta = next((f for f in files_meta if f.get("name") == requested_name), None)
+        if not meta:
+            raise Http404
+    else:
+        meta = files_meta[0]
+
+    s3_key = meta.get("s3_key", "")
+    if not s3_key:
+        raise Http404
+
+    try:
+        file_bytes = read_document(s3_key)
+    except Exception:
+        raise Http404
+
+    fname = meta.get("name", "contract.pdf")
+    mime = meta.get("mime_type", "application/octet-stream")
+    inline = request.GET.get("inline", "0") == "1"
+
+    AuditEvent.objects.create(
+        event_type="contractlens.downloaded",
+        actor=user,
+        target_type="ContractLensRecord",
+        target_id=str(record.id),
+        metadata={
+            "file": fname,
+            "record_id": str(record.id),
+            "customer_name": record.customer_name,
+            "inline": inline,
+        },
+    )
+
+    disposition = "inline" if inline else f'attachment; filename="{fname}"'
+    response = HttpResponse(file_bytes, content_type=mime)
+    response["Content-Disposition"] = disposition
+    return response
+
+
+@login_required
+@require_POST
 def cadient_talent_analyse_group(request):
     try:
         data = json.loads(request.body)
