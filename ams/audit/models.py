@@ -1,11 +1,11 @@
 from django.db import models
 from django.core.exceptions import PermissionDenied
-from accounts.models import CustomUser
+from django.conf import settings
 
 
 class AuditLog(models.Model):
     actor = models.ForeignKey(
-        CustomUser,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name='audit_actions',

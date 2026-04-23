@@ -14,8 +14,8 @@ def offboard_employee(user, last_day, actor):
         return {'terminated': [], 'reassigned': [], 'already_offboarded': True}
 
     # Import here to avoid circular imports
-    from approvals.models import ApprovalRequest
-    from audit.models import AuditLog
+    from ams.approvals.models import ApprovalRequest
+    from ams.audit.models import AuditLog
 
     terminated = []
     reassigned = []
@@ -88,7 +88,7 @@ def offboard_employee(user, last_day, actor):
 
 def get_offboard_preview(user):
     """Preview what will happen when this user is offboarded."""
-    from approvals.models import ApprovalRequest
+    from ams.approvals.models import ApprovalRequest
 
     active_subs = ApprovalRequest.objects.filter(
         submitted_by=user,

@@ -4,8 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
-from approvals.models import ApprovalRequest, RequestType, RequestCategory
-from approvals.services import submit
+from ams.approvals.models import ApprovalRequest, RequestType, RequestCategory
+from ams.approvals.services import submit
 
 
 @login_required
@@ -15,7 +15,7 @@ def expense_new(request):
         request_category = request.POST.get('request_category', '')
         if request_category not in (RequestCategory.ONE_OFF, RequestCategory.RECURRING):
             messages.error(request, 'Please select One-off or Recurring.')
-            return redirect('expenses:expense_new')
+            return redirect('ams_expenses:expense_new')
 
         try:
             cost_str = request.POST.get('cost', '').strip()
@@ -41,7 +41,7 @@ def expense_new(request):
                 request,
                 f'Expense request #{obj.id} submitted. State: {obj.state_display}'
             )
-            return redirect('approvals:request_detail', pk=obj.pk)
+            return redirect('ams_approvals:request_detail', pk=obj.pk)
         except Exception as e:
             messages.error(request, f'Error: {e}')
 

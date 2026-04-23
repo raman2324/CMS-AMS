@@ -5,7 +5,10 @@
       "Bash(python -m py_compile config/__init__.py config/settings.py config/urls.py config/wsgi.py accounts/__init__.py accounts/apps.py accounts/models.py accounts/admin.py documents/__init__.py documents/apps.py documents/signals.py documents/models.py documents/services/__init__.py documents/services/pdf_service.py documents/forms.py documents/views.py documents/urls.py documents/admin.py documents/management/__init__.py documents/management/commands/__init__.py documents/management/commands/seed_data.py documents/management/commands/generate_bulk.py documents/management/commands/reconcile_documents.py)",
       "Bash(python -m py_compile documents/views.py)",
       "Bash(docker compose *)",
-      "Bash(python manage.py runserver 8000)"
+      "Bash(python manage.py runserver 8000)",
+      "Read(//c/Users/raman/AMS/ams/settings/**)",
+      "Read(//c/Users/raman/AMS/ams/**)",
+      "Read(//c/Users/raman/AMS/**)"
     ]
   }
 }

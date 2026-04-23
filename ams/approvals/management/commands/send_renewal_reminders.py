@@ -2,8 +2,8 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 
-from approvals.models import ApprovalRequest
-from notifications.services import send_notification
+from ams.approvals.models import ApprovalRequest
+from ams.notifications.services import send_notification
 
 
 class Command(BaseCommand):

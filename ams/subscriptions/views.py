@@ -3,8 +3,8 @@ from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
 
-from approvals.models import ApprovalRequest, RequestType
-from accounts.models import Role
+from ams.approvals.models import ApprovalRequest, RequestType
+from ams.ams_accounts.models import Role
 from .services import get_subscriptions_for_user
 
 

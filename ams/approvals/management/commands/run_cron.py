@@ -35,8 +35,8 @@ class Command(BaseCommand):
 
     def _check_renewal_reminders(self, today, dry_run):
         """Send renewal reminders for subscriptions expiring within 14 days."""
-        from approvals.models import ApprovalRequest
-        from notifications.services import send_notification
+        from ams.approvals.models import ApprovalRequest
+        from ams.notifications.services import send_notification
 
         threshold = today + timedelta(days=14)
         upcoming = ApprovalRequest.objects.filter(
@@ -75,7 +75,7 @@ class Command(BaseCommand):
         Subscriptions in 'renewing' state where expires_on < today
         → transition back to active_pending_renewal (renewal in progress, extend notice).
         """
-        from approvals.models import ApprovalRequest
+        from ams.approvals.models import ApprovalRequest
 
         expired_renewing = ApprovalRequest.objects.filter(
             request_type='subscription',
@@ -89,8 +89,8 @@ class Command(BaseCommand):
             self.stdout.write(f'  >> {req.service_name} (id={req.id}) expired on {req.expires_on} while renewing')
             if not dry_run:
                 # Already in renewing, just log a reminder
-                from notifications.services import send_notification
-                from accounts.models import Role, CustomUser
+                from ams.notifications.services import send_notification
+                from ams.ams_accounts.models import Role, CustomUser
                 finance = CustomUser.objects.filter(role=Role.FINANCE, is_active=True).first()
                 if finance:
                     send_notification(
@@ -111,9 +111,9 @@ class Command(BaseCommand):
         Subscriptions in active_pending_renewal where expires_on < today - 30
         → escalate to finance.
         """
-        from approvals.models import ApprovalRequest
-        from notifications.services import send_notification
-        from accounts.models import Role, CustomUser
+        from ams.approvals.models import ApprovalRequest
+        from ams.notifications.services import send_notification
+        from ams.ams_accounts.models import Role, CustomUser
 
         cutoff = today - timedelta(days=30)
         overdue = ApprovalRequest.objects.filter(

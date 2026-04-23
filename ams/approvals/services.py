@@ -4,12 +4,12 @@ Every state transition: checks permission → calls FSM → creates AuditLog →
 """
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from accounts.models import Role
+from ams.ams_accounts.models import Role
 
 
 def _get_finance_head():
     """Return first active finance executive (role=FINANCE)."""
-    from accounts.models import CustomUser
+    from ams.ams_accounts.models import CustomUser
     return CustomUser.objects.filter(role=Role.FINANCE, is_active=True).first()
 
 
@@ -32,7 +32,7 @@ def _expiry_from_billing(billing_period, from_date):
 
 def _get_finance_head_admin():
     """Return the Finance Head (role=ADMIN, non-superuser) for CC notifications."""
-    from accounts.models import CustomUser
+    from ams.ams_accounts.models import CustomUser
     return CustomUser.objects.filter(role=Role.ADMIN, is_active=True, is_superuser=False).first()
 
 
@@ -50,8 +50,8 @@ def submit(request_obj, actor):
     C-suite (no reports_to) → goes directly to pending_finance.
     Everyone else → pending_manager regardless of request type.
     """
-    from audit.models import AuditLog
-    from notifications.services import send_notification
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
     from django.utils import timezone
 
     is_c_suite = actor.reports_to is None
@@ -60,7 +60,7 @@ def submit(request_obj, actor):
         # Skip manager, go straight to finance (C-suite has no reports_to)
         finance_head = _get_finance_head()
         # Use update() to bypass FSM protection for this special submit path
-        from approvals.models import ApprovalRequest
+        from ams.approvals.models import ApprovalRequest
         request_obj.current_approver = finance_head
         request_obj.save()
         ApprovalRequest.objects.filter(pk=request_obj.pk).update(state='pending_finance')
@@ -125,9 +125,9 @@ def submit(request_obj, actor):
 @transaction.atomic
 def manager_approve(request_obj, actor, comment='', finance_user_id=None):
     """Manager approves → moves to pending_finance, routed to selected finance executive."""
-    from audit.models import AuditLog
-    from notifications.services import send_notification
-    from accounts.models import CustomUser
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
+    from ams.ams_accounts.models import CustomUser
     from django.utils import timezone
 
     if request_obj.state != 'pending_manager':
@@ -205,8 +205,8 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
 @transaction.atomic
 def manager_reject(request_obj, actor, reason=''):
     """Manager rejects."""
-    from audit.models import AuditLog
-    from notifications.services import send_notification
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
     from django.utils import timezone
 
     if request_obj.state != 'pending_manager':
@@ -243,10 +243,10 @@ def manager_reject(request_obj, actor, reason=''):
 @transaction.atomic
 def finance_approve(request_obj, actor, comment=''):
     """Finance approves → provisioning (subscription) or approved (expense)."""
-    from audit.models import AuditLog
-    from notifications.services import send_notification
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
     from django.utils import timezone
-    from accounts.models import CustomUser
+    from ams.ams_accounts.models import CustomUser
 
     if request_obj.state != 'pending_finance':
         raise PermissionDenied('Request is not in pending_finance state.')
@@ -294,8 +294,8 @@ def finance_approve(request_obj, actor, comment=''):
 @transaction.atomic
 def finance_reject(request_obj, actor, reason=''):
     """Finance rejects."""
-    from audit.models import AuditLog
-    from notifications.services import send_notification
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
     from django.utils import timezone
 
     if request_obj.state != 'pending_finance':
@@ -333,8 +333,8 @@ def finance_reject(request_obj, actor, reason=''):
 @transaction.atomic
 def it_provision(request_obj, actor, vendor_account_id, billing_start):
     """IT provisions the subscription."""
-    from audit.models import AuditLog
-    from notifications.services import send_notification
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
     from django.utils import timezone
 
     if request_obj.state != 'provisioning':
@@ -381,7 +381,7 @@ def it_provision(request_obj, actor, vendor_account_id, billing_start):
 @transaction.atomic
 def initiate_renewal(request_obj, actor):
     """Move active subscription to renewal workflow."""
-    from audit.models import AuditLog
+    from ams.audit.models import AuditLog
 
     if request_obj.state == 'active':
         request_obj.extend_pending()
@@ -413,8 +413,8 @@ def initiate_renewal(request_obj, actor):
 @transaction.atomic
 def complete_renewal(request_obj, actor, approved=True, reason=''):
     """Finance approves or rejects a renewal."""
-    from audit.models import AuditLog
-    from notifications.services import send_notification
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
     from django.utils import timezone
 
     if request_obj.state != 'renewing':
@@ -470,7 +470,7 @@ def complete_renewal(request_obj, actor, approved=True, reason=''):
 @transaction.atomic
 def terminate_request(request_obj, actor, reason=''):
     """Terminate an active subscription/approved expense."""
-    from audit.models import AuditLog
+    from ams.audit.models import AuditLog
 
     request_obj.terminate(reason=reason)
     request_obj.current_approver = None

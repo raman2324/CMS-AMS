@@ -1,9 +1,9 @@
-from approvals.models import ApprovalRequest, RequestType
+from ams.approvals.models import ApprovalRequest, RequestType
 
 
 def get_subscriptions_for_user(user):
     """Get all subscriptions visible to this user."""
-    from accounts.models import Role
+    from ams.ams_accounts.models import Role
     if user.role in (Role.FINANCE, Role.ADMIN, Role.IT):
         return ApprovalRequest.objects.filter(
             request_type=RequestType.SUBSCRIPTION

@@ -1,6 +1,6 @@
 from django.db import models
 from django_fsm import FSMField, transition
-from accounts.models import CustomUser
+from django.conf import settings
 
 
 class RequestType(models.TextChoices):
@@ -72,10 +72,10 @@ class ApprovalRequest(models.Model):
         max_length=20, choices=RequestCategory.choices, blank=True, default=''
     )
     submitted_by = models.ForeignKey(
-        CustomUser, on_delete=models.PROTECT, related_name='submitted_requests'
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='submitted_requests'
     )
     current_approver = models.ForeignKey(
-        CustomUser,
+        settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

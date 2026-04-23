@@ -29,6 +29,7 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("documents/", include("documents.urls", namespace="documents")),
     path("uploads/", include("uploads.urls", namespace="uploads")),
+    path("ams/", include("ams.urls")),
     path("", lambda request: redirect("documents:list"), name="home"),
     # Catch-all — must be last. Renders custom 404 for any unmatched path.
     re_path(r"^.*$", lambda request, *a, **kw: custom_404(request)),

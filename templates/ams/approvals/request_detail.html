@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ams/base.html" %}
 {% block title %}Request #{{ obj.id }} — AMS{% endblock %}
 
 {% block extra_head %}
@@ -31,7 +31,7 @@
     <div class="mb-6 flex items-start justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 mb-2 text-sm text-gray-500">
-                <a href="{% url 'approvals:inbox' %}" class="text-indigo-600 hover:underline">Inbox</a>
+                <a href="{% url 'ams_approvals:inbox' %}" class="text-indigo-600 hover:underline">Inbox</a>
                 <span>/</span>
                 <span>Request #{{ obj.id }}</span>
             </div>

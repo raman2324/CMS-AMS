@@ -23,7 +23,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Seed data created successfully!'))
 
     def _create_users(self):
-        from accounts.models import CustomUser, Role
+        from ams.ams_accounts.models import CustomUser, Role
         from django.contrib.sites.models import Site
 
         # Update site
@@ -184,8 +184,8 @@ class Command(BaseCommand):
         return created_users
 
     def _create_sample_data(self):
-        from accounts.models import CustomUser
-        from approvals.models import ApprovalRequest, RequestType, BillingPeriod, ExpenseType, AmountType
+        from ams.ams_accounts.models import CustomUser
+        from ams.approvals.models import ApprovalRequest, RequestType, BillingPeriod, ExpenseType, AmountType
 
         if ApprovalRequest.objects.exists():
             self.stdout.write('  Sample data already exists, skipping.')

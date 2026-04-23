@@ -63,7 +63,7 @@ class Command(BaseCommand):
     help = 'Seed 6 test users (alice, bob, carol, dave, eve, frank)'
 
     def handle(self, *args, **options):
-        from accounts.models import CustomUser
+        from ams.ams_accounts.models import CustomUser
 
         with transaction.atomic():
             created_users = {}

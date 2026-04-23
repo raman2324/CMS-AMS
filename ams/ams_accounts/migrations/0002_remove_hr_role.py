@@ -2,14 +2,14 @@ from django.db import migrations, models
 
 
 def convert_hr_to_finance(apps, schema_editor):
-    CustomUser = apps.get_model('accounts', 'CustomUser')
+    CustomUser = apps.get_model('ams_accounts', 'CustomUser')
     CustomUser.objects.filter(role='hr').update(role='finance')
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0001_initial'),
+        ('ams_accounts', '0001_initial'),
     ]
 
     operations = [

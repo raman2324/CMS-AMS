@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ams/base.html" %}
 {% block title %}New Expense — AMS{% endblock %}
 
 {% block content %}
@@ -84,7 +84,7 @@
             </div>
 
             <div id="expense-submit-section" class="hidden mt-6 pt-4 border-t border-gray-100 flex justify-end gap-3">
-                <a href="{% url 'approvals:inbox' %}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Cancel</a>
+                <a href="{% url 'ams_approvals:inbox' %}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Cancel</a>
                 <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
                     Submit for Approval
                 </button>

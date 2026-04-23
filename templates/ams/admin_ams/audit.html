@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ams/base.html" %}
 {% block title %}Audit Log — AMS{% endblock %}
 
 {% block content %}
@@ -47,7 +47,7 @@
             <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition">
                 Filter
             </button>
-            <a href="{% url 'audit:audit_log' %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition">
+            <a href="{% url 'ams_audit:audit_log' %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition">
                 Clear
             </a>
         </div>
@@ -77,7 +77,7 @@
                 <td class="px-4 py-3 text-gray-500 text-xs">
                     {{ log.target_type }}#{{ log.target_id }}
                     {% if log.target_type == 'request' %}
-                    <a href="{% url 'approvals:request_detail' log.target_id %}" class="ml-1 text-indigo-600 hover:underline">↗</a>
+                    <a href="{% url 'ams_approvals:request_detail' log.target_id %}" class="ml-1 text-indigo-600 hover:underline">↗</a>
                     {% endif %}
                 </td>
                 <td class="px-4 py-3 text-gray-600 max-w-xs truncate">{{ log.notes }}</td>

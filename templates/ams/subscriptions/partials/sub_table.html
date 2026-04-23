@@ -14,7 +14,7 @@
         {% for req in subs %}
         <tr class="hover:bg-gray-50">
             <td class="px-4 py-3 font-medium text-gray-900">
-                <a href="{% url 'approvals:request_detail' req.pk %}" class="hover:text-indigo-600">
+                <a href="{% url 'ams_approvals:request_detail' req.pk %}" class="hover:text-indigo-600">
                     {{ req.service_name }}
                 </a>
             </td>

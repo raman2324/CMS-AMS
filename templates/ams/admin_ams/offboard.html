@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ams/base.html" %}
 {% block title %}Offboard Employee — AMS{% endblock %}
 
 {% block content %}
@@ -106,7 +106,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">Recent Offboards</h2>
         <p class="text-sm text-gray-400">
-            <a href="{% url 'audit:audit_log' %}?action_type=employee_offboarded" class="text-indigo-600 hover:underline">
+            <a href="{% url 'ams_audit:audit_log' %}?action_type=employee_offboarded" class="text-indigo-600 hover:underline">
                 View offboard audit log
             </a>
         </p>

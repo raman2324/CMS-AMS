@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ams/base.html" %}
 {% block title %}My Activity — AMS{% endblock %}
 
 {% block content %}
@@ -28,7 +28,7 @@
                 <td class="px-4 py-3 text-gray-500 text-xs">
                     {{ log.target_type }}#{{ log.target_id }}
                     {% if log.target_type == 'request' %}
-                    <a href="{% url 'approvals:request_detail' log.target_id %}" class="ml-1 text-indigo-600 hover:underline">↗</a>
+                    <a href="{% url 'ams_approvals:request_detail' log.target_id %}" class="ml-1 text-indigo-600 hover:underline">↗</a>
                     {% endif %}
                 </td>
                 <td class="px-4 py-3 text-gray-600 max-w-xs truncate">{{ log.notes }}</td>

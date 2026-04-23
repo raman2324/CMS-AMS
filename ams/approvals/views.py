@@ -12,15 +12,15 @@ from .services import (
     finance_approve, finance_reject, it_provision,
     initiate_renewal, complete_renewal, terminate_request,
 )
-from accounts.models import CustomUser, Role
-from audit.models import AuditLog
+from ams.ams_accounts.models import CustomUser, Role
+from ams.audit.models import AuditLog
 
 
 @login_required
 def request_new(request):
     """Create a new approval request (one-off or recurring)."""
     if request.method == 'POST':
-        from approvals.models import RequestCategory
+        from ams.approvals.models import RequestCategory
         request_category = request.POST.get('request_category', '')
         if request_category == RequestCategory.RECURRING:
             req_type = RequestType.SUBSCRIPTION
@@ -28,7 +28,7 @@ def request_new(request):
             req_type = RequestType.MISC_EXPENSE
         else:
             messages.error(request, 'Please select One-off or Recurring.')
-            return redirect('approvals:request_new')
+            return redirect('ams_approvals:request_new')
 
         try:
             obj = ApprovalRequest(
@@ -73,11 +73,11 @@ def request_new(request):
                 request,
                 f'Request #{obj.id} submitted successfully. Current state: {obj.state_display}'
             )
-            return redirect('approvals:request_detail', pk=obj.pk)
+            return redirect('ams_approvals:request_detail', pk=obj.pk)
 
         except Exception as e:
             messages.error(request, f'Error submitting request: {e}')
-            return redirect('approvals:request_new')
+            return redirect('ams_approvals:request_new')
 
     managers = CustomUser.objects.filter(role=Role.MANAGER, is_active=True).order_by('first_name')
     return render(request, 'approvals/request_new.html', {
@@ -99,7 +99,7 @@ def request_detail(request, pk):
     )
     if not can_view:
         messages.error(request, "You don't have permission to view that request.")
-        return redirect('approvals:inbox')
+        return redirect('ams_approvals:inbox')
 
     audit_logs = AuditLog.objects.filter(
         target_type='request', target_id=obj.id
@@ -169,8 +169,8 @@ def action_approve(request, pk):
         messages.error(request, f'Error: {e}')
 
     if request.htmx:
-        return redirect('approvals:request_detail', pk=pk)
-    return redirect('approvals:request_detail', pk=pk)
+        return redirect('ams_approvals:request_detail', pk=pk)
+    return redirect('ams_approvals:request_detail', pk=pk)
 
 
 @login_required
@@ -198,7 +198,7 @@ def action_reject(request, pk):
     except Exception as e:
         messages.error(request, f'Error: {e}')
 
-    return redirect('approvals:request_detail', pk=pk)
+    return redirect('ams_approvals:request_detail', pk=pk)
 
 
 @login_required
@@ -221,7 +221,7 @@ def action_provision(request, pk):
     except Exception as e:
         messages.error(request, f'Error provisioning: {e}')
 
-    return redirect('approvals:request_detail', pk=pk)
+    return redirect('ams_approvals:request_detail', pk=pk)
 
 
 @login_required
@@ -237,7 +237,7 @@ def action_renew(request, pk):
     except Exception as e:
         messages.error(request, f'Error: {e}')
 
-    return redirect('approvals:request_detail', pk=pk)
+    return redirect('ams_approvals:request_detail', pk=pk)
 
 
 @login_required
@@ -255,7 +255,7 @@ def action_terminate(request, pk):
     except Exception as e:
         messages.error(request, f'Error: {e}')
 
-    return redirect('approvals:request_detail', pk=pk)
+    return redirect('ams_approvals:request_detail', pk=pk)
 
 
 @login_required
@@ -264,7 +264,7 @@ def inbox(request):
     user = request.user
 
     if user.role == Role.EMPLOYEE:
-        return redirect('approvals:my_requests')
+        return redirect('ams_approvals:my_requests')
 
     # Requests where I am the current approver — finance/admin see pending_finance
     # via finance_queue instead, so exclude it here to avoid duplicates.

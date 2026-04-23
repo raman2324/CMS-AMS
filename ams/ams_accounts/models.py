@@ -11,6 +11,20 @@ class Role(models.TextChoices):
 
 
 class CustomUser(AbstractUser):
+    # Two AbstractUser subclasses in same project require unique related_names
+    groups = models.ManyToManyField(
+        "auth.Group",
+        blank=True,
+        related_name="+",
+        verbose_name="groups",
+    )
+    user_permissions = models.ManyToManyField(
+        "auth.Permission",
+        blank=True,
+        related_name="+",
+        verbose_name="user permissions",
+    )
+
     role = models.CharField(
         max_length=20,
         choices=Role.choices,

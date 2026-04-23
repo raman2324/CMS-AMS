@@ -34,7 +34,7 @@ class Command(BaseCommand):
     help = 'Assign employee/manager roles to existing users (no new users created)'
 
     def handle(self, *args, **options):
-        from accounts.models import CustomUser
+        from ams.ams_accounts.models import CustomUser
 
         all_employee_emails = {e for e, _ in EMPLOYEES}
         overlap = all_employee_emails & set(MANAGERS)
@@ -52,7 +52,7 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------
     def _assign_managers(self):
-        from accounts.models import CustomUser
+        from ams.ams_accounts.models import CustomUser
 
         manager_users = {}
         self.stdout.write('\n--- Assigning managers ---')
@@ -72,7 +72,7 @@ class Command(BaseCommand):
         return manager_users
 
     def _assign_employees(self, manager_users):
-        from accounts.models import CustomUser
+        from ams.ams_accounts.models import CustomUser
 
         employee_users = []
         self.stdout.write('\n--- Assigning employees ---')

@@ -8,7 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from .models import AuditLog
-from accounts.models import CustomUser, Role
+from ams.ams_accounts.models import CustomUser, Role
 
 
 def require_finance_or_admin(user):
@@ -87,7 +87,7 @@ def my_audit_log(request):
 def offboard(request):
     require_finance_or_admin(request.user)
 
-    from accounts.services import offboard_employee, get_offboard_preview
+    from ams.ams_accounts.services import offboard_employee, get_offboard_preview
 
     active_employees = CustomUser.objects.filter(
         is_active=True
@@ -107,7 +107,7 @@ def offboard(request):
         except CustomUser.DoesNotExist:
             from django.contrib import messages
             messages.error(request, 'User not found.')
-            return redirect('audit:offboard')
+            return redirect('ams_audit:offboard')
 
         if action == 'preview':
             preview = get_offboard_preview(selected_user)
@@ -125,7 +125,7 @@ def offboard(request):
                     f'{len(result["terminated"])} subscriptions terminated, '
                     f'{len(result["reassigned"])} approvals reassigned.'
                 )
-            return redirect('audit:offboard')
+            return redirect('ams_audit:offboard')
 
     return render(request, 'admin_ams/offboard.html', {
         'active_employees': active_employees,

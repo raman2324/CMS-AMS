@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "ams/base.html" %}
 {% block title %}My Requests — AMS{% endblock %}
 
 {% block content %}
@@ -10,7 +10,7 @@
             <h1 class="text-2xl font-bold text-gray-900">My Requests</h1>
             <p class="text-sm text-gray-500 mt-1">Requests currently awaiting approval</p>
         </div>
-        <a href="{% url 'approvals:request_new' %}"
+        <a href="{% url 'ams_approvals:request_new' %}"
            class="shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
             + New Request
         </a>
@@ -18,7 +18,7 @@
 
     <!-- Quick links -->
     <div class="grid grid-cols-2 gap-4 mb-8">
-        <a href="{% url 'subscriptions:dashboard' %}"
+        <a href="{% url 'ams_subscriptions:dashboard' %}"
            class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-indigo-300 transition flex items-center justify-between group">
             <div>
                 <div class="text-sm font-medium text-gray-700 group-hover:text-indigo-600 transition">All Subscriptions</div>
@@ -28,7 +28,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
             </svg>
         </a>
-        <a href="{% url 'expenses:expense_list' %}"
+        <a href="{% url 'ams_expenses:expense_list' %}"
            class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-indigo-300 transition flex items-center justify-between group">
             <div>
                 <div class="text-sm font-medium text-gray-700 group-hover:text-indigo-600 transition">All Expenses</div>
@@ -54,7 +54,7 @@
                 <!-- Top row -->
                 <div class="flex items-start justify-between gap-4 mb-3">
                     <div class="min-w-0">
-                        <a href="{% url 'approvals:request_detail' req.pk %}"
+                        <a href="{% url 'ams_approvals:request_detail' req.pk %}"
                            class="font-medium text-gray-900 hover:text-indigo-600 transition text-sm">
                             {{ req.service_name|default:req.title }}
                         </a>
@@ -127,8 +127,8 @@
         <h3 class="text-lg font-semibold text-gray-700 mb-1">All clear!</h3>
         <p class="text-sm text-gray-400 mb-6">You have no pending approvals right now.</p>
         <div class="flex items-center justify-center gap-4 text-sm">
-            <a href="{% url 'subscriptions:dashboard' %}" class="text-indigo-600 hover:underline">View Subscriptions →</a>
-            <a href="{% url 'expenses:expense_list' %}" class="text-indigo-600 hover:underline">View Expenses →</a>
+            <a href="{% url 'ams_subscriptions:dashboard' %}" class="text-indigo-600 hover:underline">View Subscriptions →</a>
+            <a href="{% url 'ams_expenses:expense_list' %}" class="text-indigo-600 hover:underline">View Expenses →</a>
         </div>
     </div>
     {% endif %}
