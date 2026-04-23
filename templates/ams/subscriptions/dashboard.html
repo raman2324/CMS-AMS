@@ -76,7 +76,7 @@
             <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Active ({{ active.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "subscriptions/partials/sub_table.html" with subs=active %}
+            {% include "ams/subscriptions/partials/sub_table.html" with subs=active %}
         </div>
     </div>
     {% endif %}
@@ -88,7 +88,7 @@
             <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span> Pending Approval ({{ pending.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "subscriptions/partials/sub_table.html" with subs=pending %}
+            {% include "ams/subscriptions/partials/sub_table.html" with subs=pending %}
         </div>
     </div>
     {% endif %}
@@ -148,7 +148,7 @@
             <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> Renewing ({{ renewing.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "subscriptions/partials/sub_table.html" with subs=renewing %}
+            {% include "ams/subscriptions/partials/sub_table.html" with subs=renewing %}
         </div>
     </div>
     {% endif %}
@@ -160,7 +160,7 @@
             <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span> Terminated ({{ terminated.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "subscriptions/partials/sub_table.html" with subs=terminated %}
+            {% include "ams/subscriptions/partials/sub_table.html" with subs=terminated %}
         </div>
     </div>
     {% endif %}

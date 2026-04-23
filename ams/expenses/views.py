@@ -45,7 +45,7 @@ def expense_new(request):
         except Exception as e:
             messages.error(request, f'Error: {e}')
 
-    return render(request, 'expenses/expense_new.html')
+    return render(request, 'ams/expenses/expense_new.html')
 
 
 @login_required
@@ -56,7 +56,7 @@ def expense_list(request):
         request_type=RequestType.MISC_EXPENSE,
     ).select_related('current_approver').order_by('-created_at')
 
-    return render(request, 'expenses/expense_list.html', {
+    return render(request, 'ams/expenses/expense_list.html', {
         'pending':    base_qs.filter(state__in=['pending_manager', 'pending_finance']),
         'approved':   base_qs.filter(state='approved'),
         'rejected':   base_qs.filter(state__in=['rejected_manager', 'rejected_finance']),

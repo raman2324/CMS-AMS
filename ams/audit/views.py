@@ -62,7 +62,7 @@ def audit_log(request):
     actors = User.objects.filter(is_active=True).order_by('email')
     unique_actions = AuditLog.objects.values_list('action', flat=True).distinct().order_by('action')
 
-    return render(request, 'admin_ams/audit.html', {
+    return render(request, 'ams/admin_ams/audit.html', {
         'logs': logs,
         'actors': actors,
         'unique_actions': unique_actions,
@@ -83,7 +83,7 @@ def my_audit_log(request):
         .select_related('actor')
         .order_by('-created_at')[:200]
     )
-    return render(request, 'admin_ams/my_audit.html', {'logs': logs})
+    return render(request, 'ams/admin_ams/my_audit.html', {'logs': logs})
 
 
 @login_required
@@ -131,7 +131,7 @@ def offboard(request):
                 )
             return redirect('ams_audit:offboard')
 
-    return render(request, 'admin_ams/offboard.html', {
+    return render(request, 'ams/admin_ams/offboard.html', {
         'active_employees': active_employees,
         'preview': preview,
         'selected_user': selected_user,

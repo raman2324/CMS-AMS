@@ -29,7 +29,7 @@ def dashboard(request):
         expires_on__gte=today,
     )
 
-    return render(request, 'subscriptions/dashboard.html', {
+    return render(request, 'ams/subscriptions/dashboard.html', {
         'active': active,
         'active_pending': active_pending,
         'renewing': renewing,

@@ -49,7 +49,7 @@
             <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span> Pending Approval ({{ pending.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "expenses/partials/expense_table.html" with rows=pending %}
+            {% include "ams/expenses/partials/expense_table.html" with rows=pending %}
         </div>
     </div>
     {% endif %}
@@ -60,7 +60,7 @@
             <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Approved ({{ approved.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "expenses/partials/expense_table.html" with rows=approved %}
+            {% include "ams/expenses/partials/expense_table.html" with rows=approved %}
         </div>
     </div>
     {% endif %}
@@ -71,7 +71,7 @@
             <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span> Rejected ({{ rejected.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "expenses/partials/expense_table.html" with rows=rejected %}
+            {% include "ams/expenses/partials/expense_table.html" with rows=rejected %}
         </div>
     </div>
     {% endif %}
@@ -82,7 +82,7 @@
             <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span> Terminated ({{ terminated.count }})
         </h2>
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {% include "expenses/partials/expense_table.html" with rows=terminated %}
+            {% include "ams/expenses/partials/expense_table.html" with rows=terminated %}
         </div>
     </div>
     {% endif %}

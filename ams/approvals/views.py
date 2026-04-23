@@ -80,7 +80,7 @@ def request_new(request):
             return redirect('ams_approvals:request_new')
 
     managers = User.objects.filter(role=User.ROLE_MANAGER, is_active=True).order_by('first_name')
-    return render(request, 'approvals/request_new.html', {
+    return render(request, 'ams/approvals/request_new.html', {
         'managers': managers,
     })
 
@@ -138,8 +138,8 @@ def request_detail(request, pk):
     }
 
     if request.htmx:
-        return render(request, 'approvals/partials/request_detail_body.html', context)
-    return render(request, 'approvals/request_detail.html', context)
+        return render(request, 'ams/approvals/partials/request_detail_body.html', context)
+    return render(request, 'ams/approvals/request_detail.html', context)
 
 
 @login_required
@@ -317,7 +317,7 @@ def inbox(request):
         'finance_queue': finance_queue,
         'upcoming_renewals': upcoming_renewals,
     }
-    return render(request, 'approvals/inbox.html', context)
+    return render(request, 'ams/approvals/inbox.html', context)
 
 
 @login_required
@@ -332,6 +332,6 @@ def my_requests(request):
         state__in=IN_PROGRESS,
     ).select_related('submitted_by', 'current_approver').order_by('-created_at')
 
-    return render(request, 'approvals/my_requests.html', {
+    return render(request, 'ams/approvals/my_requests.html', {
         'pending': pending,
     })
