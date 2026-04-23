@@ -1,10 +1,7 @@
 FROM python:3.12-slim
 
-# WeasyPrint system dependencies (Pango, Cairo, GObject)
+# System dependencies: WeasyPrint (Pango/Cairo) + mysqlclient build deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    default-libmysqlclient-dev \
-    pkg-config \
-    gcc \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libpangocairo-1.0-0 \
@@ -14,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgobject-2.0-0 \
     fonts-liberation \
     fonts-noto \
+    default-libmysqlclient-dev \
+    pkg-config \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

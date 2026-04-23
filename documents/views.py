@@ -91,7 +91,7 @@ def _assert_document_access(request, document):
         return
 
     # Issuer: only their own documents
-    if user.role == User.ROLE_ISSUER and document.generated_by != user:
+    if user.role == User.ROLE_FINANCE_EXECUTIVE and document.generated_by != user:
         AuditEvent.objects.create(
             event_type="document.access_denied",
             actor=user,
@@ -126,7 +126,7 @@ def employee_search(request):
         qs = qs.filter(company_id=company_id)
 
     # Issuers scoped to their own department (blank = all departments)
-    if request.user.role == User.ROLE_ISSUER and request.user.department:
+    if request.user.role == User.ROLE_FINANCE_EXECUTIVE and request.user.department:
         qs = qs.filter(department=request.user.department)
 
     return render(
@@ -144,10 +144,25 @@ def template_fields(request, template_id):
     """
     template = get_object_or_404(LetterTemplate, id=template_id, is_active=True)
     schema = template.full_schema  # base + template-specific fields
+
+    # Split schema: regular fields vs. annexure table rows (paired _annual/_monthly)
+    regular_fields = {k: v for k, v in schema.items() if v.get("section") != "annexure1"}
+    annexure_rows = []
+    for k, v in schema.items():
+        if v.get("section") != "annexure1" or not k.endswith("_annual"):
+            continue
+        monthly_key = k[:-7] + "_monthly"
+        annexure_rows.append({
+            "label": v.get("row_label", v["label"]),
+            "annual_name": k,
+            "monthly_name": monthly_key,
+            "monthly_def": schema.get(monthly_key, {}),
+        })
+
     return render(
         request,
         "documents/partials/template_fields.html",
-        {"schema": schema, "template": template},
+        {"schema": regular_fields, "annexure_rows": annexure_rows, "template": template},
     )
 
 
@@ -326,7 +341,7 @@ class DocumentListView(LoginRequiredMixin, View):
         )
 
         # Finance Head sees everything. Issuers see only their own documents.
-        if request.user.role == User.ROLE_ISSUER:
+        if request.user.role == User.ROLE_FINANCE_EXECUTIVE:
             qs = qs.filter(generated_by=request.user)
 
         # Query filters
@@ -414,7 +429,7 @@ class DocumentDetailView(LoginRequiredMixin, View):
             return redirect("documents:detail", pk=pk)
 
         # Issuers can only void their own documents
-        if request.user.role == User.ROLE_ISSUER and document.generated_by != request.user:
+        if request.user.role == User.ROLE_FINANCE_EXECUTIVE and document.generated_by != request.user:
             raise PermissionDenied
 
         void_form = VoidDocumentForm(request.POST)
@@ -481,7 +496,7 @@ def document_download(request, pk):
         return redirect("documents:detail", pk=pk)
 
     employee_name = document.recipient.name.replace(" ", "_")
-    tmpl_name = document.template.get_name_display().replace(" ", "_")
+    tmpl_name = document.template.name.replace(" ", "_")
     date_str = document.generated_at.strftime("%Y%m%d")
     filename = f"{tmpl_name}_{employee_name}_{date_str}.pdf"
 
@@ -496,8 +511,8 @@ def document_download(request, pk):
 
 class AuditLogView(LoginRequiredMixin, View):
     """
-    Dedicated audit log page — Finance Head and Viewer only.
-    Issuers and Admins get 403 (they operate the tool, they don't audit it).
+    CMS audit log — Documents + Other Documents events only (excludes Contract Lens).
+    Finance Head and Viewer only.
     """
     template_name = "documents/audit.html"
 
@@ -552,7 +567,10 @@ class AuditLogView(LoginRequiredMixin, View):
 
 
 class ContractLensAuditLogView(LoginRequiredMixin, View):
-    """Contract Lens audit log — contractlens.* events only. Finance Head and Viewer only."""
+    """
+    Contract Lens audit log — contractlens.* events only.
+    Finance Head and Viewer only.
+    """
     template_name = "documents/contractlens_audit.html"
 
     def get(self, request):
@@ -608,7 +626,7 @@ class ContractLensAuditLogView(LoginRequiredMixin, View):
 
 @login_required
 def cadient_talent_view(request):
-    if request.user.role not in ("finance_head", "issuer"):
+    if request.user.role not in ("finance_head", "finance_executive"):
         raise PermissionDenied
     return render(request, "contractlens/cadient_talent_app.html")
 
@@ -623,7 +641,11 @@ def _parse_json_response(text):
 
 
 def _save_cl_files(record_id, files):
-    """Persist base64-encoded files to encrypted storage. Returns source_files_meta list."""
+    """
+    Persist base64-encoded files to encrypted storage.
+    Returns a list of {name, type, s3_key, mime_type} for source_files_meta.
+    files: list of {name, type, content_b64, mime_type}
+    """
     from datetime import datetime
     meta = []
     now = datetime.utcnow()
@@ -681,6 +703,7 @@ def cadient_talent_extract(request):
         if override_name:
             result["customer_name"] = override_name
 
+        # Persist record + file (encrypted)
         record = ContractLensRecord.objects.create(
             customer_name=result.get("customer_name", ""),
             record_type=ContractLensRecord.RECORD_EXTRACT,
@@ -688,15 +711,11 @@ def cadient_talent_extract(request):
             contract_data=result,
             created_by=request.user,
         )
-        files_meta = _save_cl_files(str(record.id), [{
-            "name": data.get("source_file_name", "contract.pdf"),
-            "type": "contract",
-            "content_b64": pdf_b64,
-            "mime_type": "application/pdf",
-        }])
+        files_meta = _save_cl_files(str(record.id), [{"name": data.get("source_file_name", "contract.pdf"), "type": "contract", "content_b64": pdf_b64, "mime_type": "application/pdf"}])
         record.source_files_meta = files_meta
         record.save()
 
+        # Audit log
         AuditEvent.objects.create(
             event_type="contractlens.extracted",
             actor=request.user,
@@ -713,6 +732,121 @@ def cadient_talent_extract(request):
         return JsonResponse(result)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def cadient_talent_confirm(request):
+    try:
+        from datetime import datetime as _dt
+        data = json.loads(request.body)
+        record_id = data.get("record_id", "").strip()
+        if not record_id:
+            return JsonResponse({"error": "record_id required"}, status=400)
+
+        try:
+            record = ContractLensRecord.objects.get(id=record_id)
+        except ContractLensRecord.DoesNotExist:
+            return JsonResponse({"error": "Record not found"}, status=404)
+
+        editable = ["customer_name", "contract_number", "start_date", "end_date",
+                    "notice_period_days", "renewal_type", "contract_value",
+                    "payment_terms", "governing_law", "notes"]
+
+        updated = dict(record.contract_data)
+        for f in editable:
+            if f in data:
+                val = data[f]
+                updated[f] = None if val == "" else val
+
+        confirmed_at = _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        confirmed_by = request.user.get_full_name() or request.user.username
+        updated["confirmed"] = True
+        updated["confirmed_at"] = confirmed_at
+        updated["confirmed_by"] = confirmed_by
+
+        record.customer_name = updated.get("customer_name") or record.customer_name
+        record.contract_data = updated
+        record.save()
+
+        AuditEvent.objects.create(
+            event_type="contractlens.confirmed",
+            actor=request.user,
+            target_type="ContractLensRecord",
+            target_id=str(record.id),
+            metadata={
+                "customer_name": record.customer_name,
+                "record_id": str(record.id),
+                "confirmed_by": confirmed_by,
+                "confirmed_by_id": str(request.user.id),
+                "confirmed_at": confirmed_at,
+            },
+        )
+
+        return JsonResponse({"ok": True, "confirmed_by": confirmed_by, "confirmed_at": confirmed_at})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def cadient_talent_download_file(request, record_id):
+    from django.http import Http404
+    from documents.services.storage_service import read_document
+
+    try:
+        record = ContractLensRecord.objects.get(id=record_id)
+    except ContractLensRecord.DoesNotExist:
+        raise Http404
+
+    user = request.user
+    is_creator = record.created_by_id == user.id
+    is_privileged = getattr(user, "role", "") in ("finance_head", "admin")
+    if not (is_creator or is_privileged):
+        raise PermissionDenied
+
+    files_meta = record.source_files_meta or []
+    if not files_meta:
+        raise Http404
+
+    # Match by name if provided, else use first file
+    requested_name = request.GET.get("name", "").strip()
+    if requested_name:
+        meta = next((f for f in files_meta if f.get("name") == requested_name), None)
+        if not meta:
+            raise Http404
+    else:
+        meta = files_meta[0]
+
+    s3_key = meta.get("s3_key", "")
+    if not s3_key:
+        raise Http404
+
+    try:
+        file_bytes = read_document(s3_key)
+    except Exception:
+        raise Http404
+
+    fname = meta.get("name", "contract.pdf")
+    mime = meta.get("mime_type", "application/octet-stream")
+    inline = request.GET.get("inline", "0") == "1"
+
+    AuditEvent.objects.create(
+        event_type="contractlens.downloaded",
+        actor=user,
+        target_type="ContractLensRecord",
+        target_id=str(record.id),
+        metadata={
+            "file": fname,
+            "record_id": str(record.id),
+            "customer_name": record.customer_name,
+            "inline": inline,
+        },
+    )
+
+    disposition = "inline" if inline else f'attachment; filename="{fname}"'
+    response = HttpResponse(file_bytes, content_type=mime)
+    response["Content-Disposition"] = disposition
+    return response
 
 
 @login_required
@@ -777,6 +911,7 @@ def cadient_talent_analyse_group(request):
         )
         result = _parse_json_response(msg.content[0].text)
 
+        # Persist record + all files (encrypted)
         record = ContractLensRecord.objects.create(
             customer_name=result.get("customer_name", name),
             record_type=ContractLensRecord.RECORD_GROUP,
@@ -788,6 +923,7 @@ def cadient_talent_analyse_group(request):
         record.source_files_meta = files_meta
         record.save()
 
+        # Audit log
         AuditEvent.objects.create(
             event_type="contractlens.group_analysed",
             actor=request.user,
@@ -869,6 +1005,7 @@ def cadient_talent_merge(request):
         )
         result = _parse_json_response(msg.content[0].text)
 
+        # Collect all files from all input contracts for encrypted storage
         all_files = [f for c in contracts_in for f in c.get("files", [])]
         record = ContractLensRecord.objects.create(
             customer_name=name,
@@ -884,6 +1021,7 @@ def cadient_talent_merge(request):
         record.source_files_meta = files_meta
         record.save()
 
+        # Audit log
         AuditEvent.objects.create(
             event_type="contractlens.merged",
             actor=request.user,

@@ -112,7 +112,7 @@
                   onchange="loadTemplateFields(this.value)">
             <option value="">— Select Template Type —</option>
             {% for tmpl in form.template.field.queryset %}
-            <option value="{{ tmpl.id }}">{{ tmpl.get_name_display }} (v{{ tmpl.version }})</option>
+            <option value="{{ tmpl.id }}">{{ tmpl.name }} (v{{ tmpl.version }})</option>
             {% endfor %}
           </select>
         </div>

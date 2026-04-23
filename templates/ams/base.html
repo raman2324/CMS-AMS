@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script>
+  /* blocklist: prevent Tailwind from generating utilities whose names
+     collide with Bootstrap classes used outside the AMS content area.
+     'collapse' => Tailwind visibility:collapse breaks Bootstrap collapse component. */
+  window.tailwind = {
+    config: {
+      blocklist: ['collapse'],
+      corePlugins: { preflight: false }
+    }
+  };
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Safety net: Bootstrap's .collapse.show must always be display:block with
+     normal visibility, regardless of any Tailwind rule that leaks through. */
+  .sidebar .collapse          { visibility: visible; }
+  .sidebar .collapse.show     { display: block; visibility: visible; }
+  .sidebar .collapse:not(.show) { display: none; }
+</style>
+{% block ams_extra_head %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div id="ams-app" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  {% block ams_content %}{% endblock %}
+</div>
+{% endblock %}

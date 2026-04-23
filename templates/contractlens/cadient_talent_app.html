@@ -121,12 +121,12 @@ tbody td{padding:11px 14px;vertical-align:middle;}
 .alert-days{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--amber);}
 .moverlay{display:none;position:fixed;inset:0;background:rgba(26,26,24,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
 .moverlay.open{display:flex;}
-.modal{background:#fff;border-radius:10px;width:620px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
-.modal-top{padding:20px 24px 16px;border-bottom:1px solid var(--paper2);display:flex;justify-content:space-between;align-items:flex-start;}
-.modal-top h2{font-family:'Fraunces',serif;font-weight:300;font-size:20px;}
+.cl-modal{background:#fff;border-radius:10px;width:620px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.cl-modal-top{padding:20px 24px 16px;border-bottom:1px solid var(--paper2);display:flex;justify-content:space-between;align-items:flex-start;}
+.cl-modal-top h2{font-family:'Fraunces',serif;font-weight:300;font-size:20px;}
 .mclose{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3);line-height:1;padding:2px 6px;}
 .mclose:hover{color:var(--ink);}
-.modal-body{padding:24px;}
+.cl-modal-body{padding:24px;}
 .fl{margin-bottom:14px;}
 .flabel{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:4px;}
 .fval{font-size:14px;color:var(--ink);}
@@ -146,6 +146,11 @@ select.edit-field{cursor:pointer;}
 textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
 .field-edit-wrap{position:relative;}
 .edit-mode-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:var(--amber-lt);color:var(--amber);font-weight:500;}
+.review-card{background:#fff;border:1px solid var(--paper3);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+.rc-header{padding:12px 16px;background:var(--paper2);border-bottom:1px solid var(--paper3);display:flex;align-items:center;gap:10px;}
+.rc-body{padding:20px;}
+.rc-footer{padding:14px 20px;border-top:1px solid var(--paper2);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.rc-done{background:var(--green-lt);border:1px solid #a3d9b1;border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;margin-bottom:16px;font-size:13px;}
 .cl-app ::-webkit-scrollbar{width:6px;height:6px;}
 .cl-app ::-webkit-scrollbar-track{background:transparent;}
 .cl-app ::-webkit-scrollbar-thumb{background:var(--paper3);border-radius:3px;}
@@ -191,6 +196,11 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
     </button>
     <button class="btn btn-outline" onclick="clearQueue()">Clear</button>
     <span id="extract-progress" style="color:var(--ink3);font-size:13px;"></span>
+  </div>
+  <div id="review-section" style="display:none;margin-top:32px;">
+    <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:300;margin-bottom:4px;">Review &amp; Confirm</div>
+    <div style="color:var(--ink3);font-size:13px;margin-bottom:20px;">AI-extracted data is pre-filled. Edit any field that looks wrong, then confirm.</div>
+    <div id="review-cards"></div>
   </div>
   <div id="demo-bar" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--paper3);text-align:center;">
     <div style="color:var(--ink3);font-size:13px;margin-bottom:12px">No contracts yet? Try demo data.</div>
@@ -295,12 +305,12 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
 
 <!-- Modal -->
 <div class="moverlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal">
-    <div class="modal-top">
+  <div class="cl-modal">
+    <div class="cl-modal-top">
       <div><h2 id="m-title">Contract</h2><div id="m-id" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);margin-top:2px;"></div></div>
       <button class="mclose" onclick="document.getElementById('modal').classList.remove('open')">&#x2715;</button>
     </div>
-    <div class="modal-body" id="m-body"></div>
+    <div class="cl-modal-body" id="m-body"></div>
   </div>
 </div>
 <div class="cl-toast" id="toast"></div>
@@ -320,7 +330,9 @@ const LS_GROUPS    = 'cl_cadient_g';
 let contracts=JSON.parse(localStorage.getItem(LS_CONTRACTS)||'[]');
 let groups=JSON.parse(localStorage.getItem(LS_GROUPS)||'[]');
 let queue=[];
+let pendingReview=[];
 let gfiles=[];
+const CURRENT_USER='{{ request.user.get_full_name|default:request.user.username }}';
 let activeType='contract';
 
 function saveC(){localStorage.setItem(LS_CONTRACTS,JSON.stringify(contracts));}
@@ -344,6 +356,7 @@ async function djPost(url,body){
   return resp.json();
 }
 async function djExtract(pdfB64,overrideName){return djPost('/documents/contract-lens/api/extract/',{pdf_b64:pdfB64,override_name:overrideName||''});}
+async function djConfirm(recordId,fields){return djPost('/documents/contract-lens/api/confirm/',{record_id:recordId,...fields});}
 async function djAnalyseGroup(name,note,files){return djPost('/documents/contract-lens/api/analyse-group/',{name,note,files});}
 async function djMerge(name,contracts){return djPost('/documents/contract-lens/api/merge/',{name,contracts});}
 
@@ -396,7 +409,7 @@ async function extractAll(){
       const result=await djExtract(b64,batchName);item.prog=90;renderQ();
       result.id='C-'+Date.now().toString(36).toUpperCase();
       result.source_file=item.name;result.extracted_at=new Date().toISOString();
-      contracts.push(result);saveC();
+      pendingReview.push(result);
       try{await idbSet('pdf:'+result.id,b64);}catch(e2){console.warn('PDF store:',e2.message);}
       item.status='done';
     }catch(e){item.status='error';item.err=e.message;console.error(e);}
@@ -404,8 +417,9 @@ async function extractAll(){
   }
   lbl.textContent='Extract All Contracts';
   document.getElementById('extract-progress').textContent=`${contracts.length} contract(s) total`;
-  toast('Extraction complete');updateBtn();
+  toast('Extraction complete — review and confirm below');updateBtn();
   document.getElementById('demo-bar').style.display='none';
+  renderReviewCards();
 }
 
 function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Read failed'));r.readAsDataURL(file);});}
@@ -423,6 +437,110 @@ function parseContract(txt,fname,overrideName){
     return{id:'C-'+Date.now().toString(36).toUpperCase(),customer_name:overrideName||fname.replace('.pdf',''),source_file:fname,extracted_at:new Date().toISOString(),start_date:null,end_date:null,notes:'Parse error'};
   }
 }
+
+// — Review & Confirm ————————————————————————————
+function renderReviewCards(){
+  const section=document.getElementById('review-section');
+  const cardsEl=document.getElementById('review-cards');
+  if(!pendingReview.length){section.style.display='none';return;}
+  section.style.display='';
+  cardsEl.innerHTML=pendingReview.map((c,i)=>{
+    if(c._confirmed){
+      const ts=c._confirmed_at?new Date(c._confirmed_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):'';
+      return`<div class="rc-done">
+        <span style="font-size:22px;color:var(--green);">&#10003;</span>
+        <div>
+          <div style="font-weight:500;color:var(--green);">${esc(c.customer_name||c.source_file)}</div>
+          <div style="font-size:12px;color:var(--green);margin-top:2px;">Confirmed by <strong>${esc(c._confirmed_by)}</strong>${ts?' · '+ts:''}</div>
+        </div>
+      </div>`;
+    }
+    function fld(label,key,type,opts){
+      const val=c[key]===null||c[key]===undefined?'':String(c[key]);
+      let input;
+      if(type==='select'){
+        input=`<select class="edit-field" id="rc-${i}-${key}">${opts.map(o=>`<option value="${o.v}"${val===o.v?' selected':''}>${o.l}</option>`).join('')}</select>`;
+      }else if(type==='textarea'){
+        input=`<textarea class="edit-field" id="rc-${i}-${key}" rows="3">${esc(val)}</textarea>`;
+      }else{
+        input=`<input class="edit-field" type="${type||'text'}" id="rc-${i}-${key}" value="${esc(val)}" placeholder="${label}">`;
+      }
+      return`<div class="fl"><div class="flabel">${label}</div>${input}</div>`;
+    }
+    return`<div class="review-card" id="rcard-${i}">
+      <div class="rc-header">
+        <span style="font-size:16px">&#128196;</span>
+        <div style="flex:1;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink2);">${esc(c.source_file||'contract.pdf')}</div>
+        <span class="queue-badge badge-pending">Awaiting confirmation</span>
+      </div>
+      <div class="rc-body">
+        <div style="margin-bottom:14px;">
+          <div class="flabel">Customer Name</div>
+          <input class="edit-field" type="text" id="rc-${i}-customer_name" value="${esc(c.customer_name||'')}" placeholder="Customer name" style="font-size:15px;font-weight:500;">
+        </div>
+        <div class="fgrid">
+          ${fld('Contract Number','contract_number')}
+          ${fld('Renewal Type','renewal_type','select',[
+            {v:'',l:'— not set —'},{v:'auto',l:'Auto'},{v:'manual',l:'Manual'},
+            {v:'confirmed-by-email',l:'Confirmed by email'},{v:'none',l:'None'}
+          ])}
+          ${fld('Start Date','start_date','date')}
+          ${fld('End Date','end_date','date')}
+          ${fld('Notice Period (days)','notice_period_days','number')}
+          ${fld('Contract Value','contract_value')}
+          ${fld('Payment Terms','payment_terms')}
+          ${fld('Governing Law','governing_law')}
+        </div>
+        ${fld('Notes / AI Summary','notes','textarea')}
+      </div>
+      <div class="rc-footer">
+        <button class="btn btn-gold" id="rc-confirm-${i}" onclick="confirmCard(${i})">&#10003; Confirm &amp; Save</button>
+        ${c._server_record_id
+          ? `<a class="btn btn-outline" href="/documents/contract-lens/api/record/${c._server_record_id}/file/?inline=1" target="_blank">&#128065; View PDF</a>
+             <a class="btn btn-outline" href="/documents/contract-lens/api/record/${c._server_record_id}/file/" download>&#8659; Download PDF</a>`
+          : ''}
+        <span style="font-size:12px;color:var(--ink3);margin-left:auto;">Confirming as: <strong>${esc(CURRENT_USER)}</strong></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function confirmCard(i){
+  const c=pendingReview[i];
+  if(!c)return;
+  if(!c._server_record_id){toast('No server record — cannot confirm');return;}
+  const btn=document.getElementById('rc-confirm-'+i);
+  if(btn){btn.disabled=true;btn.textContent='Confirming...';}
+  function gv(key){const el=document.getElementById('rc-'+i+'-'+key);return el?el.value.trim():undefined;}
+  const npRaw=gv('notice_period_days');
+  const fields={
+    customer_name:gv('customer_name')||c.customer_name,
+    contract_number:gv('contract_number')||null,
+    start_date:gv('start_date')||null,
+    end_date:gv('end_date')||null,
+    notice_period_days:npRaw?parseInt(npRaw):null,
+    renewal_type:gv('renewal_type')||null,
+    contract_value:gv('contract_value')||null,
+    payment_terms:gv('payment_terms')||null,
+    governing_law:gv('governing_law')||null,
+    notes:gv('notes')||null,
+  };
+  for(const k in fields)if(fields[k]==='')fields[k]=null;
+  try{
+    const resp=await djConfirm(c._server_record_id,fields);
+    Object.assign(c,fields);
+    c._confirmed=true;
+    c._confirmed_by=resp.confirmed_by;
+    c._confirmed_at=resp.confirmed_at;
+    contracts.push({...c});saveC();
+    toast('Confirmed by '+resp.confirmed_by);
+    renderReviewCards();renderDashboard();
+  }catch(e){
+    toast('Error: '+e.message);
+    if(btn){btn.disabled=false;btn.innerHTML='&#10003; Confirm &amp; Save';}
+  }
+}
+
 
 // — Groups ———————————————————————————————————————
 function selType(el){document.querySelectorAll('.type-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');activeType=el.getAttribute('data-t');}
@@ -818,7 +936,7 @@ function openModal(i, editMode){
   modalEditMode = !!editMode;
   const c=contracts[i];if(!c)return;
   document.getElementById('m-title').textContent=c.customer_name||'Contract';
-  document.getElementById('m-id').textContent=c.id+(c.contract_number?' · '+c.contract_number:'')+(c.is_group?' · GROUP':'');
+  document.getElementById('m-id').textContent=c.id+(c.contract_number?' · '+c.contract_number:'')+(c.is_group?' · GROUP':'')+(c._server_record_id?' · ☁ server':' · local only');
   const st=getStatus(c),d=daysUntil(c.end_date);
   const dl=d===null?'No end date':d<0?`Expired ${Math.abs(d)} days ago`:`${d} days remaining`;
 
@@ -832,8 +950,11 @@ function openModal(i, editMode){
             +'<span class="src-doc-name">'+esc(f.name)+'</span>'
             +'<span class="dtype '+dtCls(f.type)+'">'+dtLbl(f.type)+'</span>'
             +'<span class="pdf-slot-badge" id="slot-'+i+'-'+fi+'" style="font-size:10px;font-family:\'DM Mono\',monospace;padding:2px 8px;border-radius:10px;background:var(--paper2);color:var(--ink3);">checking...</span>'
-            +'<button class="btn btn-outline btn-sm" id="view-gf-'+i+'-'+fi+'" onclick="viewGFile('+i+',\''+safen+'\','+fi+')">View</button>'
-            +'<button class="btn btn-outline btn-sm" id="dl-gf-'+i+'-'+fi+'" onclick="dlGFile('+i+',\''+safen+'\','+fi+')">Download</button>'
+            +(c._server_record_id
+              ? '<a class="btn btn-outline btn-sm" href="/documents/contract-lens/api/record/'+c._server_record_id+'/file/?name='+encodeURIComponent(f.name)+'&inline=1" target="_blank">View</a>'
+               +'<a class="btn btn-outline btn-sm" href="/documents/contract-lens/api/record/'+c._server_record_id+'/file/?name='+encodeURIComponent(f.name)+'" download>Download</a>'
+              : '<button class="btn btn-outline btn-sm" id="view-gf-'+i+'-'+fi+'" onclick="viewGFile('+i+',\''+safen+'\','+fi+')">View</button>'
+               +'<button class="btn btn-outline btn-sm" id="dl-gf-'+i+'-'+fi+'" onclick="dlGFile('+i+',\''+safen+'\','+fi+')">Download</button>')
             +'<label class="btn btn-outline btn-sm" id="attach-gf-'+i+'-'+fi+'" style="cursor:pointer;display:none;">Attach file<input type="file" style="display:none" onchange="attachGFile(event,'+i+','+fi+',\''+safen+'\')"></label>'
             +'</div>';
         }).join('')
@@ -907,9 +1028,12 @@ function openModal(i, editMode){
         ? `<button class="btn btn-gold" onclick="saveEdits(${i})">&#10003; Save changes</button>
            <button class="btn btn-outline" onclick="openModal(${i},false)">Cancel</button>
            <button class="btn btn-outline" onclick="delContract(${i})" style="margin-left:auto;color:var(--red);border-color:var(--red-lt);">Remove</button>`
-        : `<button class="btn btn-blue" onclick="openModal(${i},true)">&#9998; Edit</button>
-           <button class="btn btn-outline" onclick="delContract(${i})">Remove</button>
-           ${!c.is_group?`<button class="btn btn-outline" id="dl-btn-${i}" onclick="dlPdf(${i})">Download PDF</button><button class="btn btn-gold" id="view-btn-${i}" onclick="viewPdf(${i})">View PDF</button>`:''}
+        : `${!c.is_group
+             ? (c._server_record_id
+                 ? `<a class="btn btn-gold" href="/documents/contract-lens/api/record/${c._server_record_id}/file/?inline=1" target="_blank">&#128065; View PDF</a>
+                    <a class="btn btn-outline" href="/documents/contract-lens/api/record/${c._server_record_id}/file/" download>&#8659; Download PDF</a>`
+                 : `<button class="btn btn-outline" id="dl-btn-${i}" onclick="dlPdf(${i})">Download PDF</button><button class="btn btn-gold" id="view-btn-${i}" onclick="viewPdf(${i})">View PDF</button>`)
+             : ''}
            <button class="btn btn-outline" onclick="document.getElementById('modal').classList.remove('open')">Close</button>`
       }
     </div>`;
@@ -940,6 +1064,7 @@ async function checkModalSlots(i){
       }
     }
   } else {
+    if(c._server_record_id) return; // file accessible via server — no local attach needed
     const b = await idbGet('pdf:'+c.id).catch(()=>null);
     const div = document.getElementById('m-actions-'+i);
     if(!div) return;

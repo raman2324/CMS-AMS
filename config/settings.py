@@ -7,18 +7,36 @@ SECRET_KEY = config("SECRET_KEY", default="django-insecure-dev-key-change-in-pro
 DEBUG = config("DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,0.0.0.0", cast=Csv())
 
+ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.sites",           # required by allauth
     "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
+    # Third-party: host
     "axes",
+    # Third-party: AMS
+    "allauth",
+    "allauth.account",
+    "crispy_forms",
+    "crispy_bootstrap5",
+    "django_htmx",
+    # Host apps
     "accounts",
     "documents",
     "uploads",
+    # AMS apps
+    "ams.approvals",
+    "ams.subscriptions",
+    "ams.expenses",
+    "ams.audit",
+    "ams.notifications",
+    "ams.management",
 ]
 
 MIDDLEWARE = [
@@ -29,6 +47,8 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "axes.middleware.AxesMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -36,6 +56,7 @@ MIDDLEWARE = [
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -128,6 +149,34 @@ LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/documents/"
 LOGOUT_REDIRECT_URL = "/login/"
 
+# ---------------------------------------------------------------------------
+# django-allauth — AMS uses email-based auth; login UI stays at /login/
+# ---------------------------------------------------------------------------
+SITE_ID = 1
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_LOGIN_URL = "/login/"          # allauth redirects to host login page
+
+# ---------------------------------------------------------------------------
+# crispy-forms (AMS templates use Bootstrap 5)
+# ---------------------------------------------------------------------------
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# ---------------------------------------------------------------------------
+# Email (required by allauth; console backend in dev)
+# ---------------------------------------------------------------------------
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@example.com")
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+
+# ---------------------------------------------------------------------------
+# CSRF trusted origins (needed for AMS production deployments)
+# ---------------------------------------------------------------------------
+_csrf_origins = config("CSRF_TRUSTED_ORIGINS", default="")
+if _csrf_origins:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(",")]
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------
@@ -173,8 +222,3 @@ AXES_VERBOSE = False
 #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # ---------------------------------------------------------------------------
 # DOCUMENT_ENCRYPTION_KEY is read directly from env by storage_service.py
-
-# ---------------------------------------------------------------------------
-# Anthropic API key — required for Contract Lens features
-# ---------------------------------------------------------------------------
-ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")

@@ -1,9 +1,10 @@
-{% if schema %}
+{% if schema or annexure_rows %}
 <div class="card border-0 shadow-sm mb-3">
   <div class="card-body">
     <h6 class="card-title fw-semibold mb-3">
       <span class="badge bg-dark me-2">3</span>Letter Details
     </h6>
+
     {% for field_name, field_def in schema.items %}
     <div class="mb-3">
       <label class="form-label fw-semibold" for="field_{{ field_name }}">
@@ -37,6 +38,163 @@
       {% endif %}
     </div>
     {% endfor %}
+
+    {% if annexure_rows %}
+    <div class="d-flex align-items-center justify-content-between mt-4 mb-2">
+      <span class="fw-semibold">Annexure 1 — Compensation Breakdown</span>
+      <div>
+        <input type="file" id="annexureExcelFile" accept=".xlsx,.xls,.csv" class="d-none">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('annexureExcelFile').click()">
+          <i class="bi bi-file-earmark-excel me-1"></i>Upload Excel
+        </button>
+        <span id="annexureUploadStatus" class="ms-2 small text-muted"></span>
+      </div>
+    </div>
+    <table class="table table-bordered table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:40%">Component</th>
+          <th>Per Annum (INR)</th>
+          <th>Monthly (INR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in annexure_rows %}
+        <tr>
+          <td class="fw-semibold text-secondary small">{{ row.label }}</td>
+          <td>
+            <input type="text"
+                   name="{{ row.annual_name }}"
+                   id="field_{{ row.annual_name }}"
+                   class="form-control form-control-sm"
+                   placeholder="Annual">
+          </td>
+          <td>
+            <input type="text"
+                   name="{{ row.monthly_name }}"
+                   id="field_{{ row.monthly_name }}"
+                   class="form-control form-control-sm"
+                   placeholder="Monthly">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
   </div>
 </div>
+
+{% if annexure_rows %}
+<script>
+(function(){
+  // Lazy-load SheetJS only when this section is present
+  if (!window.XLSX) {
+    var s = document.createElement('script');
+    s.src = 'https://unpkg.com/xlsx/dist/xlsx.full.min.js';
+    s.onload = bindExcelUpload;
+    document.head.appendChild(s);
+  } else {
+    bindExcelUpload();
+  }
+
+  function bindExcelUpload() {
+    document.getElementById('annexureExcelFile').addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          var wb = XLSX.read(ev.target.result, {type: 'array'});
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(ws, {header: 1, defval: ''});
+          fillAnnexure(rows);
+        } catch(err) {
+          setStatus('Could not read file: ' + err.message, 'text-danger');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // Maps normalised component name → field prefix
+  var FIELD_MAP = {
+    'base salary':              'base_salary',
+    'hra':                      'hra',
+    'house rent allowance':     'hra',
+    'special allowance':        'special_allowance',
+    'byod':                     'byod',
+    'bring your own device':    'byod',
+    'employer provident fund':  'employer_pf',
+    'employer pf':              'employer_pf',
+    'epf employer':             'employer_pf',
+    'employee provident fund':  'employee_pf',
+    'employee pf':              'employee_pf',
+    'epf employee':             'employee_pf',
+    'total fixed':              'total_fixed',
+    'total fixed pay':          'total_fixed',
+    'variable':                 'variable',
+    'variable pay':             'variable',
+    'total gross pay':          'total_gross',
+    'total gross':              'total_gross',
+    'gross total':              'total_gross',
+  };
+
+  function normalise(s) {
+    return String(s).toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function fillAnnexure(rows) {
+    var filled = 0;
+    // Find the header row — first row whose first cell looks like a label (skip if numeric)
+    var dataStart = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var cell = normalise(rows[i][0]);
+      if (cell && isNaN(parseFloat(cell))) { dataStart = i; break; }
+    }
+    // If first cell of dataStart is a header keyword, skip it
+    var firstCell = normalise(rows[dataStart] ? rows[dataStart][0] : '');
+    if (firstCell === 'component' || firstCell === 'description' || firstCell === 'particulars') {
+      dataStart++;
+    }
+
+    for (var r = dataStart; r < rows.length; r++) {
+      var row = rows[r];
+      var label = normalise(row[0]);
+      if (!label) continue;
+      var prefix = FIELD_MAP[label];
+      if (!prefix) continue;
+
+      // Annual: first numeric column after the label
+      var annual = findValue(row, 1);
+      var monthly = findValue(row, 2);
+
+      setField('field_' + prefix + '_annual', annual);
+      setField('field_' + prefix + '_monthly', monthly);
+      if (annual || monthly) filled++;
+    }
+    setStatus(filled > 0 ? '✓ ' + filled + ' rows filled' : 'No matching rows found', filled > 0 ? 'text-success' : 'text-warning');
+  }
+
+  function findValue(row, colIndex) {
+    // Try the exact column index, fall back to searching for first non-empty value after it
+    var v = row[colIndex];
+    return (v !== undefined && v !== '') ? String(v) : '';
+  }
+
+  function setField(id, value) {
+    var el = document.getElementById(id);
+    if (el && value !== '') el.value = value;
+  }
+
+  function setStatus(msg, cls) {
+    var el = document.getElementById('annexureUploadStatus');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'ms-2 small ' + cls;
+  }
+})();
+</script>
+{% endif %}
+
 {% endif %}

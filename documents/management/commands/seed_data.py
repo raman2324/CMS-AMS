@@ -46,13 +46,23 @@ COMPANIES = [
         "signatory_name": "Anita Mehta",
         "signatory_designation": "Head of HR & Administration",
     },
+    {
+        "name": "Basis Vectors Portfolio Services India Private Limited",
+        "short_name": "bv",
+        "registered_address": "Plot No. 14, Sector 44,\nGurugram — 122003,\nHaryana, India",
+        "cin": "U74999HR2020PTC091234",
+        "gstin": "06AABCB1234K1Z8",
+        "signatory_name": "Authorized Signatory",
+        "signatory_designation": "Director",
+    },
 ]
 
+# (file_slug, display_name) — file_slug maps to letter_templates/{slug}.html
 TEMPLATE_NAMES = [
-    "offer_letter",
-    "salary_letter",
-    "noc",
-    "experience_certificate",
+    ("offer_letter",          "Offer Letter"),
+    ("salary_letter",         "Salary Letter"),
+    ("noc",                   "No Objection Certificate"),
+    ("experience_certificate","Experience Certificate"),
 ]
 
 SAMPLE_EMPLOYEES = [
@@ -169,11 +179,11 @@ class Command(BaseCommand):
             dict(username="finance_head", email="finhead@example.com", first_name="Finance",
                  last_name="Head", role="finance_head", password="Finance@1234", is_staff=True),
             dict(username="issuer", email="issuer@example.com", first_name="Issuer",
-                 last_name="Demo", role="issuer", password="Issuer@1234"),
+                 last_name="Demo", role="finance_executive", password="Issuer@1234"),
             dict(username="issuer2", email="issuer2@example.com", first_name="Priya",
-                 last_name="Issuer", role="issuer", password="Issuer2@1234"),
+                 last_name="Issuer", role="finance_executive", password="Issuer2@1234"),
             dict(username="issuer3", email="issuer3@example.com", first_name="Arun",
-                 last_name="Issuer", role="issuer", password="Issuer3@1234"),
+                 last_name="Issuer", role="finance_executive", password="Issuer3@1234"),
             dict(username="viewer", email="viewer@example.com", first_name="Viewer",
                  last_name="Demo", role="viewer", password="Viewer@1234"),
         ]
@@ -227,11 +237,11 @@ class Command(BaseCommand):
 
         # 5 document seeds: (employee_code, template_name, extra_variables)
         seeds = [
-            ("CT001", "offer_letter",          {"position": "Senior Software Engineer", "start_date": "May 1, 2024", "ctc": "14,40,000"}),
-            ("CT002", "salary_letter",          {"month": "March 2024", "net_salary": "1,25,000"}),
-            ("VR001", "experience_certificate", {"last_working_day": "March 31, 2024"}),
-            ("VR002", "noc",                    {"purpose": "Bank loan application", "valid_until": "December 31, 2024"}),
-            ("CV3001", "offer_letter",          {"position": "Full Stack Developer", "start_date": "June 1, 2023", "ctc": "13,20,000"}),
+            ("CT001", "Offer Letter",             {"position": "Senior Software Engineer", "start_date": "May 1, 2024", "ctc": "14,40,000"}),
+            ("CT002", "Salary Letter",            {"month": "March 2024", "net_salary": "1,25,000"}),
+            ("VR001", "Experience Certificate",   {"last_working_day": "March 31, 2024"}),
+            ("VR002", "No Objection Certificate", {"purpose": "Bank loan application", "valid_until": "December 31, 2024"}),
+            ("CV3001", "Offer Letter",            {"position": "Full Stack Developer", "start_date": "June 1, 2023", "ctc": "13,20,000"}),
         ]
 
         for emp_code, tmpl_name, variables in seeds:
@@ -252,9 +262,9 @@ class Command(BaseCommand):
 
     def _seed_templates(self, created_by, force=False):
         self.stdout.write("Seeding letter templates…")
-        for name in TEMPLATE_NAMES:
+        for slug, name in TEMPLATE_NAMES:
             # Load raw HTML source — keep {{ variable }} placeholders intact.
-            template_file = f"letter_templates/{name}.html"
+            template_file = f"letter_templates/{slug}.html"
             try:
                 html_content = get_template(template_file).template.source
             except Exception as exc:
@@ -269,14 +279,14 @@ class Command(BaseCommand):
             if active and force:
                 # Update the active version in-place rather than inserting a duplicate.
                 active.html_content = html_content
-                active.extra_variables_schema = TEMPLATE_EXTRA_SCHEMAS.get(name, {})
+                active.extra_variables_schema = TEMPLATE_EXTRA_SCHEMAS.get(slug, {})
                 active.save(update_fields=["html_content", "extra_variables_schema"])
                 self.stdout.write(f"  Updated : {active}")
             else:
                 tmpl = LetterTemplate(
                     name=name,
                     html_content=html_content,
-                    extra_variables_schema=TEMPLATE_EXTRA_SCHEMAS.get(name, {}),
+                    extra_variables_schema=TEMPLATE_EXTRA_SCHEMAS.get(slug, {}),
                     created_by=created_by,
                 )
                 tmpl.save()   # version auto-incremented via _state.adding

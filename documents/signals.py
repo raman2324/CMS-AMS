@@ -47,25 +47,3 @@ def install_audit_triggers(sender, **kwargs):
                 BEFORE UPDATE OR DELETE ON documents_auditevent
                 FOR EACH ROW EXECUTE FUNCTION prevent_audit_modification();
             """)
-
-        elif vendor == "mysql":
-            cursor.execute("DROP TRIGGER IF EXISTS prevent_audit_update")
-            cursor.execute("""
-                CREATE TRIGGER prevent_audit_update
-                BEFORE UPDATE ON documents_auditevent
-                FOR EACH ROW
-                BEGIN
-                    SIGNAL SQLSTATE '45000'
-                    SET MESSAGE_TEXT = 'AuditEvent records are immutable and cannot be updated';
-                END
-            """)
-            cursor.execute("DROP TRIGGER IF EXISTS prevent_audit_delete")
-            cursor.execute("""
-                CREATE TRIGGER prevent_audit_delete
-                BEFORE DELETE ON documents_auditevent
-                FOR EACH ROW
-                BEGIN
-                    SIGNAL SQLSTATE '45000'
-                    SET MESSAGE_TEXT = 'AuditEvent records are immutable and cannot be deleted';
-                END
-            """)
