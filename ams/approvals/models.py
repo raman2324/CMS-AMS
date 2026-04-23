@@ -53,16 +53,16 @@ PENDING_STATES = [STATE_PENDING_MANAGER, STATE_PENDING_FINANCE]
 ACTIVE_STATES = [STATE_ACTIVE, STATE_ACTIVE_PENDING_RENEWAL, STATE_RENEWING]
 
 STATE_BADGE_COLORS = {
-    STATE_PENDING_MANAGER: 'bg-yellow-100 text-yellow-800',
-    STATE_PENDING_FINANCE: 'bg-blue-100 text-blue-800',
-    STATE_REJECTED_MANAGER: 'bg-red-100 text-red-800',
-    STATE_REJECTED_FINANCE: 'bg-red-100 text-red-800',
-    STATE_APPROVED: 'bg-green-100 text-green-800',
-    STATE_PROVISIONING: 'bg-purple-100 text-purple-800',
-    STATE_ACTIVE: 'bg-green-100 text-green-800',
-    STATE_ACTIVE_PENDING_RENEWAL: 'bg-yellow-100 text-yellow-800',
-    STATE_RENEWING: 'bg-blue-100 text-blue-800',
-    STATE_TERMINATED: 'bg-gray-100 text-gray-800',
+    STATE_PENDING_MANAGER: 'bg-warning text-dark',
+    STATE_PENDING_FINANCE: 'bg-info text-dark',
+    STATE_REJECTED_MANAGER: 'bg-danger text-white',
+    STATE_REJECTED_FINANCE: 'bg-danger text-white',
+    STATE_APPROVED: 'bg-success text-white',
+    STATE_PROVISIONING: 'bg-primary text-white',
+    STATE_ACTIVE: 'bg-success text-white',
+    STATE_ACTIVE_PENDING_RENEWAL: 'bg-warning text-dark',
+    STATE_RENEWING: 'bg-info text-dark',
+    STATE_TERMINATED: 'bg-secondary text-white',
 }
 
 
