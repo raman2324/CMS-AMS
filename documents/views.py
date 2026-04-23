@@ -91,7 +91,7 @@ def _assert_document_access(request, document):
         return
 
     # Issuer: only their own documents
-    if user.role == User.ROLE_ISSUER and document.generated_by != user:
+    if user.role == User.ROLE_FINANCE_EXECUTIVE and document.generated_by != user:
         AuditEvent.objects.create(
             event_type="document.access_denied",
             actor=user,
@@ -126,7 +126,7 @@ def employee_search(request):
         qs = qs.filter(company_id=company_id)
 
     # Issuers scoped to their own department (blank = all departments)
-    if request.user.role == User.ROLE_ISSUER and request.user.department:
+    if request.user.role == User.ROLE_FINANCE_EXECUTIVE and request.user.department:
         qs = qs.filter(department=request.user.department)
 
     return render(
@@ -341,7 +341,7 @@ class DocumentListView(LoginRequiredMixin, View):
         )
 
         # Finance Head sees everything. Issuers see only their own documents.
-        if request.user.role == User.ROLE_ISSUER:
+        if request.user.role == User.ROLE_FINANCE_EXECUTIVE:
             qs = qs.filter(generated_by=request.user)
 
         # Query filters
@@ -429,7 +429,7 @@ class DocumentDetailView(LoginRequiredMixin, View):
             return redirect("documents:detail", pk=pk)
 
         # Issuers can only void their own documents
-        if request.user.role == User.ROLE_ISSUER and document.generated_by != request.user:
+        if request.user.role == User.ROLE_FINANCE_EXECUTIVE and document.generated_by != request.user:
             raise PermissionDenied
 
         void_form = VoidDocumentForm(request.POST)
@@ -626,7 +626,7 @@ class ContractLensAuditLogView(LoginRequiredMixin, View):
 
 @login_required
 def cadient_talent_view(request):
-    if request.user.role not in ("finance_head", "issuer"):
+    if request.user.role not in ("finance_head", "finance_executive"):
         raise PermissionDenied
     return render(request, "contractlens/cadient_talent_app.html")
 

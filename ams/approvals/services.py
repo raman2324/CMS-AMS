@@ -4,13 +4,12 @@ Every state transition: checks permission → calls FSM → creates AuditLog →
 """
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from ams.ams_accounts.models import Role
+from accounts.models import User
 
 
 def _get_finance_head():
-    """Return first active finance executive (role=FINANCE)."""
-    from ams.ams_accounts.models import CustomUser
-    return CustomUser.objects.filter(role=Role.FINANCE, is_active=True).first()
+    """Return first active finance executive."""
+    return User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).first()
 
 
 def _expiry_from_billing(billing_period, from_date):
@@ -31,9 +30,8 @@ def _expiry_from_billing(billing_period, from_date):
 
 
 def _get_finance_head_admin():
-    """Return the Finance Head (role=ADMIN, non-superuser) for CC notifications."""
-    from ams.ams_accounts.models import CustomUser
-    return CustomUser.objects.filter(role=Role.ADMIN, is_active=True, is_superuser=False).first()
+    """Return the Finance Head for CC notifications."""
+    return User.objects.filter(role=User.ROLE_FINANCE_HEAD, is_active=True).first()
 
 
 def _require_role(actor, *roles):
@@ -127,22 +125,21 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
     """Manager approves → moves to pending_finance, routed to selected finance executive."""
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
-    from ams.ams_accounts.models import CustomUser
     from django.utils import timezone
 
     if request_obj.state != 'pending_manager':
         raise PermissionDenied('Request is not in pending_manager state.')
-    if actor.role not in (Role.MANAGER, Role.ADMIN) and actor != request_obj.current_approver:
+    if actor.role not in (User.ROLE_MANAGER, User.ROLE_ADMIN) and actor != request_obj.current_approver:
         raise PermissionDenied('You are not the assigned manager approver.')
 
     # Resolve chosen finance executive, fall back to first active finance user
     finance_exec = None
     if finance_user_id:
         try:
-            finance_exec = CustomUser.objects.get(
-                id=finance_user_id, role=Role.FINANCE, is_active=True
+            finance_exec = User.objects.get(
+                id=finance_user_id, role=User.ROLE_FINANCE_EXECUTIVE, is_active=True
             )
-        except CustomUser.DoesNotExist:
+        except User.DoesNotExist:
             pass
     if finance_exec is None:
         finance_exec = _get_finance_head()
@@ -246,16 +243,15 @@ def finance_approve(request_obj, actor, comment=''):
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
     from django.utils import timezone
-    from ams.ams_accounts.models import CustomUser
 
     if request_obj.state != 'pending_finance':
         raise PermissionDenied('Request is not in pending_finance state.')
-    _require_role(actor, Role.FINANCE, Role.ADMIN)
+    _require_role(actor, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
 
     if request_obj.request_type == 'subscription':
         request_obj.finance_approve_subscription(comment=comment)
         # Assign to IT for provisioning
-        it_user = CustomUser.objects.filter(role=Role.IT, is_active=True).first()
+        it_user = User.objects.filter(role=User.ROLE_IT, is_active=True).first()
         request_obj.current_approver = it_user
         action = 'finance_approved_subscription'
         next_state_msg = 'moved to provisioning'
@@ -300,7 +296,7 @@ def finance_reject(request_obj, actor, reason=''):
 
     if request_obj.state != 'pending_finance':
         raise PermissionDenied('Request is not in pending_finance state.')
-    _require_role(actor, Role.FINANCE, Role.ADMIN)
+    _require_role(actor, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
 
     request_obj.finance_reject(reason=reason)
     request_obj.current_approver = None
@@ -339,7 +335,7 @@ def it_provision(request_obj, actor, vendor_account_id, billing_start):
 
     if request_obj.state != 'provisioning':
         raise PermissionDenied('Request is not in provisioning state.')
-    _require_role(actor, Role.IT, Role.ADMIN)
+    _require_role(actor, User.ROLE_IT, User.ROLE_ADMIN)
 
     request_obj.it_provision(
         vendor_account_id=vendor_account_id,
@@ -419,7 +415,7 @@ def complete_renewal(request_obj, actor, approved=True, reason=''):
 
     if request_obj.state != 'renewing':
         raise PermissionDenied('Request is not in renewing state.')
-    _require_role(actor, Role.FINANCE, Role.ADMIN)
+    _require_role(actor, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
 
     if approved:
         request_obj.renewal_approved()

@@ -31,13 +31,12 @@ INSTALLED_APPS = [
     "documents",
     "uploads",
     # AMS apps
-    "ams.ams_accounts",
     "ams.approvals",
     "ams.subscriptions",
     "ams.expenses",
     "ams.audit",
     "ams.notifications",
-    "ams.ams_management",
+    "ams.management",
 ]
 
 MIDDLEWARE = [

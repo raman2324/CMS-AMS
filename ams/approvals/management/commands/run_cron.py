@@ -90,8 +90,8 @@ class Command(BaseCommand):
             if not dry_run:
                 # Already in renewing, just log a reminder
                 from ams.notifications.services import send_notification
-                from ams.ams_accounts.models import Role, CustomUser
-                finance = CustomUser.objects.filter(role=Role.FINANCE, is_active=True).first()
+                from accounts.models import User
+                finance = User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).first()
                 if finance:
                     send_notification(
                         subject_id=req.id,
@@ -113,7 +113,7 @@ class Command(BaseCommand):
         """
         from ams.approvals.models import ApprovalRequest
         from ams.notifications.services import send_notification
-        from ams.ams_accounts.models import Role, CustomUser
+        from accounts.models import User
 
         cutoff = today - timedelta(days=30)
         overdue = ApprovalRequest.objects.filter(
@@ -124,7 +124,7 @@ class Command(BaseCommand):
 
         self.stdout.write(f'[run_cron] Escalations: {overdue.count()} subscriptions overdue by 30+ days')
 
-        finance = CustomUser.objects.filter(role=Role.FINANCE, is_active=True).first()
+        finance = User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).first()
 
         for req in overdue:
             days_overdue = (today - req.expires_on).days

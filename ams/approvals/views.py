@@ -12,7 +12,7 @@ from .services import (
     finance_approve, finance_reject, it_provision,
     initiate_renewal, complete_renewal, terminate_request,
 )
-from ams.ams_accounts.models import CustomUser, Role
+from accounts.models import User
 from ams.audit.models import AuditLog
 
 
@@ -63,8 +63,8 @@ def request_new(request):
             manager_id = request.POST.get('manager_id', '').strip()
             if manager_id:
                 try:
-                    obj.current_approver = CustomUser.objects.get(id=manager_id)
-                except CustomUser.DoesNotExist:
+                    obj.current_approver = User.objects.get(id=manager_id)
+                except User.DoesNotExist:
                     pass
 
             obj.save()
@@ -79,7 +79,7 @@ def request_new(request):
             messages.error(request, f'Error submitting request: {e}')
             return redirect('ams_approvals:request_new')
 
-    managers = CustomUser.objects.filter(role=Role.MANAGER, is_active=True).order_by('first_name')
+    managers = User.objects.filter(role=User.ROLE_MANAGER, is_active=True).order_by('first_name')
     return render(request, 'approvals/request_new.html', {
         'managers': managers,
     })
@@ -95,7 +95,7 @@ def request_detail(request, pk):
     can_view = (
         obj.submitted_by == user or
         obj.current_approver == user or
-        user.role in (Role.ADMIN, Role.FINANCE, Role.IT, Role.MANAGER)
+        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_IT, User.ROLE_MANAGER)
     )
     if not can_view:
         messages.error(request, "You don't have permission to view that request.")
@@ -108,10 +108,11 @@ def request_detail(request, pk):
     is_approver = (obj.current_approver == user)
     can_manager_approve = is_approver and obj.state == 'pending_manager'
     can_finance_approve = (
-        user.role in (Role.FINANCE, Role.ADMIN) and obj.state in ('pending_finance', 'renewing')
+        user.role in (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN) and
+        obj.state in ('pending_finance', 'renewing')
     )
     can_provision = (
-        user.role in (Role.IT, Role.ADMIN) and obj.state == 'provisioning'
+        user.role in (User.ROLE_IT, User.ROLE_ADMIN) and obj.state == 'provisioning'
     )
     can_renew = (
         obj.state in ('active', 'active_pending_renewal') and
@@ -120,10 +121,10 @@ def request_detail(request, pk):
     )
     can_terminate = (
         obj.state in ('active', 'active_pending_renewal', 'renewing', 'provisioning', 'approved') and
-        user.role in (Role.ADMIN, Role.FINANCE)
+        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE)
     )
 
-    finance_users = CustomUser.objects.filter(role=Role.FINANCE, is_active=True).order_by('first_name')
+    finance_users = User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).order_by('first_name')
 
     context = {
         'obj': obj,
@@ -263,14 +264,15 @@ def inbox(request):
     """Inbox: requests pending action from the current user."""
     user = request.user
 
-    if user.role == Role.EMPLOYEE:
+    if user.role == User.ROLE_EMPLOYEE:
         return redirect('ams_approvals:my_requests')
 
-    # Requests where I am the current approver — finance/admin see pending_finance
+    # Requests where I am the current approver — finance roles see pending_finance
     # via finance_queue instead, so exclude it here to avoid duplicates.
+    finance_roles = (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
     my_pending_states = (
         ['pending_manager']
-        if user.role in (Role.FINANCE, Role.ADMIN)
+        if user.role in finance_roles
         else PENDING_STATES
     )
     my_pending = ApprovalRequest.objects.filter(
@@ -280,21 +282,21 @@ def inbox(request):
 
     # IT provisioning queue
     it_queue = ApprovalRequest.objects.none()
-    if user.role in (Role.IT, Role.ADMIN):
+    if user.role in (User.ROLE_IT, User.ROLE_ADMIN):
         it_queue = ApprovalRequest.objects.filter(
             state='provisioning',
         ).select_related('submitted_by')
 
     # Finance renewal queue
     renewal_queue = ApprovalRequest.objects.none()
-    if user.role in (Role.FINANCE, Role.ADMIN):
+    if user.role in finance_roles:
         renewal_queue = ApprovalRequest.objects.filter(
             state='renewing',
         ).select_related('submitted_by', 'current_approver')
 
     # Finance pending queue — all pending_finance requests, not just assigned ones
     finance_queue = ApprovalRequest.objects.none()
-    if user.role in (Role.FINANCE, Role.ADMIN):
+    if user.role in finance_roles:
         finance_queue = ApprovalRequest.objects.filter(
             state='pending_finance',
         ).select_related('submitted_by', 'current_approver')
@@ -302,7 +304,7 @@ def inbox(request):
     # Upcoming renewals — subscriptions where employee has clicked Renew once
     # but hasn't yet submitted to finance (active_pending_renewal state)
     upcoming_renewals = ApprovalRequest.objects.none()
-    if user.role in (Role.FINANCE, Role.ADMIN):
+    if user.role in finance_roles:
         upcoming_renewals = ApprovalRequest.objects.filter(
             state='active_pending_renewal',
             request_type=RequestType.SUBSCRIPTION,

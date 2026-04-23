@@ -2,9 +2,7 @@
 set -e
 
 echo "==> Running migrations..."
-python manage.py makemigrations accounts --no-input
-python manage.py makemigrations documents --no-input
-python manage.py makemigrations uploads --no-input
+python manage.py makemigrations --no-input
 python manage.py migrate --no-input
 
 echo "==> Collecting static files..."

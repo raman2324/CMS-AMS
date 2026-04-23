@@ -1,3 +1,7 @@
+"""
+Account-level services: offboarding and related AMS user operations.
+Kept here (not in ams/) because they modify the core User model.
+"""
 from django.db import transaction
 from django.utils import timezone
 
@@ -13,7 +17,6 @@ def offboard_employee(user, last_day, actor):
     if not user.is_active or user.offboarded_at:
         return {'terminated': [], 'reassigned': [], 'already_offboarded': True}
 
-    # Import here to avoid circular imports
     from ams.approvals.models import ApprovalRequest
     from ams.audit.models import AuditLog
 
@@ -27,15 +30,15 @@ def offboard_employee(user, last_day, actor):
         request_type='subscription',
     )
     for req in active_requests:
-        req.terminate(reason=f'Finance offboard: {user.display_name}')
+        req.terminate(reason=f'Offboard: {user.display_name}')
         req.save()
         AuditLog.objects.create(
             actor=actor,
             action='finance_offboarded',
             target_type='request',
             target_id=req.id,
-            notes=f'Subscription terminated due to Finance offboard of {user.display_name}',
-            payload={'user_id': user.id, 'last_day': str(last_day)},
+            notes=f'Subscription terminated due to offboard of {user.display_name}',
+            payload={'user_id': str(user.id), 'last_day': str(last_day)},
         )
         terminated.append(req)
 
@@ -59,8 +62,8 @@ def offboard_employee(user, last_day, actor):
                 f'{new_approver.display_name if new_approver else "admin queue"}'
             ),
             payload={
-                'old_approver_id': old_approver.id,
-                'new_approver_id': new_approver.id if new_approver else None,
+                'old_approver_id': str(old_approver.id),
+                'new_approver_id': str(new_approver.id) if new_approver else None,
             },
         )
         reassigned.append(req)
@@ -74,7 +77,7 @@ def offboard_employee(user, last_day, actor):
         actor=actor,
         action='employee_offboarded',
         target_type='user',
-        target_id=user.id,
+        target_id=str(user.id),
         notes=f'Employee {user.display_name} offboarded. Last day: {last_day}',
         payload={'last_day': str(last_day)},
     )

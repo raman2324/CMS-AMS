@@ -21,7 +21,7 @@ USERS = [
         'username': 'carol',
         'first_name': 'Carol',
         'last_name': 'Finance',
-        'role': 'finance',
+        'role': 'finance_executive',
         'reports_to_email': None,
     },
     {
@@ -37,7 +37,7 @@ USERS = [
         'username': 'eve',
         'first_name': 'Eve',
         'last_name': 'Finance',
-        'role': 'finance',
+        'role': 'finance_executive',
         'reports_to_email': None,
     },
     {
@@ -63,7 +63,7 @@ class Command(BaseCommand):
     help = 'Seed 6 test users (alice, bob, carol, dave, eve, frank)'
 
     def handle(self, *args, **options):
-        from ams.ams_accounts.models import CustomUser
+        from accounts.models import User
 
         with transaction.atomic():
             created_users = {}
@@ -71,7 +71,7 @@ class Command(BaseCommand):
             # First pass: create users without reports_to
             for data in USERS:
                 reports_to_email = data['reports_to_email']
-                user, created = CustomUser.objects.get_or_create(
+                user, created = User.objects.get_or_create(
                     email=data['email'],
                     defaults={
                         'username': data['username'],

@@ -85,6 +85,39 @@
       </div>
       {% endif %}
 
+      <!-- AMS -->
+      <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#amsMenu"
+              aria-expanded="{% if '/ams/' in request.path %}true{% else %}false{% endif %}"
+              aria-controls="amsMenu">
+        <i class="bi bi-person-check me-2"></i>AMS
+        <i class="bi bi-chevron-down ms-auto small {% if '/ams/' in request.path %}rotate-180{% endif %}"></i>
+      </button>
+      <div class="collapse {% if '/ams/' in request.path %}show{% endif %}" id="amsMenu">
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'inbox' and request.resolver_match.app_name == 'ams_approvals' %}active{% endif %}"
+           href="{% url 'ams_approvals:inbox' %}">
+          <i class="bi bi-dot me-1"></i>Inbox
+        </a>
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'my_requests' %}active{% endif %}"
+           href="{% url 'ams_approvals:my_requests' %}">
+          <i class="bi bi-dot me-1"></i>My Requests
+        </a>
+        <a class="sidebar-link ps-4 {% if '/ams/expenses/' in request.path %}active{% endif %}"
+           href="{% url 'ams_expenses:expense_list' %}">
+          <i class="bi bi-dot me-1"></i>Expenses
+        </a>
+        <a class="sidebar-link ps-4 {% if '/ams/subscriptions/' in request.path %}active{% endif %}"
+           href="{% url 'ams_subscriptions:dashboard' %}">
+          <i class="bi bi-dot me-1"></i>Subscriptions
+        </a>
+        <a class="sidebar-link ps-4 {% if '/ams/admin-ams/' in request.path %}active{% endif %}"
+           href="{% url 'ams_audit:audit_log' %}">
+          <i class="bi bi-dot me-1"></i>Audit Log
+        </a>
+      </div>
+
     </nav>
 
     <div class="sidebar-footer">

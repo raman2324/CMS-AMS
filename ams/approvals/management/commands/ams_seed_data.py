@@ -23,7 +23,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Seed data created successfully!'))
 
     def _create_users(self):
-        from ams.ams_accounts.models import CustomUser, Role
+        from accounts.models import User
         from django.contrib.sites.models import Site
 
         # Update site
@@ -39,18 +39,18 @@ class Command(BaseCommand):
                 'username': 'admin_bv',
                 'first_name': 'Admin',
                 'last_name': 'User',
-                'role': Role.ADMIN,
+                'role': User.ROLE_ADMIN,
                 'is_staff': True,
                 'is_superuser': True,
                 'reports_to_email': None,
             },
-            # Finance Head (role=admin, non-superuser)
+            # Finance Head (big admin — CMS + AMS full access)
             {
                 'email': 'frank@bv.com',
                 'username': 'frank',
                 'first_name': 'Frank',
                 'last_name': 'Head',
-                'role': Role.ADMIN,
+                'role': User.ROLE_FINANCE_HEAD,
                 'reports_to_email': None,
             },
             # Finance Executives
@@ -59,7 +59,7 @@ class Command(BaseCommand):
                 'username': 'carol',
                 'first_name': 'Carol',
                 'last_name': 'Finance',
-                'role': Role.FINANCE,
+                'role': User.ROLE_FINANCE_EXECUTIVE,
                 'reports_to_email': None,
             },
             {
@@ -67,7 +67,7 @@ class Command(BaseCommand):
                 'username': 'mike',
                 'first_name': 'Mike',
                 'last_name': 'Finance',
-                'role': Role.FINANCE,
+                'role': User.ROLE_FINANCE_EXECUTIVE,
                 'reports_to_email': None,
             },
             # IT
@@ -76,7 +76,7 @@ class Command(BaseCommand):
                 'username': 'dave',
                 'first_name': 'Dave',
                 'last_name': 'IT',
-                'role': Role.IT,
+                'role': User.ROLE_IT,
                 'reports_to_email': None,
             },
             {
@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 'username': 'eve',
                 'first_name': 'Eve',
                 'last_name': 'Finance',
-                'role': Role.FINANCE,
+                'role': User.ROLE_FINANCE_EXECUTIVE,
                 'reports_to_email': None,
             },
             # Managers
@@ -93,7 +93,7 @@ class Command(BaseCommand):
                 'username': 'bob',
                 'first_name': 'Bob',
                 'last_name': 'Manager',
-                'role': Role.MANAGER,
+                'role': User.ROLE_MANAGER,
                 'reports_to_email': None,
             },
             {
@@ -101,7 +101,7 @@ class Command(BaseCommand):
                 'username': 'sarah',
                 'first_name': 'Sarah',
                 'last_name': 'Manager',
-                'role': Role.MANAGER,
+                'role': User.ROLE_MANAGER,
                 'reports_to_email': None,
             },
             {
@@ -109,7 +109,7 @@ class Command(BaseCommand):
                 'username': 'raj',
                 'first_name': 'Raj',
                 'last_name': 'Manager',
-                'role': Role.MANAGER,
+                'role': User.ROLE_MANAGER,
                 'reports_to_email': None,
             },
             # Employees
@@ -118,7 +118,7 @@ class Command(BaseCommand):
                 'username': 'alice',
                 'first_name': 'Alice',
                 'last_name': 'Employee',
-                'role': Role.EMPLOYEE,
+                'role': User.ROLE_EMPLOYEE,
                 'reports_to_email': 'bob@bv.com',
             },
             {
@@ -126,7 +126,7 @@ class Command(BaseCommand):
                 'username': 'john',
                 'first_name': 'John',
                 'last_name': 'Employee',
-                'role': Role.EMPLOYEE,
+                'role': User.ROLE_EMPLOYEE,
                 'reports_to_email': 'bob@bv.com',
             },
             {
@@ -134,7 +134,7 @@ class Command(BaseCommand):
                 'username': 'priya',
                 'first_name': 'Priya',
                 'last_name': 'Employee',
-                'role': Role.EMPLOYEE,
+                'role': User.ROLE_EMPLOYEE,
                 'reports_to_email': 'sarah@bv.com',
             },
             # Offboard demo target
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                 'username': 'george',
                 'first_name': 'George',
                 'last_name': 'Leaving',
-                'role': Role.EMPLOYEE,
+                'role': User.ROLE_EMPLOYEE,
                 'reports_to_email': 'bob@bv.com',
             },
         ]
@@ -153,7 +153,7 @@ class Command(BaseCommand):
             reports_to_email = data.pop('reports_to_email')
             data['_reports_to_email'] = reports_to_email
 
-            user, created = CustomUser.objects.update_or_create(
+            user, created = User.objects.update_or_create(
                 email=data['email'],
                 defaults={
                     'username': data['username'],
@@ -184,7 +184,7 @@ class Command(BaseCommand):
         return created_users
 
     def _create_sample_data(self):
-        from ams.ams_accounts.models import CustomUser
+        from accounts.models import User
         from ams.approvals.models import ApprovalRequest, RequestType, BillingPeriod, ExpenseType, AmountType
 
         if ApprovalRequest.objects.exists():
@@ -192,12 +192,12 @@ class Command(BaseCommand):
             return
 
         try:
-            alice = CustomUser.objects.get(email='alice@bv.com')
-            bob = CustomUser.objects.get(email='bob@bv.com')
-            carol = CustomUser.objects.get(email='carol@bv.com')
-            dave = CustomUser.objects.get(email='dave@bv.com')
-            george = CustomUser.objects.get(email='george@bv.com')
-        except CustomUser.DoesNotExist as e:
+            alice = User.objects.get(email='alice@bv.com')
+            bob = User.objects.get(email='bob@bv.com')
+            carol = User.objects.get(email='carol@bv.com')
+            dave = User.objects.get(email='dave@bv.com')
+            george = User.objects.get(email='george@bv.com')
+        except User.DoesNotExist as e:
             self.stdout.write(self.style.ERROR(f'User not found: {e}'))
             return
 

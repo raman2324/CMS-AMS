@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from ams.approvals.models import ApprovalRequest, RequestType
-from ams.ams_accounts.models import Role
+from accounts.models import User
 from .services import get_subscriptions_for_user
 
 

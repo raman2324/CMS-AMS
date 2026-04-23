@@ -8,17 +8,20 @@ from django.utils import timezone
 from datetime import timedelta
 
 from .models import AuditLog
-from ams.ams_accounts.models import CustomUser, Role
+from accounts.models import User
+
+_AUDIT_ROLES = (User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN, User.ROLE_VIEWER)
+_OFFBOARD_ROLES = (User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
 
 
-def require_finance_or_admin(user):
-    if user.role not in (Role.ADMIN,):
-        raise PermissionDenied('Admin role required.')
+def require_audit_access(user):
+    if user.role not in _AUDIT_ROLES:
+        raise PermissionDenied('Finance Head, Admin, or Viewer role required.')
 
 
 @login_required
 def audit_log(request):
-    require_finance_or_admin(request.user)
+    require_audit_access(request.user)
 
     logs = AuditLog.objects.select_related('actor').all()
 
@@ -56,7 +59,7 @@ def audit_log(request):
             ])
         return response
 
-    actors = CustomUser.objects.filter(is_active=True).order_by('email')
+    actors = User.objects.filter(is_active=True).order_by('email')
     unique_actions = AuditLog.objects.values_list('action', flat=True).distinct().order_by('action')
 
     return render(request, 'admin_ams/audit.html', {
@@ -85,11 +88,12 @@ def my_audit_log(request):
 
 @login_required
 def offboard(request):
-    require_finance_or_admin(request.user)
+    if request.user.role not in _OFFBOARD_ROLES:
+        raise PermissionDenied('Finance Head or Admin role required.')
 
-    from ams.ams_accounts.services import offboard_employee, get_offboard_preview
+    from accounts.services import offboard_employee, get_offboard_preview
 
-    active_employees = CustomUser.objects.filter(
+    active_employees = User.objects.filter(
         is_active=True
     ).exclude(id=request.user.id).order_by('email')
 
@@ -103,8 +107,8 @@ def offboard(request):
         last_day_str = request.POST.get('last_day', '')
 
         try:
-            selected_user = CustomUser.objects.get(id=user_id)
-        except CustomUser.DoesNotExist:
+            selected_user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
             from django.contrib import messages
             messages.error(request, 'User not found.')
             return redirect('ams_audit:offboard')
