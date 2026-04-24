@@ -54,8 +54,8 @@ Site.objects.update_or_create(id=1, defaults={'domain': domain, 'name': domain})
 print(f'  Site domain set to: {domain}')
 "
 
-echo "==> Seeding initial data (skipped if already seeded)..."
-python manage.py seed_data
+echo "==> Seeding all initial data (CMS + AMS)..."
+python manage.py seed_all
 
 echo "==> Encrypting existing files (no-op if already encrypted or key not set)..."
 python manage.py encrypt_existing_files
