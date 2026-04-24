@@ -57,6 +57,9 @@ print(f'  Site domain set to: {domain}')
 echo "==> Seeding all initial data (CMS + AMS)..."
 python manage.py seed_all
 
+echo "==> Backfilling SSO user names from stored Google profile data..."
+python manage.py backfill_sso_names
+
 echo "==> Encrypting existing files (no-op if already encrypted or key not set)..."
 python manage.py encrypt_existing_files
 

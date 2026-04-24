@@ -246,6 +246,7 @@ AXES_VERBOSE = False
 
 # --- Google SSO ---
 SOCIALACCOUNT_LOGIN_ON_GET = True   # skip allauth's intermediate confirmation page
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
 _allowed_domains = config("GOOGLE_ALLOWED_DOMAINS", default="cadienttalent.com", cast=Csv())
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
