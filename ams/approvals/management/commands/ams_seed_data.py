@@ -70,15 +70,6 @@ class Command(BaseCommand):
                 'role': User.ROLE_FINANCE_EXECUTIVE,
                 'reports_to_email': None,
             },
-            # IT
-            {
-                'email': 'dave@bv.com',
-                'username': 'dave',
-                'first_name': 'Dave',
-                'last_name': 'IT',
-                'role': User.ROLE_IT,
-                'reports_to_email': None,
-            },
             {
                 'email': 'eve@bv.com',
                 'username': 'eve',
@@ -195,7 +186,6 @@ class Command(BaseCommand):
             alice = User.objects.get(email='alice@bv.com')
             bob = User.objects.get(email='bob@bv.com')
             carol = User.objects.get(email='carol@bv.com')
-            dave = User.objects.get(email='dave@bv.com')
             george = User.objects.get(email='george@bv.com')
         except User.DoesNotExist as e:
             self.stdout.write(self.style.ERROR(f'User not found: {e}'))
@@ -299,26 +289,6 @@ class Command(BaseCommand):
                 f'  Created Notion subscription for George (id={george_sub.id}) - demo offboard target'
             )
 
-        # 6. A subscription in provisioning state (IT queue demo)
-        zoom, created = ApprovalRequest.objects.get_or_create(
-            submitted_by=alice,
-            service_name='Zoom Pro',
-            defaults={
-                'request_type': RequestType.SUBSCRIPTION,
-                'vendor': 'Zoom Video',
-                'cost': 14.99,
-                'billing_period': BillingPeriod.MONTHLY,
-                'justification': 'Video conferencing for remote meetings',
-                'expires_on': today + timedelta(days=365),
-                'current_approver': dave,
-                'finance_comment': 'Approved - proceed with provisioning',
-            }
-        )
-        if created:
-            ApprovalRequest.objects.filter(pk=zoom.pk).update(state='provisioning')
-            zoom = ApprovalRequest.objects.get(pk=zoom.pk)
-            self.stdout.write(f'  Created Zoom Pro (id={zoom.id}, in provisioning - IT queue)')
-
         self.stdout.write(self.style.SUCCESS('  Sample data created.'))
         self.stdout.write('')
         self.stdout.write('Demo accounts (all password: password123):')
@@ -339,9 +309,6 @@ class Command(BaseCommand):
         self.stdout.write('')
         self.stdout.write('  Finance Head:')
         self.stdout.write('    frank@bv.com   - Finance Head (Admin)')
-        self.stdout.write('')
-        self.stdout.write('  IT:')
-        self.stdout.write('    dave@bv.com    - IT')
         self.stdout.write('')
         self.stdout.write('  Other:')
         self.stdout.write('    eve@bv.com     - Finance Executive')

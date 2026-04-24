@@ -26,7 +26,7 @@ def _dashboard_legacy(request):
     active_pending = subscriptions.filter(state='active_pending_renewal')
     renewing = subscriptions.filter(state='renewing')
     terminated = subscriptions.filter(state='terminated')
-    pending = subscriptions.filter(state__in=['pending_manager', 'pending_finance', 'provisioning'])
+    pending = subscriptions.filter(state__in=['pending_manager', 'pending_finance'])
 
     # Subscriptions eligible for renewal (expiring within 14 days)
     renewal_eligible = subscriptions.filter(

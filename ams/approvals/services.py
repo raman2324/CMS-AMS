@@ -44,41 +44,79 @@ def _require_role(actor, *roles):
 @transaction.atomic
 def submit(request_obj, actor):
     """
-    Submit a new request. Every request goes to pending_manager first.
-    The approver is taken from the form selection, falling back to actor.reports_to.
+    Submit a new request.
+    Manager role → skips manager approval, goes directly to pending_finance.
+    Everyone else → pending_manager.
     """
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
+    from ams.approvals.models import ApprovalRequest
     from django.utils import timezone
 
-    manager = request_obj.current_approver or actor.reports_to
-    request_obj.current_approver = manager
-    request_obj.save()
+    if actor.role in (User.ROLE_MANAGER, User.ROLE_FINANCE_EXECUTIVE):
+        # Manager → routes to chosen Finance Executive
+        # Finance Executive → routes exclusively to Finance Head
+        if actor.role == User.ROLE_FINANCE_EXECUTIVE:
+            finance_exec = _get_finance_head_admin()
+        else:
+            finance_exec = request_obj.finance_approver or _get_finance_head()
+        request_obj.current_approver = finance_exec
+        request_obj.save()
+        ApprovalRequest.objects.filter(pk=request_obj.pk).update(state='pending_finance')
+        request_obj = ApprovalRequest.objects.get(pk=request_obj.pk)
 
-    AuditLog.objects.create(
-        actor=actor,
-        action='submitted',
-        target_type='request',
-        target_id=request_obj.id,
-        notes='Submitted for manager approval',
-        payload={'manager_id': str(manager.id) if manager else None},
-    )
-
-    if manager:
-        send_notification(
-            subject_id=request_obj.id,
-            action_type='pending_manager',
-            target_date=timezone.now().date(),
-            recipient=manager,
-            subject=f'Approval needed: {request_obj.title}',
-            body=(
-                f'{actor.display_name} has submitted a '
-                f'{request_obj.get_request_type_display()} request.\n\n'
-                f'Service: {request_obj.service_name or "N/A"}\n'
-                f'Cost: {request_obj.cost or "N/A"}\n'
-                f'Justification: {request_obj.justification}'
-            ),
+        AuditLog.objects.create(
+            actor=actor,
+            action='submitted',
+            target_type='request',
+            target_id=request_obj.id,
+            notes='Submitted by manager/finance executive — sent directly to finance',
+            payload={'finance_exec_id': str(finance_exec.id) if finance_exec else None},
         )
+        if finance_exec:
+            send_notification(
+                subject_id=request_obj.id,
+                action_type='pending_finance',
+                target_date=timezone.now().date(),
+                recipient=finance_exec,
+                subject=f'New approval needed: {request_obj.title}',
+                body=(
+                    f'Manager {actor.display_name} submitted a '
+                    f'{request_obj.get_request_type_display()} request for finance approval.\n\n'
+                    f'Service: {request_obj.service_name or "N/A"}\n'
+                    f'Cost: {request_obj.cost or "N/A"}\n'
+                    f'Justification: {request_obj.justification}'
+                ),
+            )
+    else:
+        # Employee → pending_manager
+        manager = request_obj.current_approver or actor.reports_to
+        request_obj.current_approver = manager
+        request_obj.save()
+
+        AuditLog.objects.create(
+            actor=actor,
+            action='submitted',
+            target_type='request',
+            target_id=request_obj.id,
+            notes='Submitted for manager approval',
+            payload={'manager_id': str(manager.id) if manager else None},
+        )
+        if manager:
+            send_notification(
+                subject_id=request_obj.id,
+                action_type='pending_manager',
+                target_date=timezone.now().date(),
+                recipient=manager,
+                subject=f'Approval needed: {request_obj.title}',
+                body=(
+                    f'{actor.display_name} has submitted a '
+                    f'{request_obj.get_request_type_display()} request.\n\n'
+                    f'Service: {request_obj.service_name or "N/A"}\n'
+                    f'Cost: {request_obj.cost or "N/A"}\n'
+                    f'Justification: {request_obj.justification}'
+                ),
+            )
 
     return request_obj
 
@@ -95,7 +133,7 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
     if actor.role not in (User.ROLE_MANAGER, User.ROLE_ADMIN) and actor != request_obj.current_approver:
         raise PermissionDenied('You are not the assigned manager approver.')
 
-    # Resolve chosen finance executive, fall back to first active finance user
+    # Resolve finance executive: manager's choice → employee's pre-selection → first active
     finance_exec = None
     if finance_user_id:
         try:
@@ -104,6 +142,8 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
             )
         except User.DoesNotExist:
             pass
+    if finance_exec is None and request_obj.finance_approver:
+        finance_exec = request_obj.finance_approver
     if finance_exec is None:
         finance_exec = _get_finance_head()
 
@@ -202,7 +242,7 @@ def manager_reject(request_obj, actor, reason=''):
 
 @transaction.atomic
 def finance_approve(request_obj, actor, comment=''):
-    """Finance approves → provisioning (subscription) or approved (expense)."""
+    """Finance approves → active (subscription) or approved (expense)."""
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
     from django.utils import timezone
@@ -213,11 +253,9 @@ def finance_approve(request_obj, actor, comment=''):
 
     if request_obj.request_type == 'subscription':
         request_obj.finance_approve_subscription(comment=comment)
-        # Assign to IT for provisioning
-        it_user = User.objects.filter(role=User.ROLE_IT, is_active=True).first()
-        request_obj.current_approver = it_user
+        request_obj.current_approver = None
         action = 'finance_approved_subscription'
-        next_state_msg = 'moved to provisioning'
+        next_state_msg = 'now active'
     else:
         request_obj.finance_approve_expense(comment=comment)
         request_obj.current_approver = None
@@ -283,54 +321,6 @@ def finance_reject(request_obj, actor, reason=''):
         body=(
             f'Your {request_obj.get_request_type_display()} request was rejected by finance.\n\n'
             f'Reason: {reason}'
-        ),
-    )
-
-    return request_obj
-
-
-@transaction.atomic
-def it_provision(request_obj, actor, vendor_account_id, billing_start):
-    """IT provisions the subscription."""
-    from ams.audit.models import AuditLog
-    from ams.notifications.services import send_notification
-    from django.utils import timezone
-
-    if request_obj.state != 'provisioning':
-        raise PermissionDenied('Request is not in provisioning state.')
-    _require_role(actor, User.ROLE_IT, User.ROLE_ADMIN)
-
-    request_obj.it_provision(
-        vendor_account_id=vendor_account_id,
-        billing_start=billing_start,
-    )
-    request_obj.current_approver = None
-    new_expiry = _expiry_from_billing(request_obj.billing_period, billing_start)
-    if new_expiry:
-        request_obj.expires_on = new_expiry
-    request_obj.save()
-
-    AuditLog.objects.create(
-        actor=actor,
-        action='it_provisioned',
-        target_type='request',
-        target_id=request_obj.id,
-        notes=f'Provisioned: account={vendor_account_id}, billing_start={billing_start}',
-        payload={
-            'vendor_account_id': vendor_account_id,
-            'billing_start': str(billing_start),
-        },
-    )
-
-    send_notification(
-        subject_id=request_obj.id,
-        action_type='provisioned',
-        target_date=timezone.now().date(),
-        recipient=request_obj.submitted_by,
-        subject=f'Subscription provisioned: {request_obj.title}',
-        body=(
-            f'Your subscription to {request_obj.service_name} is now active.\n\n'
-            f'Account ID: {vendor_account_id}\nBilling starts: {billing_start}'
         ),
     )
 

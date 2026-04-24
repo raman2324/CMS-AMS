@@ -83,7 +83,23 @@ def my_audit_log(request):
         .select_related('actor')
         .order_by('-created_at')[:200]
     )
-    return render(request, 'ams/admin_ams/my_audit.html', {'logs': logs})
+
+    # Fetch all referenced ApprovalRequests in one query and attach to each log
+    from ams.approvals.models import ApprovalRequest
+    request_ids = [log.target_id for log in logs if log.target_type == 'request']
+    requests_map = {
+        r.pk: r
+        for r in ApprovalRequest.objects.filter(pk__in=request_ids)
+                                        .select_related('current_approver')
+    }
+    enriched_logs = [
+        {'log': log, 'req': requests_map.get(log.target_id) if log.target_type == 'request' else None}
+        for log in logs
+    ]
+
+    return render(request, 'ams/admin_ams/my_audit.html', {
+        'enriched_logs': enriched_logs,
+    })
 
 
 @login_required
