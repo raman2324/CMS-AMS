@@ -31,6 +31,15 @@ PYEOF
 
 echo "==> Running migrations..."
 python manage.py makemigrations --no-input
+
+# django-axes 7.x has a MySQL bug: 0001_initial already creates the ip_address
+# index, then 0002 tries to create it again → duplicate key error.
+# Run axes migrations first; if they fail, fake them and continue.
+if ! python manage.py migrate axes --no-input; then
+    echo "Axes migration failed (MySQL duplicate index) — faking axes migrations..."
+    python manage.py migrate axes --fake --no-input
+fi
+
 python manage.py migrate --no-input
 
 echo "==> Collecting static files..."

@@ -44,78 +44,41 @@ def _require_role(actor, *roles):
 @transaction.atomic
 def submit(request_obj, actor):
     """
-    Submit a new request.
-    C-suite (no reports_to) → goes directly to pending_finance.
-    Everyone else → pending_manager regardless of request type.
+    Submit a new request. Every request goes to pending_manager first.
+    The approver is taken from the form selection, falling back to actor.reports_to.
     """
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
     from django.utils import timezone
 
-    is_c_suite = actor.reports_to is None
+    manager = request_obj.current_approver or actor.reports_to
+    request_obj.current_approver = manager
+    request_obj.save()
 
-    if is_c_suite:
-        # Skip manager, go straight to finance (C-suite has no reports_to)
-        finance_head = _get_finance_head()
-        # Use update() to bypass FSM protection for this special submit path
-        from ams.approvals.models import ApprovalRequest
-        request_obj.current_approver = finance_head
-        request_obj.save()
-        ApprovalRequest.objects.filter(pk=request_obj.pk).update(state='pending_finance')
-        # Re-fetch to get updated state (avoid FSM refresh_from_db restriction)
-        request_obj = ApprovalRequest.objects.get(pk=request_obj.pk)
-        AuditLog.objects.create(
-            actor=actor,
-            action='submitted_c_suite',
-            target_type='request',
-            target_id=request_obj.id,
-            notes='C-suite submission: skipped manager approval',
-            payload={'finance_approver_id': str(finance_head.id) if finance_head else None},
+    AuditLog.objects.create(
+        actor=actor,
+        action='submitted',
+        target_type='request',
+        target_id=request_obj.id,
+        notes='Submitted for manager approval',
+        payload={'manager_id': str(manager.id) if manager else None},
+    )
+
+    if manager:
+        send_notification(
+            subject_id=request_obj.id,
+            action_type='pending_manager',
+            target_date=timezone.now().date(),
+            recipient=manager,
+            subject=f'Approval needed: {request_obj.title}',
+            body=(
+                f'{actor.display_name} has submitted a '
+                f'{request_obj.get_request_type_display()} request.\n\n'
+                f'Service: {request_obj.service_name or "N/A"}\n'
+                f'Cost: {request_obj.cost or "N/A"}\n'
+                f'Justification: {request_obj.justification}'
+            ),
         )
-        if finance_head:
-            send_notification(
-                subject_id=request_obj.id,
-                action_type='pending_finance',
-                target_date=timezone.now().date(),
-                recipient=finance_head,
-                subject=f'New approval needed: {request_obj.title}',
-                body=(
-                    f'A new {request_obj.get_request_type_display()} request from '
-                    f'{actor.display_name} requires your approval.\n\n'
-                    f'Service: {request_obj.service_name or "N/A"}\n'
-                    f'Cost: {request_obj.cost or "N/A"}\n'
-                    f'Justification: {request_obj.justification}'
-                ),
-            )
-    else:
-        # Regular employee → manager approval.
-        # Use the approver already set on the object (chosen on the form), else fall back to reports_to.
-        manager = request_obj.current_approver or actor.reports_to
-        request_obj.current_approver = manager
-        request_obj.save()
-        AuditLog.objects.create(
-            actor=actor,
-            action='submitted',
-            target_type='request',
-            target_id=request_obj.id,
-            notes='Submitted for manager approval',
-            payload={'manager_id': str(manager.id) if manager else None},
-        )
-        if manager:
-            send_notification(
-                subject_id=request_obj.id,
-                action_type='pending_manager',
-                target_date=timezone.now().date(),
-                recipient=manager,
-                subject=f'Approval needed: {request_obj.title}',
-                body=(
-                    f'{actor.display_name} has submitted a '
-                    f'{request_obj.get_request_type_display()} request.\n\n'
-                    f'Service: {request_obj.service_name or "N/A"}\n'
-                    f'Cost: {request_obj.cost or "N/A"}\n'
-                    f'Justification: {request_obj.justification}'
-                ),
-            )
 
     return request_obj
 
