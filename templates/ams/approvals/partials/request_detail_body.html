@@ -100,11 +100,11 @@
                     {% else %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Expense Type</div>
-                        <div class="fw-medium">{{ obj.get_expense_type_display }}</div>
+                        <div class="fw-medium">{{ obj.get_expense_type_display|default:"One-Off" }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Amount</div>
-                        <div class="fw-semibold fs-6">${{ obj.cost }}</div>
+                        <div class="fw-semibold fs-6">{% if obj.cost %}${{ obj.cost }}{% else %}—{% endif %}</div>
                     </div>
                     {% if obj.receipt %}
                     <div class="col-md-4">

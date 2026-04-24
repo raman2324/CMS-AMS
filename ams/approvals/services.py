@@ -70,7 +70,7 @@ def submit(request_obj, actor):
             target_type='request',
             target_id=request_obj.id,
             notes='C-suite submission: skipped manager approval',
-            payload={'finance_approver_id': finance_head.id if finance_head else None},
+            payload={'finance_approver_id': str(finance_head.id) if finance_head else None},
         )
         if finance_head:
             send_notification(
@@ -99,7 +99,7 @@ def submit(request_obj, actor):
             target_type='request',
             target_id=request_obj.id,
             notes='Submitted for manager approval',
-            payload={'manager_id': manager.id if manager else None},
+            payload={'manager_id': str(manager.id) if manager else None},
         )
         if manager:
             send_notification(
@@ -156,7 +156,7 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
         notes=comment or 'Manager approved',
         payload={
             'comment': comment,
-            'finance_exec_id': finance_exec.id if finance_exec else None,
+            'finance_exec_id': str(finance_exec.id) if finance_exec else None,
         },
     )
 
@@ -400,7 +400,7 @@ def initiate_renewal(request_obj, actor):
             target_type='request',
             target_id=request_obj.id,
             notes='Renewal submitted for finance approval',
-            payload={'finance_approver_id': finance_head.id if finance_head else None},
+            payload={'finance_approver_id': str(finance_head.id) if finance_head else None},
         )
 
     return request_obj

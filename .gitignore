@@ -15,6 +15,12 @@ staticfiles/
 # Generated PDFs — runtime output, not source
 local_pdfs/
 
+# Document folders generated at runtime by seed/generate (go to MinIO in production)
+documents/Offer Letter/
+documents/Salary Letter/
+documents/No Objection Certificate/
+documents/Experience Certificate/
+
 # Claude Code local settings — machine-specific permissions
 .claude/settings.local.json
 
