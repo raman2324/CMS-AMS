@@ -20,7 +20,7 @@
     <div class="sidebar-brand">
       <a href="{% url 'documents:list' %}" class="brand-link">
         <i class="bi bi-file-earmark-text-fill text-warning me-2"></i>
-        <span class="fw-bold">HR Docs</span>
+        <span class="fw-bold">HR Management System</span>
       </a>
     </div>
 
@@ -53,13 +53,6 @@
         </a>
         {% endif %}
       </div>
-
-      {% if user.role == 'finance_head' %}
-      <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
-         href="{% url 'documents:manage_dashboard' %}">
-        <i class="bi bi-gear me-2"></i>Manage
-      </a>
-      {% endif %}
 
       <!-- Contract Lens — Finance Head and Finance Executive only -->
       {% if user.role == 'finance_head' or user.role == 'finance_executive' %}
@@ -126,6 +119,13 @@
         {% endif %}
         {% endif %}
       </div>
+
+      {% if user.role == 'finance_head' %}
+      <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
+         href="{% url 'documents:manage_dashboard' %}">
+        <i class="bi bi-gear me-2"></i>Manage
+      </a>
+      {% endif %}
 
     </nav>
 

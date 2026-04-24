@@ -113,10 +113,12 @@ def request_detail(request, pk):
 
     # Check access: submitter, approver, or admin/finance/hr
     user = request.user
+    _fe_submitted = obj.submitted_by.role == User.ROLE_FINANCE_EXECUTIVE
     can_view = (
         obj.submitted_by == user or
         obj.current_approver == user or
-        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_MANAGER)
+        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_MANAGER) or
+        (user.role == User.ROLE_FINANCE_EXECUTIVE and not _fe_submitted)
     )
     if not can_view:
         messages.error(request, "You don't have permission to view that request.")
@@ -128,10 +130,9 @@ def request_detail(request, pk):
 
     is_approver = (obj.current_approver == user)
     can_manager_approve = is_approver and obj.state == 'pending_manager'
-    _submitted_by_fe = obj.submitted_by.role == User.ROLE_FINANCE_EXECUTIVE
     can_finance_approve = (
         obj.state in ('pending_finance', 'renewing') and (
-            (user.role == User.ROLE_FINANCE_EXECUTIVE and not _submitted_by_fe) or
+            (user.role == User.ROLE_FINANCE_EXECUTIVE and not _fe_submitted) or
             user.role in (User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
         )
     )
@@ -282,16 +283,18 @@ def inbox(request):
     # Finance renewal queue
     renewal_queue = ApprovalRequest.objects.none()
     if user.role in finance_roles:
-        renewal_queue = ApprovalRequest.objects.filter(
-            state='renewing',
-        ).select_related('submitted_by', 'current_approver')
+        rq = ApprovalRequest.objects.filter(state='renewing').select_related('submitted_by', 'current_approver')
+        if user.role == User.ROLE_FINANCE_EXECUTIVE:
+            rq = rq.exclude(submitted_by__role=User.ROLE_FINANCE_EXECUTIVE)
+        renewal_queue = rq
 
-    # Finance pending queue — all pending_finance requests, not just assigned ones
+    # Finance pending queue — FE-submitted requests visible to Finance Head/Admin only
     finance_queue = ApprovalRequest.objects.none()
     if user.role in finance_roles:
-        finance_queue = ApprovalRequest.objects.filter(
-            state='pending_finance',
-        ).select_related('submitted_by', 'current_approver')
+        fq = ApprovalRequest.objects.filter(state='pending_finance').select_related('submitted_by', 'current_approver')
+        if user.role == User.ROLE_FINANCE_EXECUTIVE:
+            fq = fq.exclude(submitted_by__role=User.ROLE_FINANCE_EXECUTIVE)
+        finance_queue = fq
 
     # Upcoming renewals — subscriptions where employee has clicked Renew once
     # but hasn't yet submitted to finance (active_pending_renewal state)
