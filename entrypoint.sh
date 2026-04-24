@@ -8,13 +8,14 @@ bucket = os.environ.get('AWS_STORAGE_BUCKET_NAME', '')
 if bucket:
     import boto3
     from botocore.exceptions import ClientError
+    endpoint = os.environ.get('AWS_S3_ENDPOINT_URL') or None
     s3 = boto3.client(
         's3',
-        endpoint_url=os.environ.get('AWS_S3_ENDPOINT_URL') or None,
+        endpoint_url=endpoint,
         aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
         aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
         region_name=os.environ.get('AWS_S3_REGION_NAME', 'us-east-1'),
-        verify=False,
+        verify=not bool(endpoint),  # False for MinIO (HTTP), True for real S3 (HTTPS)
     )
     try:
         s3.create_bucket(Bucket=bucket)
