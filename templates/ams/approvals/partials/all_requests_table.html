@@ -1,0 +1,83 @@
+<table class="table table-hover align-middle mb-0">
+    <thead class="table-dark">
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in rows %}
+        <tr>
+            <td>
+                <a href="{% url 'ams_approvals:request_detail' req.pk %}" class="fw-semibold text-dark text-decoration-none">
+                    {{ req.service_name|default:req.title }}
+                </a>
+                {% if req.vendor %}
+                <div class="text-muted small">{{ req.vendor }}</div>
+                {% endif %}
+            </td>
+            <td>
+                {% if req.request_type == 'subscription' %}
+                <span class="badge bg-primary">Subscription</span>
+                {% if req.billing_period %}
+                <span class="badge bg-light text-dark border ms-1 small">{{ req.get_billing_period_display }}</span>
+                {% endif %}
+                {% else %}
+                <span class="badge bg-warning text-dark">Expense</span>
+                {% if req.request_category %}
+                <span class="badge bg-light text-dark border ms-1 small">{{ req.get_request_category_display }}</span>
+                {% endif %}
+                {% endif %}
+            </td>
+            <td class="fw-semibold">
+                {% if req.cost %}${{ req.cost }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+                <span class="{{ req.state_badge_color }}">{{ req.state_display }}</span>
+            </td>
+            <td class="text-muted small">{{ req.created_at|date:"M d, Y" }}</td>
+            <td class="text-end">
+                <a href="{% url 'ams_approvals:request_detail' req.pk %}" class="btn btn-outline-secondary btn-sm">View</a>
+            </td>
+        </tr>
+        {% if show_stepper %}
+        <tr class="table-light border-bottom">
+            <td colspan="6" class="py-2 px-4">
+                <div class="d-flex align-items-center" style="max-width:400px">
+                    {% for step in req.status_steps %}
+                    <div class="d-flex flex-column align-items-center">
+                        {% if step.status == 'done' %}
+                        <div class="rounded-circle bg-success d-flex align-items-center justify-content-center" style="width:20px;height:20px;flex-shrink:0">
+                            <i class="bi bi-check text-white" style="font-size:0.6rem"></i>
+                        </div>
+                        <span class="text-success mt-1" style="font-size:0.6rem;white-space:nowrap;font-weight:500">{{ step.label }}</span>
+                        {% elif step.status == 'current' %}
+                        <div class="rounded-circle border border-primary d-flex align-items-center justify-content-center bg-white" style="width:20px;height:20px;flex-shrink:0;border-width:2px!important">
+                            <div class="rounded-circle bg-primary" style="width:7px;height:7px"></div>
+                        </div>
+                        <span class="text-primary mt-1 fw-semibold" style="font-size:0.6rem;white-space:nowrap">{{ step.label }}</span>
+                        {% elif step.status == 'rejected' %}
+                        <div class="rounded-circle bg-danger d-flex align-items-center justify-content-center" style="width:20px;height:20px;flex-shrink:0">
+                            <i class="bi bi-x text-white" style="font-size:0.6rem"></i>
+                        </div>
+                        <span class="text-danger mt-1" style="font-size:0.6rem;white-space:nowrap;font-weight:500">{{ step.label }}</span>
+                        {% else %}
+                        <div class="rounded-circle border bg-white" style="width:20px;height:20px;flex-shrink:0;border-color:#dee2e6!important"></div>
+                        <span class="text-muted mt-1" style="font-size:0.6rem;white-space:nowrap">{{ step.label }}</span>
+                        {% endif %}
+                    </div>
+                    {% if not forloop.last %}
+                    <div class="flex-grow-1 mb-3" style="height:2px;min-width:12px;background-color:{% if step.status == 'done' %}#198754{% elif step.status == 'rejected' %}#f8d7da{% else %}#dee2e6{% endif %}"></div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>

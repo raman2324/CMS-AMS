@@ -2,114 +2,125 @@
 {% block title %}Offboard Employee — AMS{% endblock %}
 
 {% block ams_content %}
-<div class="max-w-3xl mx-auto">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Offboard Employee</h1>
-        <p class="text-gray-500 text-sm mt-1">Finance / Admin: terminate subscriptions and reassign approvals</p>
+<div class="row justify-content-center">
+<div class="col-md-10 col-lg-8">
+
+    <div class="mb-3">
+        <h4 class="fw-bold mb-0"><i class="bi bi-person-x me-2"></i>Offboard Employee</h4>
+        <div class="text-muted small">Finance / Admin: terminate subscriptions and reassign approvals</div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Select Employee</h2>
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="preview">
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Employee</label>
-                    <select name="user_id" required onchange="this.form.submit()"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Select employee...</option>
-                        {% for emp in active_employees %}
-                        <option value="{{ emp.id }}" {% if selected_user and selected_user.id == emp.id %}selected{% endif %}>
-                            {{ emp.display_name }} ({{ emp.get_role_display }}) — {{ emp.email }}
-                        </option>
-                        {% endfor %}
-                    </select>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold border-bottom">
+            <i class="bi bi-person-search me-2 text-primary"></i>Select Employee
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="preview">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Employee</label>
+                        <select name="user_id" required onchange="this.form.submit()"
+                            class="form-select form-select-sm">
+                            <option value="">Select employee...</option>
+                            {% for emp in active_employees %}
+                            <option value="{{ emp.id }}" {% if selected_user and selected_user.id == emp.id %}selected{% endif %}>
+                                {{ emp.display_name }} ({{ emp.get_role_display }}) — {{ emp.email }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Last Day</label>
+                        <input type="date" name="last_day" class="form-control form-control-sm">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Day</label>
-                    <input type="date" name="last_day"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 
     {% if preview and selected_user %}
-    <div class="bg-white rounded-xl shadow-sm border border-orange-200 p-6 mb-6">
-        <h2 class="text-lg font-semibold text-orange-700 mb-4">
-            Offboard Preview: {{ selected_user.display_name }}
-        </h2>
-
-        <div class="mb-4">
-            <h3 class="text-sm font-semibold text-gray-700 mb-2">
-                Subscriptions to be terminated ({{ preview.active_subscriptions.count }})
-            </h3>
-            {% if preview.active_subscriptions %}
-            <ul class="space-y-1">
-                {% for sub in preview.active_subscriptions %}
-                <li class="text-sm text-red-600 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
-                    {{ sub.service_name }} — ${{ sub.cost }}/{{ sub.get_billing_period_display }} ({{ sub.state_display }})
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-sm text-gray-400">No active subscriptions.</p>
-            {% endif %}
+    <div class="card border-warning shadow-sm mb-4">
+        <div class="card-header bg-warning bg-opacity-10 border-bottom fw-semibold text-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>Offboard Preview: {{ selected_user.display_name }}
         </div>
+        <div class="card-body">
 
-        <div class="mb-4">
-            <h3 class="text-sm font-semibold text-gray-700 mb-2">
-                Pending approvals to reassign ({{ preview.pending_approvals.count }})
-            </h3>
-            {% if preview.pending_approvals %}
-            <ul class="space-y-1">
-                {% for req in preview.pending_approvals %}
-                <li class="text-sm text-yellow-700 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
-                    #{{ req.id }} — {{ req.title }} from {{ req.submitted_by.display_name }}
-                </li>
-                {% endfor %}
-            </ul>
-            <p class="text-xs text-gray-500 mt-2">
-                → Reassigning to: <strong>{{ preview.new_approver.display_name|default:"Admin queue (no manager available)" }}</strong>
-            </p>
-            {% else %}
-            <p class="text-sm text-gray-400">No pending approvals to reassign.</p>
-            {% endif %}
-        </div>
-
-        <form method="post" class="mt-6 pt-4 border-t border-gray-100">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="confirm">
-            <input type="hidden" name="user_id" value="{{ selected_user.id }}">
-            <div class="flex items-center gap-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Day</label>
-                    <input type="date" name="last_day" required
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500">
-                </div>
-                <div class="mt-6">
-                    <button type="submit"
-                        class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition"
-                        onclick="return confirm('Are you sure you want to offboard {{ selected_user.display_name }}? This action cannot be undone.')">
-                        Confirm Offboard
-                    </button>
-                </div>
+            <div class="mb-4">
+                <h6 class="fw-semibold mb-2">
+                    Subscriptions to be terminated ({{ preview.active_subscriptions.count }})
+                </h6>
+                {% if preview.active_subscriptions %}
+                <ul class="list-unstyled mb-0">
+                    {% for sub in preview.active_subscriptions %}
+                    <li class="text-danger small mb-1">
+                        <i class="bi bi-circle-fill me-1" style="font-size:0.5rem;vertical-align:middle"></i>
+                        {{ sub.service_name }} — ${{ sub.cost }}/{{ sub.get_billing_period_display }} ({{ sub.state_display }})
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-0">No active subscriptions.</p>
+                {% endif %}
             </div>
-        </form>
+
+            <div class="mb-4">
+                <h6 class="fw-semibold mb-2">
+                    Pending approvals to reassign ({{ preview.pending_approvals.count }})
+                </h6>
+                {% if preview.pending_approvals %}
+                <ul class="list-unstyled mb-2">
+                    {% for req in preview.pending_approvals %}
+                    <li class="text-warning small mb-1">
+                        <i class="bi bi-circle-fill me-1" style="font-size:0.5rem;vertical-align:middle"></i>
+                        #{{ req.id }} — {{ req.title }} from {{ req.submitted_by.display_name }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                <p class="text-muted small">
+                    → Reassigning to: <strong>{{ preview.new_approver.display_name|default:"Admin queue (no manager available)" }}</strong>
+                </p>
+                {% else %}
+                <p class="text-muted small mb-0">No pending approvals to reassign.</p>
+                {% endif %}
+            </div>
+
+            <form method="post" class="pt-3 border-top">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="confirm">
+                <input type="hidden" name="user_id" value="{{ selected_user.id }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Last Day</label>
+                        <input type="date" name="last_day" required class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-danger btn-sm"
+                            onclick="return confirm('Are you sure you want to offboard {{ selected_user.display_name }}? This action cannot be undone.')">
+                            <i class="bi bi-person-x me-1"></i>Confirm Offboard
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
     {% endif %}
 
     <!-- Recent offboards from audit log -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Recent Offboards</h2>
-        <p class="text-sm text-gray-400">
-            <a href="{% url 'ams_audit:audit_log' %}?action_type=employee_offboarded" class="text-indigo-600 hover:underline">
-                View offboard audit log
-            </a>
-        </p>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold border-bottom">
+            <i class="bi bi-clock-history me-2 text-secondary"></i>Recent Offboards
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-0">
+                <a href="{% url 'ams_audit:audit_log' %}?action_type=employee_offboarded">
+                    View offboard audit log →
+                </a>
+            </p>
+        </div>
     </div>
+
+</div>
 </div>
 {% endblock %}

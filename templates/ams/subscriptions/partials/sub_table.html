@@ -1,33 +1,29 @@
-<table class="w-full text-sm">
-    <thead class="bg-gray-50 border-b border-gray-200">
+<table class="table table-hover align-middle mb-0">
+    <thead class="table-dark">
         <tr>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Service</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Vendor</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Owner</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Cost</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Billing</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">Expires</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-600">State</th>
+            <th>Service</th>
+            <th>Vendor</th>
+            <th>Owner</th>
+            <th>Cost</th>
+            <th>Billing</th>
+            <th>Expires</th>
+            <th>State</th>
         </tr>
     </thead>
-    <tbody class="divide-y divide-gray-100">
+    <tbody>
         {% for req in subs %}
-        <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-gray-900">
-                <a href="{% url 'ams_approvals:request_detail' req.pk %}" class="hover:text-indigo-600">
+        <tr>
+            <td>
+                <a href="{% url 'ams_approvals:request_detail' req.pk %}" class="fw-semibold text-dark text-decoration-none">
                     {{ req.service_name }}
                 </a>
             </td>
-            <td class="px-4 py-3 text-gray-500">{{ req.vendor|default:"—" }}</td>
-            <td class="px-4 py-3 text-gray-500">{{ req.submitted_by.display_name }}</td>
-            <td class="px-4 py-3 text-gray-900">${{ req.cost|default:"—" }}</td>
-            <td class="px-4 py-3 text-gray-500">{{ req.get_billing_period_display|default:"—" }}</td>
-            <td class="px-4 py-3 text-gray-500">{{ req.expires_on|default:"—" }}</td>
-            <td class="px-4 py-3">
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ req.state_badge_color }}">
-                    {{ req.state_display }}
-                </span>
-            </td>
+            <td class="text-muted">{{ req.vendor|default:"—" }}</td>
+            <td class="text-muted">{{ req.submitted_by.display_name }}</td>
+            <td class="fw-semibold">${{ req.cost|default:"—" }}</td>
+            <td class="text-muted small">{{ req.get_billing_period_display|default:"—" }}</td>
+            <td class="text-muted small">{{ req.expires_on|default:"—" }}</td>
+            <td><span class="{{ req.state_badge_color }}">{{ req.state_display }}</span></td>
         </tr>
         {% endfor %}
     </tbody>

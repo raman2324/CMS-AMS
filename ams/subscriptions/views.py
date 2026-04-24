@@ -10,7 +10,13 @@ from .services import get_subscriptions_for_user
 
 @login_required
 def dashboard(request):
-    """Subscription dashboard."""
+    from django.shortcuts import redirect
+    return redirect('ams_approvals:all_requests')
+
+
+@login_required
+def _dashboard_legacy(request):
+    """Kept for reference — now redirected to all_requests."""
     subscriptions = get_subscriptions_for_user(request.user)
 
     today = timezone.now().date()

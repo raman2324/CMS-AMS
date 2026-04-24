@@ -7,8 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <style>
   .select2-container--default .select2-selection--single {
-      border: 1px solid #d1d5db;
-      border-radius: 0.5rem;
+      border: 1px solid #ced4da;
+      border-radius: 0.375rem;
       height: 38px;
       padding: 4px 8px;
       font-size: 0.875rem;
@@ -17,34 +17,33 @@
       height: 36px;
   }
   .select2-container--default.select2-container--focus .select2-selection--single {
-      border-color: #22c55e;
-      box-shadow: 0 0 0 2px rgba(34,197,94,0.2);
+      border-color: #86b7fe;
+      box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.25);
   }
   .select2-container { width: 100% !important; }
 </style>
 {% endblock ams_extra_head %}
 
 {% block ams_content %}
-<div class="max-w-6xl mx-auto px-4">
 
-    <!-- Breadcrumb + title row -->
-    <div class="mb-6 flex items-start justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-2 mb-2 text-sm text-gray-500">
-                <a href="{% url 'ams_approvals:inbox' %}" class="text-indigo-600 hover:underline">Inbox</a>
-                <span>/</span>
-                <span>Request #{{ obj.id }}</span>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900">{{ obj.title }}</h1>
-            <p class="text-sm text-gray-500 mt-1">Submitted by <span class="font-medium text-gray-700">{{ obj.submitted_by.display_name }}</span> on {{ obj.created_at|date:"M d, Y" }}</p>
+<!-- Breadcrumb + title row -->
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <nav aria-label="breadcrumb" class="mb-1">
+            <ol class="breadcrumb breadcrumb-sm mb-0" style="font-size:0.8rem">
+                <li class="breadcrumb-item"><a href="{% url 'ams_approvals:inbox' %}">Inbox</a></li>
+                <li class="breadcrumb-item active">Request #{{ obj.id }}</li>
+            </ol>
+        </nav>
+        <h4 class="fw-bold mb-0">{{ obj.title }}</h4>
+        <div class="text-muted small mt-1">
+            Submitted by <strong>{{ obj.submitted_by.display_name }}</strong> on {{ obj.created_at|date:"M d, Y" }}
         </div>
-        <span class="mt-1 shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold {{ obj.state_badge_color }}">
-            {{ obj.state_display }}
-        </span>
     </div>
+    <span class="{{ obj.state_badge_color }} mt-1">{{ obj.state_display }}</span>
+</div>
 
-    <div id="request-detail-body">
-        {% include "ams/approvals/partials/request_detail_body.html" %}
-    </div>
+<div id="request-detail-body">
+    {% include "ams/approvals/partials/request_detail_body.html" %}
 </div>
 {% endblock %}

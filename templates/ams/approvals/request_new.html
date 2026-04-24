@@ -5,142 +5,147 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<style>
+  .select2-container--default .select2-selection--single {
+      border: 1px solid #ced4da; border-radius: 0.375rem; height: 38px; padding: 4px 8px; font-size: 0.875rem;
+  }
+  .select2-container--default .select2-selection--single .select2-selection__arrow { height: 36px; }
+  .select2-container--default.select2-container--focus .select2-selection--single {
+      border-color: #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.25);
+  }
+  .select2-container { width: 100% !important; }
+  .type-card { cursor: pointer; transition: border-color 0.15s, background-color 0.15s; }
+  .type-card.selected { border-color: #0d6efd !important; background-color: rgba(13,110,253,0.05); }
+</style>
 {% endblock %}
 
 {% block ams_content %}
-<div class="max-w-2xl mx-auto">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">New Approval Request</h1>
-        <p class="text-gray-500 text-sm mt-1">Submit a one-off expense or recurring service for approval</p>
+<div class="row justify-content-center">
+<div class="col-md-8 col-lg-6">
+
+    <div class="mb-3">
+        <h4 class="fw-bold mb-0"><i class="bi bi-plus-circle me-2"></i>New Approval Request</h4>
+        <div class="text-muted small">Submit a one-off expense or recurring service for approval</div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
         <form method="post" enctype="multipart/form-data" id="requestForm">
             {% csrf_token %}
             <input type="hidden" name="request_category" id="request_category_input" value="">
 
             <!-- Category Selector -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-3">Request Type</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <div id="card-one_off"
-                         class="border-2 border-gray-200 rounded-lg p-4 cursor-pointer transition hover:border-indigo-300"
-                         onclick="showSection('one_off')">
-                        <div class="font-medium text-gray-900">One-off</div>
-                        <div class="text-sm text-gray-500 mt-1">Equipment, conference, single purchase</div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Request Type</label>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div id="card-one_off" class="card type-card border-2 h-100" onclick="showSection('one_off')">
+                            <div class="card-body py-3">
+                                <div class="fw-semibold">One-off</div>
+                                <div class="text-muted small mt-1">Equipment, conference, single purchase</div>
+                            </div>
+                        </div>
                     </div>
-                    <div id="card-recurring"
-                         class="border-2 border-gray-200 rounded-lg p-4 cursor-pointer transition hover:border-indigo-300"
-                         onclick="showSection('recurring')">
-                        <div class="font-medium text-gray-900">Recurring</div>
-                        <div class="text-sm text-gray-500 mt-1">SaaS tool, software license, ongoing service</div>
+                    <div class="col-6">
+                        <div id="card-recurring" class="card type-card border-2 h-100" onclick="showSection('recurring')">
+                            <div class="card-body py-3">
+                                <div class="fw-semibold">Recurring</div>
+                                <div class="text-muted small mt-1">SaaS tool, software license, ongoing service</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- One-off Fields -->
-            <div id="one_off-fields" class="request-section hidden space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Name *</label>
-                    <input type="text" name="service_name_oneoff"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+            <div id="one_off-fields" class="request-section d-none">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Service Name *</label>
+                    <input type="text" name="service_name_oneoff" class="form-control form-control-sm"
                            placeholder="e.g. DjangoCon conference ticket">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <input type="text" name="description"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Description</label>
+                    <input type="text" name="description" class="form-control form-control-sm"
                            placeholder="Additional details (optional)">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
-                    <input type="number" name="cost" step="0.01" min="0"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Amount (USD)</label>
+                    <input type="number" name="cost" step="0.01" min="0" class="form-control form-control-sm"
                            placeholder="Optional">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Justification *</label>
-                    <textarea name="justification" rows="3"
-                              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Justification *</label>
+                    <textarea name="justification" rows="3" class="form-control form-control-sm"
                               placeholder="Why is this needed?"></textarea>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Receipt (optional)</label>
-                    <input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Receipt (optional)</label>
+                    <input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm">
                 </div>
             </div>
 
             <!-- Recurring Fields -->
-            <div id="recurring-fields" class="request-section hidden space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Service Name *</label>
-                        <input type="text" name="service_name"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+            <div id="recurring-fields" class="request-section d-none">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Service Name *</label>
+                        <input type="text" name="service_name" class="form-control form-control-sm"
                                placeholder="e.g. GitHub Copilot">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
-                        <input type="text" name="vendor"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Vendor</label>
+                        <input type="text" name="vendor" class="form-control form-control-sm"
                                placeholder="e.g. GitHub">
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Billing Period</label>
-                        <select name="billing_period"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Billing Period</label>
+                        <select name="billing_period" class="form-select form-select-sm">
                             <option value="">Select...</option>
                             <option value="monthly">Monthly</option>
                             <option value="annual">Annual</option>
                             <option value="one_time">One-Time</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Amount Type</label>
-                        <div class="flex gap-4 mt-2">
-                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                                <input type="radio" name="amount_type" value="fixed" checked
-                                       class="accent-indigo-600">
-                                Fixed <span class="text-xs text-gray-400">(same each period)</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                                <input type="radio" name="amount_type" value="variable"
-                                       class="accent-indigo-600">
-                                Variable <span class="text-xs text-gray-400">(may change)</span>
-                            </label>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Amount Type</label>
+                        <div class="mt-1">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="amount_type" value="fixed" id="amt-fixed" checked>
+                                <label class="form-check-label small" for="amt-fixed">Fixed <span class="text-muted">(same each period)</span></label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="amount_type" value="variable" id="amt-variable">
+                                <label class="form-check-label small" for="amt-variable">Variable <span class="text-muted">(may change)</span></label>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
-                    <input type="number" name="cost" step="0.01" min="0"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Amount (USD)</label>
+                    <input type="number" name="cost" step="0.01" min="0" class="form-control form-control-sm"
                            placeholder="Optional">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
-                    <input type="date" name="expires_on"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Expiry Date</label>
+                    <input type="date" name="expires_on" class="form-control form-control-sm">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Justification *</label>
-                    <textarea name="justification" rows="3"
-                              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Justification *</label>
+                    <textarea name="justification" rows="3" class="form-control form-control-sm"
                               placeholder="Why is this tool needed?"></textarea>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Receipt (optional)</label>
-                    <input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Receipt (optional)</label>
+                    <input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm">
                 </div>
             </div>
 
-            <div id="manager-section" class="hidden mt-6">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Your Reporting Manager</label>
-                <select name="manager_id" id="manager_select" style="width:100%">
+            <div id="manager-section" class="d-none mb-3">
+                <label class="form-label small fw-semibold">Your Reporting Manager</label>
+                <select name="manager_id" id="manager_select">
                     <option value="">Search manager...</option>
                     {% for mgr in managers %}
                     <option value="{{ mgr.id }}">{{ mgr.display_name }} ({{ mgr.email }})</option>
@@ -148,35 +153,33 @@
                 </select>
             </div>
 
-            <div id="submit-section" class="hidden mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
-                <a href="{% url 'ams_approvals:inbox' %}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition">Cancel</a>
-                <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
-                    Submit for Approval
+            <div id="submit-section" class="d-none mt-3 pt-3 border-top d-flex justify-content-end gap-2">
+                <a href="{% url 'ams_approvals:inbox' %}" class="btn btn-link btn-sm text-muted">Cancel</a>
+                <button type="submit" class="btn btn-dark btn-sm">
+                    <i class="bi bi-send me-1"></i>Submit for Approval
                 </button>
             </div>
         </form>
+        </div>
     </div>
+
+</div>
 </div>
 
 <script>
 function showSection(type) {
     document.querySelectorAll('.request-section').forEach(function(el) {
-        el.classList.add('hidden');
+        el.classList.add('d-none');
     });
+    document.getElementById('card-one_off').classList.remove('selected');
+    document.getElementById('card-recurring').classList.remove('selected');
 
-    document.getElementById('card-one_off').classList.remove('border-indigo-500', 'bg-indigo-50');
-    document.getElementById('card-recurring').classList.remove('border-indigo-500', 'bg-indigo-50');
-    document.getElementById('card-one_off').classList.add('border-gray-200');
-    document.getElementById('card-recurring').classList.add('border-gray-200');
-
-    document.getElementById(type + '-fields').classList.remove('hidden');
-    var card = document.getElementById('card-' + type);
-    card.classList.remove('border-gray-200');
-    card.classList.add('border-indigo-500', 'bg-indigo-50');
+    document.getElementById(type + '-fields').classList.remove('d-none');
+    document.getElementById('card-' + type).classList.add('selected');
 
     document.getElementById('request_category_input').value = type;
-    document.getElementById('manager-section').classList.remove('hidden');
-    document.getElementById('submit-section').classList.remove('hidden');
+    document.getElementById('manager-section').classList.remove('d-none');
+    document.getElementById('submit-section').classList.remove('d-none');
 }
 
 $(document).ready(function() {
@@ -186,9 +189,8 @@ $(document).ready(function() {
     });
 });
 
-// Disable hidden section fields before submit to prevent duplicate POST values
 document.getElementById('requestForm').addEventListener('submit', function() {
-    document.querySelectorAll('.request-section.hidden input, .request-section.hidden select, .request-section.hidden textarea').forEach(function(el) {
+    document.querySelectorAll('.request-section.d-none input, .request-section.d-none select, .request-section.d-none textarea').forEach(function(el) {
         el.disabled = true;
     });
 });
