@@ -1,36 +1,12 @@
 version: "3.9"
 
 services:
-  web:
-    build: .
-    ports:
-      - "8001:8000"
-    volumes:
-      - .:/app
-      - pdf_storage:/app/local_pdfs
-    environment:
-      - DEBUG=True
-      - SECRET_KEY=dev-secret-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,192.168.80.233
-      - DOCUMENT_ENCRYPTION_KEY=jPt1rx-Lv_Ts7HYkUNnD9qtyADNzXhaiqL4qMJW4pnE=
-      - DB_ENGINE=django.db.backends.mysql
-      - DB_NAME=cms_db
-      - DB_USER=admin
-      - DB_PASSWORD=secret
-      - DB_HOST=shared_mysql
-      - DB_PORT=3306
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-  db:
+  shared_mysql:
     image: mysql:8.0
     container_name: shared_mysql
     command: --log-bin-trust-function-creators=1
     environment:
       MYSQL_ROOT_PASSWORD: rootsecret
-      MYSQL_DATABASE: cms_db
       MYSQL_USER: admin
       MYSQL_PASSWORD: secret
     volumes:
@@ -45,6 +21,57 @@ services:
       retries: 10
     restart: unless-stopped
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API — used by Django
+      - "9001:9001"   # MinIO web console — http://192.168.80.233:9001
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build: .
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,192.168.80.233
+      - DOCUMENT_ENCRYPTION_KEY=jPt1rx-Lv_Ts7HYkUNnD9qtyADNzXhaiqL4qMJW4pnE=
+      # MySQL — single database for both CMS and AMS
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=cms_db
+      - DB_USER=admin
+      - DB_PASSWORD=secret
+      - DB_HOST=shared_mysql
+      - DB_PORT=3306
+      # S3 / MinIO document storage
+      # To switch to real AWS S3: remove AWS_S3_ENDPOINT_URL and use real credentials
+      - AWS_STORAGE_BUCKET_NAME=cms-docs
+      - AWS_S3_REGION_NAME=us-east-1
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_S3_ENDPOINT_URL=http://minio:9000
+    depends_on:
+      shared_mysql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
-  pdf_storage:
   db_data:
+  minio_data:

@@ -112,11 +112,11 @@
                     {% else %}
                     <div>
                         <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Expense Type</dt>
-                        <dd class="font-medium text-gray-900">{{ obj.get_expense_type_display }}</dd>
+                        <dd class="font-medium text-gray-900">{{ obj.get_expense_type_display|default:"One-Off" }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Amount</dt>
-                        <dd class="font-semibold text-gray-900 text-base">${{ obj.cost }}</dd>
+                        <dd class="font-semibold text-gray-900 text-base">{% if obj.cost %}${{ obj.cost }}{% else %}<span class="text-gray-400 font-normal">—</span>{% endif %}</dd>
                     </div>
                     {% if obj.receipt %}
                     <div>

@@ -1,6 +1,33 @@
 #!/bin/sh
 set -e
 
+echo "==> Ensuring S3/MinIO bucket exists..."
+python << 'PYEOF'
+import os, sys
+bucket = os.environ.get('AWS_STORAGE_BUCKET_NAME', '')
+if bucket:
+    import boto3
+    from botocore.exceptions import ClientError
+    s3 = boto3.client(
+        's3',
+        endpoint_url=os.environ.get('AWS_S3_ENDPOINT_URL') or None,
+        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.environ.get('AWS_S3_REGION_NAME', 'us-east-1'),
+        verify=False,
+    )
+    try:
+        s3.create_bucket(Bucket=bucket)
+        print(f"S3 bucket '{bucket}' created.")
+    except ClientError as e:
+        code = e.response['Error']['Code']
+        if code in ('BucketAlreadyExists', 'BucketAlreadyOwnedByYou'):
+            print(f"S3 bucket '{bucket}' already exists.")
+        else:
+            print(f"S3 bucket error: {e}", file=sys.stderr)
+            sys.exit(1)
+PYEOF
+
 echo "==> Running migrations..."
 python manage.py makemigrations --no-input
 python manage.py migrate --no-input

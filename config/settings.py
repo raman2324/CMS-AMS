@@ -121,29 +121,45 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
 # ---------------------------------------------------------------------------
-# Media / File Storage
-# Local filesystem in DEBUG mode; swap to S3 by setting DEBUG=False and the
-# AWS_* variables below — zero application code changes required.
+# File Storage — Django 5.x requires STORAGES dict (DEFAULT_FILE_STORAGE removed).
+# Triggered by AWS_STORAGE_BUCKET_NAME env var — independent of DEBUG so MinIO
+# works in dev and real AWS S3 in production with zero app code changes.
+#
+# Dev (MinIO):  AWS_STORAGE_BUCKET_NAME=cms-docs + AWS_S3_ENDPOINT_URL=http://minio:9000
+# Prod (S3):    AWS_STORAGE_BUCKET_NAME=<bucket>, remove AWS_S3_ENDPOINT_URL
 # ---------------------------------------------------------------------------
-if DEBUG:
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-    MEDIA_ROOT = BASE_DIR / "local_pdfs"
-    MEDIA_URL = "/media/"
-else:
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="")
-    AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="ap-south-1")
+_s3_bucket = config("AWS_STORAGE_BUCKET_NAME", default="")
+if _s3_bucket:
+    AWS_STORAGE_BUCKET_NAME = _s3_bucket
+    AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="us-east-1")
     AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
     AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
-    # Remove AWS_S3_ENDPOINT_URL when switching from MinIO to real AWS S3
     _endpoint = config("AWS_S3_ENDPOINT_URL", default="")
     if _endpoint:
         AWS_S3_ENDPOINT_URL = _endpoint
     AWS_DEFAULT_ACL = "private"
     AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_VERIFY = False
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    MEDIA_ROOT = BASE_DIR / "local_pdfs"
+    MEDIA_URL = "/media/"
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/documents/"
