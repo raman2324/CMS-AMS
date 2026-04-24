@@ -26,7 +26,8 @@
 
     <nav class="sidebar-nav">
 
-      <!-- CMS Section -->
+      {% if not user.is_ams_only %}
+      <!-- CMS Section — Finance Head, Finance Executive, Viewer, Admin only -->
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
               type="button"
               data-bs-toggle="collapse"
@@ -60,8 +61,8 @@
       </a>
       {% endif %}
 
-      <!-- Contract Lens — Finance Head and Issuer only -->
-      {% if user.role == 'finance_head' or user.role == 'issuer' %}
+      <!-- Contract Lens — Finance Head and Finance Executive only -->
+      {% if user.role == 'finance_head' or user.role == 'finance_executive' %}
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
               type="button"
               data-bs-toggle="collapse"
@@ -84,6 +85,7 @@
         {% endif %}
       </div>
       {% endif %}
+      {% endif %}{# end not is_ams_only #}
 
       <!-- AMS -->
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
@@ -96,26 +98,33 @@
         <i class="bi bi-chevron-down ms-auto small {% if '/ams/' in request.path %}rotate-180{% endif %}"></i>
       </button>
       <div class="collapse {% if '/ams/' in request.path %}show{% endif %}" id="amsMenu">
+        {% if user.role != 'employee' %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'inbox' and request.resolver_match.app_name == 'ams_approvals' %}active{% endif %}"
            href="{% url 'ams_approvals:inbox' %}">
           <i class="bi bi-dot me-1"></i>Inbox
         </a>
-        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'my_requests' %}active{% endif %}"
-           href="{% url 'ams_approvals:my_requests' %}">
-          <i class="bi bi-dot me-1"></i>My Requests
+        {% endif %}
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name in 'all_requests,my_requests' or '/ams/expenses/' in request.path or '/ams/subscriptions/' in request.path %}active{% endif %}"
+           href="{% url 'ams_approvals:all_requests' %}">
+          <i class="bi bi-dot me-1"></i>Requests
         </a>
-        <a class="sidebar-link ps-4 {% if '/ams/expenses/' in request.path %}active{% endif %}"
-           href="{% url 'ams_expenses:expense_list' %}">
-          <i class="bi bi-dot me-1"></i>Expenses
+        {% if user.is_ams_only %}
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'my_audit_log' %}active{% endif %}"
+           href="{% url 'ams_audit:my_audit_log' %}">
+          <i class="bi bi-dot me-1"></i>My Activity
         </a>
-        <a class="sidebar-link ps-4 {% if '/ams/subscriptions/' in request.path %}active{% endif %}"
-           href="{% url 'ams_subscriptions:dashboard' %}">
-          <i class="bi bi-dot me-1"></i>Subscriptions
-        </a>
-        <a class="sidebar-link ps-4 {% if '/ams/admin-ams/' in request.path %}active{% endif %}"
+        {% else %}
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}"
            href="{% url 'ams_audit:audit_log' %}">
           <i class="bi bi-dot me-1"></i>Audit Log
         </a>
+        {% if user.role == 'finance_head' %}
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'offboard' %}active{% endif %}"
+           href="{% url 'ams_audit:offboard' %}">
+          <i class="bi bi-dot me-1"></i>Offboard
+        </a>
+        {% endif %}
+        {% endif %}
       </div>
 
     </nav>

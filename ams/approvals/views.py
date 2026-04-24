@@ -265,7 +265,7 @@ def inbox(request):
     user = request.user
 
     if user.role == User.ROLE_EMPLOYEE:
-        return redirect('ams_approvals:my_requests')
+        return redirect('ams_approvals:all_requests')
 
     # Requests where I am the current approver — finance roles see pending_finance
     # via finance_queue instead, so exclude it here to avoid duplicates.
@@ -334,4 +334,30 @@ def my_requests(request):
 
     return render(request, 'ams/approvals/my_requests.html', {
         'pending': pending,
+    })
+
+
+@login_required
+def all_requests(request):
+    """Unified view of all the user's subscriptions and expenses, grouped by status."""
+    base_qs = ApprovalRequest.objects.filter(
+        submitted_by=request.user,
+    ).select_related('current_approver').order_by('-created_at')
+
+    active_subs    = base_qs.filter(request_type=RequestType.SUBSCRIPTION, state='active')
+    renewing_subs  = base_qs.filter(request_type=RequestType.SUBSCRIPTION, state__in=['active_pending_renewal', 'renewing'])
+    pending_all    = base_qs.filter(state__in=['pending_manager', 'pending_finance', 'provisioning'])
+    approved_exp   = base_qs.filter(request_type=RequestType.MISC_EXPENSE, state='approved')
+    rejected_all   = base_qs.filter(state__in=['rejected_manager', 'rejected_finance'])
+    terminated_all = base_qs.filter(state='terminated')
+
+    return render(request, 'ams/approvals/all_requests.html', {
+        'active_subs':    active_subs,
+        'renewing_subs':  renewing_subs,
+        'pending_all':    pending_all,
+        'approved_exp':   approved_exp,
+        'rejected_all':   rejected_all,
+        'terminated_all': terminated_all,
+        'total_subs':     base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
+        'total_expenses': base_qs.filter(request_type=RequestType.MISC_EXPENSE).count(),
     })

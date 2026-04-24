@@ -9,6 +9,11 @@ from ams.approvals.services import submit
 
 
 @login_required
+def expense_list(request):
+    return redirect('ams_approvals:all_requests')
+
+
+@login_required
 def expense_new(request):
     """Create a new misc expense request (one-off or recurring)."""
     if request.method == 'POST':
@@ -28,7 +33,7 @@ def expense_new(request):
                 request_type=RequestType.MISC_EXPENSE,
                 request_category=request_category,
                 submitted_by=request.user,
-                expense_type=request_category,  # one_off / recurring maps directly
+                expense_type=request_category,
                 amount_type=request.POST.get('amount_type', ''),
                 cost=cost,
                 justification=request.POST.get('justification', '').strip(),
@@ -46,20 +51,3 @@ def expense_new(request):
             messages.error(request, f'Error: {e}')
 
     return render(request, 'ams/expenses/expense_new.html')
-
-
-@login_required
-def expense_list(request):
-    """List user's expense requests, grouped by state."""
-    base_qs = ApprovalRequest.objects.filter(
-        submitted_by=request.user,
-        request_type=RequestType.MISC_EXPENSE,
-    ).select_related('current_approver').order_by('-created_at')
-
-    return render(request, 'ams/expenses/expense_list.html', {
-        'pending':    base_qs.filter(state__in=['pending_manager', 'pending_finance']),
-        'approved':   base_qs.filter(state='approved'),
-        'rejected':   base_qs.filter(state__in=['rejected_manager', 'rejected_finance']),
-        'terminated': base_qs.filter(state='terminated'),
-        'total':      base_qs.count(),
-    })

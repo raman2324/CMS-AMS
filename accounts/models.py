@@ -79,6 +79,13 @@ class User(AbstractUser):
     def is_it_role(self):
         return self.role == self.ROLE_IT
 
+    # Roles that have AMS access only — no CMS access
+    AMS_ONLY_ROLES = {ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_IT}
+
+    @property
+    def is_ams_only(self):
+        return self.role in self.AMS_ONLY_ROLES
+
     # ------------------------------------------- AMS org-hierarchy helpers
     @property
     def is_c_suite(self):

@@ -3,6 +3,7 @@ from django.http import HttpResponseForbidden
 from django.urls import path, include, re_path
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
 
 
 def custom_404(request, exception=None, reason=None):
@@ -30,7 +31,10 @@ urlpatterns = [
     path("documents/", include("documents.urls", namespace="documents")),
     path("uploads/", include("uploads.urls", namespace="uploads")),
     path("ams/", include("ams.urls")),
-    path("", lambda request: redirect("documents:list"), name="home"),
+    path("", lambda request: (
+        redirect("ams_approvals:inbox") if request.user.is_authenticated and request.user.is_ams_only
+        else redirect("documents:list")
+    ), name="home"),
     # Catch-all — must be last. Renders custom 404 for any unmatched path.
     re_path(r"^.*$", lambda request, *a, **kw: custom_404(request)),
 ]
