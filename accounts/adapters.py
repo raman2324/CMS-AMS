@@ -5,11 +5,10 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
     """
     Custom adapter for Google SSO.
 
-    On first login (new account):
-    - Populates first_name / last_name from the Google profile.
-    - Defaults new users to the Employee role.
-    - Records sso_provider and sso_subject so Finance Head can see
-      how the account was created in Manage → View Users.
+    populate_user  — called for new accounts: extracts name from Google profile.
+    save_user      — called for new accounts: sets default role + SSO tracking fields.
+    pre_social_login — called on EVERY login (new + existing): syncs missing name /
+                       SSO fields so existing users' names appear in Manage → View Users.
     """
 
     def populate_user(self, request, sociallogin, data):
@@ -39,3 +38,33 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
 
         user.save(update_fields=["role", "sso_provider", "sso_subject"])
         return user
+
+    def pre_social_login(self, request, sociallogin):
+        """
+        Called on every SSO login — both new and returning users.
+        For existing accounts: sync any missing name / SSO fields so the user
+        immediately appears with their full name in Finance Head → Manage → View Users.
+        """
+        super().pre_social_login(request, sociallogin)
+
+        user = sociallogin.user
+        if not user.pk:
+            # Brand-new account — populate_user + save_user handle this.
+            return
+
+        extra = sociallogin.account.extra_data or {}
+        changed = []
+
+        if not user.first_name and extra.get("given_name"):
+            user.first_name = extra["given_name"]
+            changed.append("first_name")
+        if not user.last_name and extra.get("family_name"):
+            user.last_name = extra["family_name"]
+            changed.append("last_name")
+        if not user.sso_provider:
+            user.sso_provider = sociallogin.account.provider
+            user.sso_subject = sociallogin.account.uid
+            changed += ["sso_provider", "sso_subject"]
+
+        if changed:
+            user.save(update_fields=changed)
