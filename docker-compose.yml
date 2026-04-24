@@ -65,6 +65,11 @@ services:
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - AWS_S3_ENDPOINT_URL=http://minio:9000
+      # Google SSO — get these from Google Cloud Console → APIs & Services → Credentials
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SITE_DOMAIN=localhost:8001
+      - GOOGLE_ALLOWED_DOMAINS=cadienttalent.com,commercev3.com
     depends_on:
       shared_mysql:
         condition: service_healthy

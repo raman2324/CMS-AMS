@@ -45,6 +45,15 @@ python manage.py migrate --no-input
 echo "==> Collecting static files..."
 python manage.py collectstatic --no-input
 
+echo "==> Configuring site domain for Google SSO..."
+python manage.py shell -c "
+from django.contrib.sites.models import Site
+import os
+domain = os.environ.get('SITE_DOMAIN', 'localhost:8000')
+Site.objects.update_or_create(id=1, defaults={'domain': domain, 'name': domain})
+print(f'  Site domain set to: {domain}')
+"
+
 echo "==> Seeding initial data (skipped if already seeded)..."
 python manage.py seed_data
 

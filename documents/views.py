@@ -334,7 +334,7 @@ class DocumentListView(LoginRequiredMixin, View):
         # Admin (IT/DevOps) has no document access
         if request.user.role == User.ROLE_ADMIN:
             messages.error(request, "Admin accounts do not have access to documents.")
-            return redirect("admin:index")
+            return redirect("ams_approvals:inbox")
 
         qs = Document.objects.select_related(
             "template", "recipient", "recipient__company", "generated_by"

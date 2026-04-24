@@ -31,6 +31,7 @@ urlpatterns = [
     path("documents/", include("documents.urls", namespace="documents")),
     path("uploads/", include("uploads.urls", namespace="uploads")),
     path("ams/", include("ams.urls")),
+    path("accounts/", include("allauth.urls")),
     path("", lambda request: (
         redirect("ams_approvals:inbox") if request.user.is_authenticated and request.user.is_ams_only
         else redirect("documents:list")

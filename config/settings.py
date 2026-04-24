@@ -23,6 +23,8 @@ INSTALLED_APPS = [
     # Third-party: AMS
     "allauth",
     "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "crispy_forms",
     "crispy_bootstrap5",
     "django_htmx",
@@ -241,3 +243,18 @@ AXES_VERBOSE = False
 #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # ---------------------------------------------------------------------------
 # DOCUMENT_ENCRYPTION_KEY is read directly from env by storage_service.py
+
+# --- Google SSO ---
+SOCIALACCOUNT_LOGIN_ON_GET = True   # skip allauth's intermediate confirmation page
+_allowed_domains = config("GOOGLE_ALLOWED_DOMAINS", default="cadienttalent.com", cast=Csv())
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": config("GOOGLE_CLIENT_ID", default=""),
+            "secret": config("GOOGLE_CLIENT_SECRET", default=""),
+        },
+        "SCOPE": ["email", "profile"],
+        "AUTH_PARAMS": {"access_type": "online"},
+        "WHITELISTED_DOMAINS": list(_allowed_domains),
+    }
+}
