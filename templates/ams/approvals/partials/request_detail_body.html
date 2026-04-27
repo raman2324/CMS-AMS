@@ -242,30 +242,90 @@
         {% endif %}
 
         {% if can_finance_approve %}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-success bg-opacity-10 border-bottom fw-semibold text-success">
-                <i class="bi bi-check-circle me-1"></i>{% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
+        <div id="finance-action-panel">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-success bg-opacity-10 border-bottom fw-semibold text-success">
+                    <i class="bi bi-check-circle me-1"></i>{% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
+                </div>
+                <div class="card-body">
+                    <form id="finance-approve-form" method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
+                        {% csrf_token %}
+                        <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
+                        <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
-                    {% csrf_token %}
-                    <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
-                    <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
-                </form>
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-danger bg-opacity-10 border-bottom fw-semibold text-danger">
+                    <i class="bi bi-x-circle me-1"></i>Reject Request
+                </div>
+                <div class="card-body">
+                    <form id="finance-reject-form" method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
+                        {% csrf_token %}
+                        <textarea name="reason" rows="2" placeholder="Reason for rejection…" class="form-control form-control-sm mb-2" required></textarea>
+                        <button type="submit" class="btn btn-danger btn-sm w-100">Reject</button>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-danger bg-opacity-10 border-bottom fw-semibold text-danger">
-                <i class="bi bi-x-circle me-1"></i>Reject Request
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
-                    {% csrf_token %}
-                    <textarea name="reason" rows="2" placeholder="Reason for rejection…" class="form-control form-control-sm mb-2" required></textarea>
-                    <button type="submit" class="btn btn-danger btn-sm w-100">Reject</button>
-                </form>
-            </div>
-        </div>
+        <div id="finance-action-result" class="d-none"></div>
+
+        <script>
+        (function () {
+            function handleFinanceAction(formId, type) {
+                var form = document.getElementById(formId);
+                if (!form) return;
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var textarea = form.querySelector('textarea');
+                    if (textarea && textarea.required && !textarea.value.trim()) {
+                        textarea.classList.add('is-invalid');
+                        return;
+                    }
+                    var panel = document.getElementById('finance-action-panel');
+                    var result = document.getElementById('finance-action-result');
+                    var btn = form.querySelector('button[type="submit"]');
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Processing…';
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        redirect: 'follow'
+                    }).then(function () {
+                        panel.classList.add('d-none');
+                        result.classList.remove('d-none');
+                        if (type === 'approve') {
+                            result.innerHTML =
+                                '<div class="alert alert-success d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                                '<i class="bi bi-check-circle-fill fs-4 flex-shrink-0"></i>' +
+                                '<div><strong>Approved!</strong><br><span class="small">The request has been successfully approved.</span></div>' +
+                                '</div>';
+                        } else {
+                            result.innerHTML =
+                                '<div class="alert alert-danger d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                                '<i class="bi bi-x-circle-fill fs-4 flex-shrink-0"></i>' +
+                                '<div><strong>Rejected.</strong><br><span class="small">The request has been rejected.</span></div>' +
+                                '</div>';
+                        }
+                    }).catch(function () {
+                        btn.disabled = false;
+                        btn.innerHTML = type === 'approve' ? 'Approve' : 'Reject';
+                        result.classList.remove('d-none');
+                        result.innerHTML =
+                            '<div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                            '<i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>' +
+                            '<div><strong>Error.</strong><br><span class="small">Something went wrong. Please try again.</span></div>' +
+                            '</div>';
+                    });
+                });
+            }
+
+            handleFinanceAction('finance-approve-form', 'approve');
+            handleFinanceAction('finance-reject-form', 'reject');
+        })();
+        </script>
         {% endif %}
 
         {% if can_provision %}

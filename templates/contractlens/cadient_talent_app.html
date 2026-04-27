@@ -1,7 +1,16 @@
+<<<<<<< HEAD
 {% extends "base.html" %}
 {% block title %}Cadient Talent — Contract Lens — HR Docs{% endblock %}
 
 {% block extra_head %}
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContractLens</title>
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -14,31 +23,59 @@
   --blue:#1e4d8c;--blue-lt:#dbeafe;
   --r:6px;
 }
+<<<<<<< HEAD
 .cl-app{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);font-size:14px;min-height:calc(100vh - 0px);margin:-24px;padding:0;}
+=======
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:14px;}
+.header{background:var(--ink);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;}
+.logo{font-family:'Fraunces',serif;font-size:20px;font-weight:300;color:var(--gold-lt);letter-spacing:.02em;}
+.logo span{color:var(--gold);font-weight:600;}
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .tabs{display:flex;background:var(--paper2);border-bottom:1px solid var(--paper3);padding:0 32px;}
 .tab{padding:12px 20px;font-size:11px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.05em;font-family:'DM Mono',monospace;text-transform:uppercase;white-space:nowrap;}
 .tab:hover{color:var(--ink);}
 .tab.active{color:var(--ink);border-bottom-color:var(--gold);}
+<<<<<<< HEAD
 .cl-main{padding:32px;max-width:1200px;margin:0 auto;}
 .panel{display:none;}.panel.active{display:block;}
 .section-title{font-family:'Fraunces',serif;font-size:26px;font-weight:300;margin-bottom:6px;}
 .section-sub{color:var(--ink3);font-size:13px;margin-bottom:28px;}
+=======
+.main{padding:32px;max-width:1200px;margin:0 auto;}
+.panel{display:none;}.panel.active{display:block;}
+.section-title{font-family:'Fraunces',serif;font-size:26px;font-weight:300;margin-bottom:6px;}
+.section-sub{color:var(--ink3);font-size:13px;margin-bottom:28px;}
+/* API bar */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .api-bar{background:var(--ink);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:28px;}
 .api-bar label{color:var(--gold-lt);font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;letter-spacing:.06em;text-transform:uppercase;}
 .api-bar input{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:7px 12px;color:#fff;font-family:'DM Mono',monospace;font-size:12px;outline:none;}
 .api-bar input:focus{border-color:var(--gold);}
 .api-bar input::placeholder{color:rgba(255,255,255,.3);}
+<<<<<<< HEAD
+=======
+/* Buttons */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:'DM Sans',sans-serif;}
 .btn-primary{background:var(--ink);color:#fff;}.btn-primary:hover{background:#2d2d28;}.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
 .btn-outline{background:transparent;border:1px solid var(--paper3);color:var(--ink2);}.btn-outline:hover{border-color:var(--ink3);}
 .btn-gold{background:var(--gold);color:#fff;}.btn-gold:hover{background:#b8872e;}
 .btn-blue{background:var(--blue);color:#fff;}.btn-blue:hover{background:#163a6b;}
 .btn-sm{padding:6px 14px;font-size:12px;}
+<<<<<<< HEAD
+=======
+/* Upload */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .upload-zone{border:2px dashed var(--paper3);border-radius:10px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.5);margin-bottom:16px;}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(200,151,58,.06);}
 .upload-icon{width:44px;height:44px;margin:0 auto 12px;background:var(--paper2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;}
 .upload-zone h3{font-family:'Fraunces',serif;font-weight:300;font-size:17px;margin-bottom:4px;}
 .upload-zone p{color:var(--ink3);font-size:13px;}
+<<<<<<< HEAD
+=======
+/* Queue */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .queue{margin-bottom:16px;display:flex;flex-direction:column;gap:8px;}
 .queue-item{background:#fff;border:1px solid var(--paper3);border-radius:var(--r);padding:10px 14px;display:flex;align-items:flex-start;gap:10px;}
 .fname{flex:1;font-family:'DM Mono',monospace;font-size:12px;color:var(--ink2);min-width:0;}
@@ -49,6 +86,10 @@
 .badge-error{background:var(--red-lt);color:var(--red);}
 .prog-wrap{background:var(--paper2);border-radius:4px;height:5px;overflow:hidden;margin-top:5px;}
 .prog-fill{height:100%;background:var(--gold);border-radius:4px;transition:width .3s;}
+<<<<<<< HEAD
+=======
+/* Group builder */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .group-builder{background:#fff;border:1px solid var(--paper3);border-radius:10px;overflow:hidden;margin-bottom:28px;}
 .gb-header{padding:16px 20px;background:var(--blue);display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .gb-header h3{font-family:'Fraunces',serif;font-weight:300;font-size:17px;color:#fff;}
@@ -72,12 +113,20 @@
 .dt-other{background:var(--paper2);color:var(--ink3);}
 .gfile-rm{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;flex-shrink:0;}
 .gfile-rm:hover{color:var(--red);}
+<<<<<<< HEAD
+=======
+/* Groups list */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .groups-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
 .group-card{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;}
 .gc-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid transparent;}
 .gc-header:hover{background:#faf9f6;}
 .gc-name{flex:1;font-weight:500;font-size:14px;}
 .gc-files-body{padding:10px 16px 14px;flex-direction:column;gap:6px;}
+<<<<<<< HEAD
+=======
+/* Stats */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
 .stat-card{background:#fff;border:1px solid var(--paper3);border-radius:8px;padding:20px;position:relative;overflow:hidden;}
 .stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
@@ -88,6 +137,10 @@
 .stat-label{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:8px;}
 .stat-value{font-family:'Fraunces',serif;font-size:36px;font-weight:600;line-height:1;}
 .stat-sub{font-size:12px;color:var(--ink3);margin-top:4px;}
+<<<<<<< HEAD
+=======
+/* Table */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .table-wrap{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;margin-bottom:28px;}
 .table-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--paper2);gap:12px;flex-wrap:wrap;}
 .table-title{font-family:'Fraunces',serif;font-size:16px;font-weight:300;}
@@ -111,14 +164,22 @@ tbody td{padding:11px 14px;vertical-align:middle;}
 .days-ok{color:var(--green);}.days-warn{color:var(--amber);}.days-over{color:var(--red);}
 .row-act{background:none;border:none;color:var(--ink3);cursor:pointer;padding:4px 8px;border-radius:4px;font-size:17px;line-height:1;transition:all .1s;}
 .row-act:hover{background:var(--paper2);color:var(--ink);}
+<<<<<<< HEAD
 .tl-wrap{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;margin-bottom:28px;}
 .tl-head{padding:16px 20px;border-bottom:1px solid var(--paper2);font-family:'Fraunces',serif;font-size:16px;font-weight:300;}
+=======
+/* Timeline */
+.tl-wrap{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;margin-bottom:28px;}
+.tl-head{padding:16px 20px;border-bottom:1px solid var(--paper2);font-family:'Fraunces',serif;font-size:16px;font-weight:300;}
+/* Alerts */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .alerts-wrap{background:#fff;border:1px solid var(--paper3);border-radius:8px;overflow:hidden;margin-bottom:28px;}
 .alert-row{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--paper2);}
 .alert-row:last-child{border-bottom:none;}
 .alert-text{flex:1;font-size:13px;}
 .alert-text strong{font-weight:500;}
 .alert-days{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--amber);}
+<<<<<<< HEAD
 .moverlay{display:none;position:fixed;inset:0;background:rgba(26,26,24,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
 .moverlay.open{display:flex;}
 .cl-modal{background:#fff;border-radius:10px;width:620px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
@@ -127,18 +188,40 @@ tbody td{padding:11px 14px;vertical-align:middle;}
 .mclose{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3);line-height:1;padding:2px 6px;}
 .mclose:hover{color:var(--ink);}
 .cl-modal-body{padding:24px;}
+=======
+/* Modal */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(26,26,24,.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.moverlay.open{display:flex;}
+.modal{background:#fff;border-radius:10px;width:620px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-top{padding:20px 24px 16px;border-bottom:1px solid var(--paper2);display:flex;justify-content:space-between;align-items:flex-start;}
+.modal-top h2{font-family:'Fraunces',serif;font-weight:300;font-size:20px;}
+.mclose{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3);line-height:1;padding:2px 6px;}
+.mclose:hover{color:var(--ink);}
+.modal-body{padding:24px;}
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .fl{margin-bottom:14px;}
 .flabel{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:4px;}
 .fval{font-size:14px;color:var(--ink);}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;}
 .src-doc-row{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--paper3);border-radius:var(--r);padding:8px 12px;margin-bottom:6px;}
 .src-doc-name{flex:1;font-size:12px;font-family:'DM Mono',monospace;color:var(--ink2);}
+<<<<<<< HEAD
+=======
+/* Empty */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .empty{text-align:center;padding:56px 20px;color:var(--ink3);}
 .empty-icon{font-size:36px;margin-bottom:12px;opacity:.4;}
 .empty h3{font-family:'Fraunces',serif;font-weight:300;font-size:20px;color:var(--ink2);margin-bottom:6px;}
 .empty p{font-size:13px;}
+<<<<<<< HEAD
 .cl-toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 18px;border-radius:var(--r);font-size:13px;z-index:2000;transition:all .3s;opacity:0;transform:translateY(8px);}
 .cl-toast.show{opacity:1;transform:translateY(0);}
+=======
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 18px;border-radius:var(--r);font-size:13px;z-index:2000;transition:all .3s;opacity:0;transform:translateY(8px);}
+.toast.show{opacity:1;transform:translateY(0);}
+/* Edit mode */
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 .edit-field{width:100%;border:1px solid var(--paper3);border-radius:var(--r);padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;color:var(--ink);outline:none;transition:border-color .15s;}
 .edit-field:focus{border-color:var(--blue);}
 .edit-field.changed{border-color:var(--amber);background:var(--amber-lt);}
@@ -146,6 +229,7 @@ select.edit-field{cursor:pointer;}
 textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
 .field-edit-wrap{position:relative;}
 .edit-mode-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:var(--amber-lt);color:var(--amber);font-weight:500;}
+<<<<<<< HEAD
 .review-card{background:#fff;border:1px solid var(--paper3);border-radius:10px;overflow:hidden;margin-bottom:16px;}
 .rc-header{padding:12px 16px;background:var(--paper2);border-bottom:1px solid var(--paper3);display:flex;align-items:center;gap:10px;}
 .rc-body{padding:20px;}
@@ -162,13 +246,38 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
 {% block content %}
 <div class="cl-app">
 
+=======
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--paper3);border-radius:3px;}
+@media(max-width:800px){.stats-grid{grid-template-columns:1fr 1fr;}.main,.header,.tabs{padding-left:20px;padding-right:20px;}}
+@media(max-width:500px){.stats-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div style="background:#111;padding:6px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);">
+  <a href="/documents/" style="color:rgba(255,255,255,.5);font-size:11px;font-family:'DM Mono',monospace;text-decoration:none;display:flex;align-items:center;gap:6px;letter-spacing:.04em;transition:color .15s;" onmouseover="this.style.color='#f0d9a8'" onmouseout="this.style.color='rgba(255,255,255,.5)'">
+    &#8592; Back to HR Docs
+  </a>
+  <span style="color:rgba(255,255,255,.15);font-size:12px;">|</span>
+  <span style="color:rgba(255,255,255,.3);font-size:11px;font-family:'DM Mono',monospace;">Cadient Talent</span>
+</div>
+<div class="header">
+  <div class="logo">Contract<span>Lens</span></div>
+  <div style="color:rgba(255,255,255,.35);font-size:12px;font-family:'DM Mono',monospace;">AI contract management</div>
+</div>
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 <div class="tabs">
   <div class="tab active" onclick="switchTab('extract')">Extract PDFs</div>
   <div class="tab" onclick="switchTab('groups')">Document Groups</div>
   <div class="tab" onclick="switchTab('dashboard')">Dashboard</div>
 </div>
+<<<<<<< HEAD
 
 <div class="cl-main">
+=======
+<div class="main">
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 
 <!-- EXTRACT -->
 <div class="panel active" id="panel-extract">
@@ -197,11 +306,14 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
     <button class="btn btn-outline" onclick="clearQueue()">Clear</button>
     <span id="extract-progress" style="color:var(--ink3);font-size:13px;"></span>
   </div>
+<<<<<<< HEAD
   <div id="review-section" style="display:none;margin-top:32px;">
     <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:300;margin-bottom:4px;">Review &amp; Confirm</div>
     <div style="color:var(--ink3);font-size:13px;margin-bottom:20px;">AI-extracted data is pre-filled. Edit any field that looks wrong, then confirm.</div>
     <div id="review-cards"></div>
   </div>
+=======
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
   <div id="demo-bar" style="margin-top:40px;padding-top:28px;border-top:1px solid var(--paper3);text-align:center;">
     <div style="color:var(--ink3);font-size:13px;margin-bottom:12px">No contracts yet? Try demo data.</div>
     <button class="btn btn-outline" onclick="loadDemo()">Load 6 demo contracts</button>
@@ -301,6 +413,7 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
     <div id="table-body"></div>
   </div>
 </div>
+<<<<<<< HEAD
 </div><!-- /.cl-main -->
 
 <!-- Modal -->
@@ -316,6 +429,21 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
 <div class="cl-toast" id="toast"></div>
 
 </div><!-- /.cl-app -->
+=======
+</div>
+
+<!-- Modal -->
+<div class="moverlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-top">
+      <div><h2 id="m-title">Contract</h2><div id="m-id" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ink3);margin-top:2px;"></div></div>
+      <button class="mclose" onclick="document.getElementById('modal').classList.remove('open')">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 
 <script>
 // — IndexedDB ————————————————————————————————————
@@ -330,9 +458,13 @@ const LS_GROUPS    = 'cl_cadient_g';
 let contracts=JSON.parse(localStorage.getItem(LS_CONTRACTS)||'[]');
 let groups=JSON.parse(localStorage.getItem(LS_GROUPS)||'[]');
 let queue=[];
+<<<<<<< HEAD
 let pendingReview=[];
 let gfiles=[];
 const CURRENT_USER='{{ request.user.get_full_name|default:request.user.username }}';
+=======
+let gfiles=[];
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 let activeType='contract';
 
 function saveC(){localStorage.setItem(LS_CONTRACTS,JSON.stringify(contracts));}
@@ -356,7 +488,10 @@ async function djPost(url,body){
   return resp.json();
 }
 async function djExtract(pdfB64,overrideName){return djPost('/documents/contract-lens/api/extract/',{pdf_b64:pdfB64,override_name:overrideName||''});}
+<<<<<<< HEAD
 async function djConfirm(recordId,fields){return djPost('/documents/contract-lens/api/confirm/',{record_id:recordId,...fields});}
+=======
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 async function djAnalyseGroup(name,note,files){return djPost('/documents/contract-lens/api/analyse-group/',{name,note,files});}
 async function djMerge(name,contracts){return djPost('/documents/contract-lens/api/merge/',{name,contracts});}
 
@@ -409,7 +544,11 @@ async function extractAll(){
       const result=await djExtract(b64,batchName);item.prog=90;renderQ();
       result.id='C-'+Date.now().toString(36).toUpperCase();
       result.source_file=item.name;result.extracted_at=new Date().toISOString();
+<<<<<<< HEAD
       pendingReview.push(result);
+=======
+      contracts.push(result);saveC();
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
       try{await idbSet('pdf:'+result.id,b64);}catch(e2){console.warn('PDF store:',e2.message);}
       item.status='done';
     }catch(e){item.status='error';item.err=e.message;console.error(e);}
@@ -417,14 +556,23 @@ async function extractAll(){
   }
   lbl.textContent='Extract All Contracts';
   document.getElementById('extract-progress').textContent=`${contracts.length} contract(s) total`;
+<<<<<<< HEAD
   toast('Extraction complete — review and confirm below');updateBtn();
   document.getElementById('demo-bar').style.display='none';
   renderReviewCards();
+=======
+  toast('Extraction complete');updateBtn();
+  document.getElementById('demo-bar').style.display='none';
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 }
 
 function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Read failed'));r.readAsDataURL(file);});}
 function toText(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(new Error('Read failed'));r.readAsText(file);});}
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 function parseContract(txt,fname,overrideName){
   let raw=txt.replace(/```json|```/g,'').trim();
   try{
@@ -438,6 +586,7 @@ function parseContract(txt,fname,overrideName){
   }
 }
 
+<<<<<<< HEAD
 // — Review & Confirm ————————————————————————————
 function renderReviewCards(){
   const section=document.getElementById('review-section');
@@ -542,6 +691,8 @@ async function confirmCard(i){
 }
 
 
+=======
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 // — Groups ———————————————————————————————————————
 function selType(el){document.querySelectorAll('.type-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');activeType=el.getAttribute('data-t');}
 function gfile_drop(e){e.preventDefault();e_dragleave('group-drop');addGFiles(e.dataTransfer.files);}
@@ -767,6 +918,10 @@ function mergeWithoutAI(toMerge, name){
   const earliestStart = toMerge.map(c=>c.start_date).filter(Boolean).sort()[0]||null;
   const groupFiles = toMerge.flatMap(c=>c.group_files||[{name:c.source_file||c.id,type:'contract'}]);
   const fdesc = toMerge.map(c=>c.source_file||c.customer_name).join(', ');
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
   const merged = {
     id:'C-'+Date.now().toString(36).toUpperCase(),
     customer_name:name,
@@ -785,6 +940,10 @@ function mergeWithoutAI(toMerge, name){
     is_group:true,
     group_files:groupFiles
   };
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
   const idsToRemove = new Set(toMerge.map(c=>c.id));
   contracts = contracts.filter(c=>!idsToRemove.has(c.id));
   contracts.push(merged);
@@ -936,7 +1095,11 @@ function openModal(i, editMode){
   modalEditMode = !!editMode;
   const c=contracts[i];if(!c)return;
   document.getElementById('m-title').textContent=c.customer_name||'Contract';
+<<<<<<< HEAD
   document.getElementById('m-id').textContent=c.id+(c.contract_number?' · '+c.contract_number:'')+(c.is_group?' · GROUP':'')+(c._server_record_id?' · ☁ server':' · local only');
+=======
+  document.getElementById('m-id').textContent=c.id+(c.contract_number?' · '+c.contract_number:'')+(c.is_group?' · GROUP':'');
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
   const st=getStatus(c),d=daysUntil(c.end_date);
   const dl=d===null?'No end date':d<0?`Expired ${Math.abs(d)} days ago`:`${d} days remaining`;
 
@@ -950,11 +1113,16 @@ function openModal(i, editMode){
             +'<span class="src-doc-name">'+esc(f.name)+'</span>'
             +'<span class="dtype '+dtCls(f.type)+'">'+dtLbl(f.type)+'</span>'
             +'<span class="pdf-slot-badge" id="slot-'+i+'-'+fi+'" style="font-size:10px;font-family:\'DM Mono\',monospace;padding:2px 8px;border-radius:10px;background:var(--paper2);color:var(--ink3);">checking...</span>'
+<<<<<<< HEAD
             +(c._server_record_id
               ? '<a class="btn btn-outline btn-sm" href="/documents/contract-lens/api/record/'+c._server_record_id+'/file/?name='+encodeURIComponent(f.name)+'&inline=1" target="_blank">View</a>'
                +'<a class="btn btn-outline btn-sm" href="/documents/contract-lens/api/record/'+c._server_record_id+'/file/?name='+encodeURIComponent(f.name)+'" download>Download</a>'
               : '<button class="btn btn-outline btn-sm" id="view-gf-'+i+'-'+fi+'" onclick="viewGFile('+i+',\''+safen+'\','+fi+')">View</button>'
                +'<button class="btn btn-outline btn-sm" id="dl-gf-'+i+'-'+fi+'" onclick="dlGFile('+i+',\''+safen+'\','+fi+')">Download</button>')
+=======
+            +'<button class="btn btn-outline btn-sm" id="view-gf-'+i+'-'+fi+'" onclick="viewGFile('+i+',\''+safen+'\','+fi+')">View</button>'
+            +'<button class="btn btn-outline btn-sm" id="dl-gf-'+i+'-'+fi+'" onclick="dlGFile('+i+',\''+safen+'\','+fi+')">Download</button>'
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
             +'<label class="btn btn-outline btn-sm" id="attach-gf-'+i+'-'+fi+'" style="cursor:pointer;display:none;">Attach file<input type="file" style="display:none" onchange="attachGFile(event,'+i+','+fi+',\''+safen+'\')"></label>'
             +'</div>';
         }).join('')
@@ -1028,12 +1196,18 @@ function openModal(i, editMode){
         ? `<button class="btn btn-gold" onclick="saveEdits(${i})">&#10003; Save changes</button>
            <button class="btn btn-outline" onclick="openModal(${i},false)">Cancel</button>
            <button class="btn btn-outline" onclick="delContract(${i})" style="margin-left:auto;color:var(--red);border-color:var(--red-lt);">Remove</button>`
+<<<<<<< HEAD
         : `${!c.is_group
              ? (c._server_record_id
                  ? `<a class="btn btn-gold" href="/documents/contract-lens/api/record/${c._server_record_id}/file/?inline=1" target="_blank">&#128065; View PDF</a>
                     <a class="btn btn-outline" href="/documents/contract-lens/api/record/${c._server_record_id}/file/" download>&#8659; Download PDF</a>`
                  : `<button class="btn btn-outline" id="dl-btn-${i}" onclick="dlPdf(${i})">Download PDF</button><button class="btn btn-gold" id="view-btn-${i}" onclick="viewPdf(${i})">View PDF</button>`)
              : ''}
+=======
+        : `<button class="btn btn-blue" onclick="openModal(${i},true)">&#9998; Edit</button>
+           <button class="btn btn-outline" onclick="delContract(${i})">Remove</button>
+           ${!c.is_group?`<button class="btn btn-outline" id="dl-btn-${i}" onclick="dlPdf(${i})">Download PDF</button><button class="btn btn-gold" id="view-btn-${i}" onclick="viewPdf(${i})">View PDF</button>`:''}
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
            <button class="btn btn-outline" onclick="document.getElementById('modal').classList.remove('open')">Close</button>`
       }
     </div>`;
@@ -1064,7 +1238,10 @@ async function checkModalSlots(i){
       }
     }
   } else {
+<<<<<<< HEAD
     if(c._server_record_id) return; // file accessible via server — no local attach needed
+=======
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
     const b = await idbGet('pdf:'+c.id).catch(()=>null);
     const div = document.getElementById('m-actions-'+i);
     if(!div) return;
@@ -1224,4 +1401,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   updateBtn();
 });
 </script>
+<<<<<<< HEAD
 {% endblock %}
+=======
+</body>
+</html>
+>>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
