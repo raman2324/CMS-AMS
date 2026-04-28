@@ -1,7 +1,7 @@
-<div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}row g-4{% endif %}">
+<div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}row g-4{% endif %}">
 
     <!-- Left / Main content -->
-    <div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}col-md-8{% endif %}">
+    <div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}col-md-8{% endif %}">
 
         <!-- Status banner for final states -->
         {% if obj.state == 'approved' or obj.state == 'active' %}
@@ -200,7 +200,7 @@
         {% endif %}
 
         <!-- Back links (when no action sidebar) -->
-        {% if not can_manager_approve and not can_finance_approve and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' %}
+        {% if not can_manager_approve and not can_finance_approve and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' and obj.state != 'renewing' %}
         <div class="d-flex justify-content-between pt-2">
             <a href="{% url 'ams_approvals:all_requests' %}" class="small text-decoration-none">← Back to Requests</a>
             <a href="{% url 'ams_approvals:inbox' %}" class="small text-decoration-none">← Back to Inbox</a>
@@ -209,17 +209,18 @@
     </div>
 
     <!-- Action sidebar -->
-    {% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}
+    {% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}
     <div class="col-md-4">
 
         {% if can_manager_approve %}
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white border-bottom fw-semibold">
-                Manager Approval
+                {% if obj.state == 'active_pending_renewal' %}Approve Renewal{% else %}Manager Approval{% endif %}
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
                     {% csrf_token %}
+                    {% if obj.state == 'pending_manager' %}
                     <label class="form-label small text-muted mb-1">Send to Finance Executive</label>
                     <select name="finance_id" id="finance_select" class="form-select form-select-sm mb-2" required>
                         <option value="">Type to search...</option>
@@ -236,6 +237,7 @@
                             });
                         });
                     </script>
+                    {% endif %}
                     <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
                     <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
                 </form>
@@ -243,7 +245,7 @@
         </div>
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white border-bottom fw-semibold">
-                Reject Request
+                {% if obj.state == 'active_pending_renewal' %}Reject Renewal{% else %}Reject Request{% endif %}
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
@@ -344,21 +346,61 @@
 
         {% if can_renew %}
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-primary bg-opacity-10 border-bottom fw-semibold text-primary">
-                <i class="bi bi-arrow-repeat me-1"></i>Renewal
+            <div class="card-header bg-warning bg-opacity-10 border-bottom fw-semibold text-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>Renewal Due
             </div>
             <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_renew' obj.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm w-100">Initiate Renewal</button>
-                </form>
+                {% if obj.expires_on %}
+                <p class="small text-muted mb-2">Expires <strong class="text-danger">{{ obj.expires_on|date:"M d, Y" }}</strong></p>
+                {% endif %}
+                <button type="button" class="btn btn-primary btn-sm w-100"
+                        data-bs-toggle="modal" data-bs-target="#renewalModal">
+                    <i class="bi bi-arrow-repeat me-1"></i>Renew Subscription
+                </button>
             </div>
         </div>
+
+        {% elif obj.state == 'active_pending_renewal' and obj.submitted_by == request.user %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-warning bg-opacity-10 border-bottom fw-semibold text-warning">
+                <i class="bi bi-arrow-repeat me-1"></i>Complete Renewal
+            </div>
+            <div class="card-body">
+                <div class="small text-muted">Renewal pending manager approval.</div>
+            </div>
+        </div>
+
+        {% elif obj.state == 'active_pending_renewal' and can_manager_approve %}
+        <div class="alert alert-warning mb-3">
+            <div class="fw-semibold small">Renewal Awaiting Your Approval</div>
+            <div class="small">Review the proposed renewal values and approve or reject.</div>
+        </div>
+
         {% elif obj.state == 'active_pending_renewal' %}
         <div class="alert alert-warning mb-3">
-            <div class="fw-semibold small">Awaiting Renewal Submission</div>
-            <div class="small">The subscription owner needs to confirm and submit this renewal.</div>
+            <div class="fw-semibold small">Awaiting Manager Approval</div>
+            <div class="small">This renewal is pending manager review.</div>
         </div>
+        {% endif %}
+
+        {% if obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}
+        {% if obj.renewal_expires_on or obj.renewal_cost %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-info bg-opacity-10 border-bottom fw-semibold text-info small">
+                <i class="bi bi-info-circle me-1"></i>Proposed Renewal Values
+            </div>
+            <div class="card-body small">
+                <div class="row g-2">
+                    <div class="col-6 text-muted">New Expiry</div>
+                    <div class="col-6 fw-semibold">{{ obj.renewal_expires_on|date:"M d, Y"|default:"—" }}</div>
+                    {% if obj.amount_type == 'variable' %}
+                    <div class="col-6 text-muted">New Cost</div>
+                    <div class="col-6 fw-semibold">{% if obj.renewal_cost %}${{ obj.renewal_cost }}{% else %}—{% endif %}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
 
         {% if can_terminate %}
@@ -382,3 +424,90 @@
     {% endif %}
 
 </div>
+
+{% if can_renew or obj.state == 'active_pending_renewal' and obj.submitted_by == request.user %}
+<div class="modal fade" id="renewalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-arrow-repeat me-2 text-primary"></i>Renew Subscription
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'ams_approvals:action_renew' obj.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3 p-3 bg-light rounded small">
+                        <div class="text-muted mb-1">Current subscription</div>
+                        <div class="fw-semibold">{{ obj.service_name }}</div>
+                        {% if obj.expires_on %}<div>Expires: <span class="text-danger">{{ obj.expires_on|date:"M d, Y" }}</span></div>{% endif %}
+                        {% if obj.cost %}<div>Cost: ${{ obj.cost }} / {{ obj.get_billing_period_display }}</div>{% endif %}
+                    </div>
+
+                    {% if request.user.role == 'employee' %}
+                    <div class="mb-3">
+                        <label for="renewal_manager_id" class="form-label fw-semibold small">
+                            Manager <span class="text-danger">*</span>
+                        </label>
+                        <select id="renewal_manager_id" name="manager_id" class="form-select form-select-sm" required>
+                            <option value="">— Select manager —</option>
+                            {% for m in managers %}
+                            <option value="{{ m.id }}"
+                                {% if obj.submitted_by.reports_to_id == m.id %}selected{% endif %}>
+                                {{ m.display_name }}
+                            </option>
+                            {% empty %}
+                            {% endfor %}
+                        </select>
+                        {% if not managers %}
+                        <div class="form-text text-danger">No managers available. Contact your administrator.</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="renewal_expires_on" class="form-label fw-semibold small">
+                            New Expiry Date <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" id="renewal_expires_on" name="renewal_expires_on"
+                               class="form-control form-control-sm" required
+                               min="{{ today|date:'Y-m-d' }}">
+                        <div class="form-text">Proposed new expiry date for this subscription.</div>
+                    </div>
+
+                    {% if obj.amount_type == 'variable' %}
+                    <div class="mb-3">
+                        <label for="renewal_cost" class="form-label fw-semibold small">
+                            New Cost (USD) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="renewal_cost" name="renewal_cost"
+                                   class="form-control" step="0.01" min="0" required
+                                   placeholder="e.g. 199.00">
+                        </div>
+                        <div class="form-text">Current: {% if obj.cost %}${{ obj.cost }}{% else %}not set{% endif %}</div>
+                    </div>
+                    {% endif %}
+
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {% if request.user.role == 'employee' %}
+                            Submitted to your manager for approval first.
+                        {% else %}
+                            Submitted directly to finance for approval.
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-send me-1"></i>Submit for Approval
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
