@@ -30,6 +30,8 @@
   }
   .src-user     { background: #dbeafe; color: #1d4ed8; }
   .src-template { background: #dcfce7; color: #15803d; }
+  .src-company  { background: #f3e8ff; color: #7c3aed; }
+  .src-other    { background: #f1f5f9; color: #64748b; }
 </style>
 {% endblock %}
 
@@ -44,14 +46,17 @@
   <span class="src-pill src-user"><i class="bi bi-person me-1"></i>Users</span>
   <span class="text-muted small me-2">Created, role changes, deactivated</span>
   <span class="src-pill src-template"><i class="bi bi-file-earmark-text me-1"></i>Templates</span>
-  <span class="text-muted small">Published &amp; activated letter templates</span>
+  <span class="text-muted small me-2">Published, updated &amp; deleted</span>
+  <span class="src-pill src-company"><i class="bi bi-building me-1"></i>Companies</span>
+  <span class="text-muted small">Added &amp; updated</span>
 </div>
 
 <!-- Color legend -->
 <div class="d-flex gap-2 mb-4 flex-wrap">
   <span class="ev-badge success">Created / Published</span>
+  <span class="ev-badge info">Updated</span>
   <span class="ev-badge warning">Role Changed</span>
-  <span class="ev-badge danger">Deactivated</span>
+  <span class="ev-badge danger">Deactivated / Deleted</span>
 </div>
 
 <!-- Filters -->
@@ -68,6 +73,11 @@
         </optgroup>
         <optgroup label="── Templates ──">
           {% for value, label in event_types %}{% if value|slice:":9" == "template." %}
+          <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
+          {% endif %}{% endfor %}
+        </optgroup>
+        <optgroup label="── Companies ──">
+          {% for value, label in event_types %}{% if value|slice:":8" == "company." %}
           <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
           {% endif %}{% endfor %}
         </optgroup>
@@ -117,26 +127,7 @@
       </thead>
       <tbody>
         {% for event in page_obj %}
-
-        {# Classify row colour #}
-        {% if event.event_type == "user.created" or event.event_type == "template.published" %}
-          {% with row_cls="ev-success" badge_cls="success" %}
           {% include "manage/partials/audit_row.html" %}
-          {% endwith %}
-        {% elif event.event_type == "user.role_changed" %}
-          {% with row_cls="ev-warning" badge_cls="warning" %}
-          {% include "manage/partials/audit_row.html" %}
-          {% endwith %}
-        {% elif event.event_type == "user.deactivated" %}
-          {% with row_cls="ev-danger" badge_cls="danger" %}
-          {% include "manage/partials/audit_row.html" %}
-          {% endwith %}
-        {% else %}
-          {% with row_cls="ev-info" badge_cls="info" %}
-          {% include "manage/partials/audit_row.html" %}
-          {% endwith %}
-        {% endif %}
-
         {% endfor %}
       </tbody>
     </table>
