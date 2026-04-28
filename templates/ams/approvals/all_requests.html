@@ -97,6 +97,13 @@
         <span class="badge bg-success rounded-circle me-1" style="width:10px;height:10px;padding:0;vertical-align:middle">&nbsp;</span>
         Active Subscriptions ({{ active_subs.count }})
     </h6>
+    {% if expiring_soon_pks %}
+    <div class="alert alert-warning py-2 small mb-2">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        <strong>{{ expiring_soon_pks|length }} subscription{{ expiring_soon_pks|length|pluralize }}</strong>
+        expiring within 10 days — click <em>View</em> to renew.
+    </div>
+    {% endif %}
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             {% include "ams/approvals/partials/all_requests_table.html" with rows=active_subs %}

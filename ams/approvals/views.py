@@ -11,6 +11,7 @@ from .services import (
     submit, manager_approve, manager_reject,
     finance_approve, finance_reject,
     initiate_renewal, complete_renewal, terminate_request,
+    manager_approve_renewal, manager_reject_renewal,
 )
 from accounts.models import User
 from ams.audit.models import AuditLog
@@ -105,17 +106,29 @@ def request_detail(request, pk):
         target_type='request', target_id=obj.id
     ).select_related('actor').order_by('created_at')
 
+    from datetime import date as _date, timedelta as _timedelta
+    _today = _date.today()
+
     is_approver = (obj.current_approver == user)
-    can_manager_approve = is_approver and obj.state == 'pending_manager'
+    can_manager_approve = (
+        is_approver and obj.state in ('pending_manager', 'active_pending_renewal')
+    )
     can_finance_approve = (
         user.role in (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN) and
         obj.state in ('pending_finance', 'renewing')
     )
     can_provision = False
+
+    _near_expiry = (
+        obj.billing_period in ('monthly', 'annual') and
+        obj.expires_on is not None and
+        obj.expires_on <= _today + _timedelta(days=10)
+    )
     can_renew = (
-        obj.state in ('active', 'active_pending_renewal') and
+        obj.state == 'active' and
         obj.request_type == RequestType.SUBSCRIPTION and
-        obj.submitted_by == user
+        obj.submitted_by == user and
+        _near_expiry
     )
     can_terminate = (
         obj.state in ('active', 'active_pending_renewal', 'renewing', 'provisioning', 'approved') and
@@ -123,6 +136,11 @@ def request_detail(request, pk):
     )
 
     finance_users = User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).order_by('first_name')
+    managers = list(User.objects.filter(role=User.ROLE_MANAGER, is_active=True).order_by('first_name'))
+    managers_json = [
+        {'id': str(m.id), 'name': m.display_name}
+        for m in managers
+    ]
 
     context = {
         'obj': obj,
@@ -133,6 +151,9 @@ def request_detail(request, pk):
         'can_renew': can_renew,
         'can_terminate': can_terminate,
         'finance_users': finance_users,
+        'managers': managers,
+        'managers_json': managers_json,
+        'today': _today,
     }
 
     if request.htmx:
@@ -156,6 +177,8 @@ def action_approve(request, pk):
                                   finance_user_id=finance_id or None)
         elif obj.state == 'pending_finance':
             obj = finance_approve(obj, actor=request.user, comment=comment)
+        elif obj.state == 'active_pending_renewal':
+            obj = manager_approve_renewal(obj, actor=request.user, comment=comment)
         elif obj.state == 'renewing':
             obj = complete_renewal(obj, actor=request.user, approved=True)
         else:
@@ -186,6 +209,8 @@ def action_reject(request, pk):
             obj = manager_reject(obj, actor=request.user, reason=reason)
         elif obj.state == 'pending_finance':
             obj = finance_reject(obj, actor=request.user, reason=reason)
+        elif obj.state == 'active_pending_renewal':
+            obj = manager_reject_renewal(obj, actor=request.user, reason=reason)
         elif obj.state == 'renewing':
             obj = complete_renewal(obj, actor=request.user, approved=False, reason=reason)
         else:
@@ -207,9 +232,44 @@ def action_renew(request, pk):
         return HttpResponse(status=405)
 
     obj = get_object_or_404(ApprovalRequest, pk=pk)
+
+    if obj.submitted_by != request.user:
+        messages.error(request, "You are not allowed to renew this request.")
+        return redirect('ams_approvals:request_detail', pk=pk)
+
+    from datetime import date as date_type
+    expires_str = request.POST.get('renewal_expires_on', '').strip()
+    if not expires_str:
+        messages.error(request, 'Renewal expiry date is required.')
+        return redirect('ams_approvals:request_detail', pk=pk)
     try:
-        obj = initiate_renewal(obj, actor=request.user)
-        messages.success(request, f'Renewal initiated. State: {obj.state_display}')
+        renewal_expires_on = date_type.fromisoformat(expires_str)
+    except ValueError:
+        messages.error(request, 'Invalid expiry date format.')
+        return redirect('ams_approvals:request_detail', pk=pk)
+
+    renewal_cost = None
+    if obj.amount_type == 'variable':
+        cost_str = request.POST.get('renewal_cost', '').strip()
+        if not cost_str:
+            messages.error(request, 'Renewal cost is required for variable subscriptions.')
+            return redirect('ams_approvals:request_detail', pk=pk)
+        try:
+            renewal_cost = Decimal(cost_str)
+        except InvalidOperation:
+            messages.error(request, 'Invalid cost value.')
+            return redirect('ams_approvals:request_detail', pk=pk)
+
+    manager_id = request.POST.get('manager_id', '').strip() or None
+
+    try:
+        obj = initiate_renewal(
+            obj, actor=request.user,
+            renewal_expires_on=renewal_expires_on,
+            renewal_cost=renewal_cost,
+            manager_id=manager_id,
+        )
+        messages.success(request, f'Renewal submitted. State: {obj.state_display}')
     except Exception as e:
         messages.error(request, f'Error: {e}')
 
@@ -248,7 +308,7 @@ def inbox(request):
     my_pending_states = (
         ['pending_manager']
         if user.role in finance_roles
-        else PENDING_STATES
+        else [*PENDING_STATES, 'active_pending_renewal']
     )
     my_pending = ApprovalRequest.objects.filter(
         current_approver=user,
@@ -318,6 +378,16 @@ def all_requests(request):
     rejected_all   = base_qs.filter(state__in=['rejected_manager', 'rejected_finance'])
     terminated_all = base_qs.filter(state='terminated')
 
+    from datetime import date as _date, timedelta as _td
+    _today = _date.today()
+    expiring_soon_pks = set(
+        active_subs.filter(
+            billing_period__in=['monthly', 'annual'],
+            expires_on__isnull=False,
+            expires_on__lte=_today + _td(days=10),
+        ).values_list('pk', flat=True)
+    )
+
     exp_qs = base_qs.filter(request_type=RequestType.MISC_EXPENSE)
     approved_exp_amount = exp_qs.filter(state='approved').aggregate(t=Sum('cost'))['t'] or 0
     pending_exp_amount  = exp_qs.filter(state__in=['pending_manager', 'pending_finance']).aggregate(t=Sum('cost'))['t'] or 0
@@ -332,4 +402,5 @@ def all_requests(request):
         'total_subs':           base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
         'approved_exp_amount':  approved_exp_amount,
         'pending_exp_amount':   pending_exp_amount,
+        'expiring_soon_pks':    expiring_soon_pks,
     })

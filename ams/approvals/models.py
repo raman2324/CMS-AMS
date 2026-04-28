@@ -99,6 +99,8 @@ class ApprovalRequest(models.Model):
     )
     justification = models.TextField(blank=True)
     expires_on = models.DateField(null=True, blank=True)
+    renewal_expires_on = models.DateField(null=True, blank=True)
+    renewal_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # Misc expense fields
     expense_type = models.CharField(
@@ -141,6 +143,13 @@ class ApprovalRequest(models.Model):
         if self.request_category == RequestCategory.RECURRING or self.request_type == RequestType.SUBSCRIPTION:
             return self.service_name or 'Recurring Request'
         return self.service_name or 'One-off Expense'
+
+    @property
+    def expires_in_days(self):
+        if not self.expires_on:
+            return None
+        from datetime import date
+        return (self.expires_on - date.today()).days
 
     @property
     def status_steps(self):
@@ -226,6 +235,10 @@ class ApprovalRequest(models.Model):
     @transition(field=state, source=STATE_ACTIVE_PENDING_RENEWAL, target=STATE_RENEWING)
     def start_renewal(self):
         pass
+
+    @transition(field=state, source=STATE_ACTIVE_PENDING_RENEWAL, target=STATE_ACTIVE)
+    def renewal_cancelled(self, reason=''):
+        self.rejection_reason = reason
 
     @transition(field=state, source=STATE_RENEWING, target=STATE_ACTIVE)
     def renewal_approved(self):
