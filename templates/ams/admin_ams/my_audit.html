@@ -7,41 +7,30 @@
     <div class="text-muted small">All actions you have taken in the system.</div>
 </div>
 
-{% if enriched_logs %}
+{% if logs %}
 <div class="card border-0 shadow-sm">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-dark">
                 <tr>
                     <th>Timestamp</th>
-                    <th>Action</th>
-                    <th>Requested</th>
-                    <th>To Whom</th>
+                    <th>Service Name</th>
+                    <th>Target</th>
                     <th>Notes</th>
                 </tr>
             </thead>
             <tbody>
-                {% for entry in enriched_logs %}
-                <tr>
-                    <td class="text-muted small">{{ entry.log.created_at|date:"M d Y H:i" }}</td>
-                    <td>
-                        <span class="badge bg-light text-dark border font-monospace small">{{ entry.log.action }}</span>
-                    </td>
-                    <td class="small">
-                        {% if entry.req %}
-                            <a href="{% url 'ams_approvals:request_detail' entry.log.target_id %}" class="text-decoration-none fw-medium">{{ entry.req.title }}</a>
-                        {% else %}
-                            <span class="text-muted">—</span>
+                {% for log in logs %}
+                <tr {% if log.target_type == 'request' %}onclick="window.location='{% url 'ams_approvals:request_detail' log.target_id %}'" style="cursor:pointer"{% endif %}>
+                    <td class="text-muted small">{{ log.created_at|date:"M d Y H:i" }}</td>
+                    <td class="fw-medium">{{ log.service_name_display }}</td>
+                    <td class="text-muted small">
+                        {{ log.target_type }}#{{ log.target_id }}
+                        {% if log.target_type == 'request' %}
+                        <a href="{% url 'ams_approvals:request_detail' log.target_id %}" class="ms-1">↗</a>
                         {% endif %}
                     </td>
-                    <td class="small">
-                        {% if entry.req and entry.req.current_approver %}
-                            {{ entry.req.current_approver.display_name }}
-                        {% else %}
-                            <span class="text-muted">—</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-muted small" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ entry.log.notes }}</td>
+                    <td class="text-muted small" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ log.notes }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

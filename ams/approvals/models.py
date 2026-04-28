@@ -162,6 +162,8 @@ class ApprovalRequest(models.Model):
                 steps[1]['status'] = REJECTED
             elif s == 'pending_finance':
                 steps[1]['status'] = DONE;  steps[2]['status'] = CURRENT
+            elif s == 'provisioning':
+                steps[1]['status'] = DONE;  steps[2]['status'] = DONE;  steps[3]['status'] = CURRENT
             elif s == 'rejected_finance':
                 steps[1]['status'] = DONE;  steps[2]['status'] = REJECTED
             elif s in ('active', 'active_pending_renewal', 'renewing', 'terminated', 'approved'):

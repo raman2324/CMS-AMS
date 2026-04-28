@@ -32,28 +32,10 @@
 
         <!-- Request Details card -->
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-semibold border-bottom d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-file-text me-2 text-primary"></i>Request Details</span>
-                <button type="button" id="togglePrivacy" onclick="toggleDetails()"
-                        class="btn btn-sm btn-outline-secondary border-0 px-2 py-0"
-                        title="Show / hide sensitive details">
-                    <i class="bi bi-eye-slash" id="privacyIcon"></i>
-                </button>
+            <div class="card-header bg-white fw-semibold border-bottom">
+                <i class="bi bi-file-text me-2 text-primary"></i>Request Details
             </div>
             <div class="card-body">
-            <style>
-                .private { filter: blur(4px); user-select: none; transition: filter 0.2s; }
-            </style>
-            <script>
-                var _revealed = false;
-                function toggleDetails() {
-                    _revealed = !_revealed;
-                    document.querySelectorAll('.private').forEach(function(el) {
-                        el.style.filter = _revealed ? 'none' : 'blur(4px)';
-                    });
-                    document.getElementById('privacyIcon').className = _revealed ? 'bi bi-eye' : 'bi bi-eye-slash';
-                }
-            </script>
                 <div class="row g-3 small">
 
                     <div class="col-md-4">
@@ -81,15 +63,15 @@
                     {% if obj.request_type == 'subscription' %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Service</div>
-                        <div class="fw-medium private">{{ obj.service_name }}</div>
+                        <div class="fw-medium">{{ obj.service_name }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Vendor</div>
-                        <div class="fw-medium private">{{ obj.vendor|default:"—" }}</div>
+                        <div class="fw-medium">{{ obj.vendor|default:"—" }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Cost</div>
-                        <div class="fw-semibold fs-6 private">
+                        <div class="fw-semibold fs-6">
                             {% if obj.cost %}${{ obj.cost }}{% else %}—{% endif %}
                             {% if obj.billing_period %}<span class="fs-6 fw-normal text-muted"> / {{ obj.get_billing_period_display }}</span>{% endif %}
                         </div>
@@ -97,66 +79,64 @@
                     {% if obj.request_category == 'recurring' and obj.amount_type %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Amount Type</div>
-                        <div class="fw-medium private">{{ obj.get_amount_type_display }}</div>
+                        <div class="fw-medium">{{ obj.get_amount_type_display }}</div>
                     </div>
                     {% endif %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Expires On</div>
-                        <div class="fw-medium private">{{ obj.expires_on|default:"—" }}</div>
+                        <div class="fw-medium">{{ obj.expires_on|default:"—" }}</div>
                     </div>
                     {% if obj.vendor_account_id %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Account ID</div>
-                        <div class="fw-medium private">{{ obj.vendor_account_id }}</div>
+                        <div class="fw-medium">{{ obj.vendor_account_id }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Billing Start</div>
-                        <div class="fw-medium private">{{ obj.billing_start|default:"—" }}</div>
+                        <div class="fw-medium">{{ obj.billing_start|default:"—" }}</div>
                     </div>
                     {% endif %}
 
                     {% else %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Expense Type</div>
-                        <div class="fw-medium private">{{ obj.get_expense_type_display|default:"One-Off" }}</div>
+                        <div class="fw-medium">{{ obj.get_expense_type_display|default:"One-Off" }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Amount</div>
-                        <div class="fw-semibold fs-6 private">{% if obj.cost %}${{ obj.cost }}{% else %}—{% endif %}</div>
+                        <div class="fw-semibold fs-6">{% if obj.cost %}${{ obj.cost }}{% else %}—{% endif %}</div>
                     </div>
                     {% if obj.receipt %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Receipt</div>
-                        <div class="private">
-                            <a href="{{ obj.receipt.url }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download me-1"></i>Download
-                            </a>
-                        </div>
+                        <a href="{{ obj.receipt.url }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-download me-1"></i>Download
+                        </a>
                     </div>
                     {% endif %}
                     {% endif %}
 
                     <div class="col-12">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Justification</div>
-                        <div class="bg-light rounded p-3 fw-medium private">{{ obj.justification|default:"—" }}</div>
+                        <div class="bg-light rounded p-3 fw-medium">{{ obj.justification|default:"—" }}</div>
                     </div>
 
                     {% if obj.manager_comment %}
                     <div class="col-12">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Manager Comment</div>
-                        <div class="bg-primary bg-opacity-10 rounded p-3 border-start border-4 border-primary fw-medium private">{{ obj.manager_comment }}</div>
+                        <div class="bg-primary bg-opacity-10 rounded p-3 border-start border-4 border-primary fw-medium">{{ obj.manager_comment }}</div>
                     </div>
                     {% endif %}
                     {% if obj.finance_comment %}
                     <div class="col-12">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Finance Comment</div>
-                        <div class="bg-success bg-opacity-10 rounded p-3 border-start border-4 border-success fw-medium private">{{ obj.finance_comment }}</div>
+                        <div class="bg-success bg-opacity-10 rounded p-3 border-start border-4 border-success fw-medium">{{ obj.finance_comment }}</div>
                     </div>
                     {% endif %}
                     {% if obj.rejection_reason and 'rejected' not in obj.state and obj.state != 'terminated' %}
                     <div class="col-12">
                         <div class="text-danger text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Rejection Reason</div>
-                        <div class="bg-danger bg-opacity-10 rounded p-3 border-start border-4 border-danger text-danger fw-medium private">{{ obj.rejection_reason }}</div>
+                        <div class="bg-danger bg-opacity-10 rounded p-3 border-start border-4 border-danger text-danger fw-medium">{{ obj.rejection_reason }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -166,47 +146,61 @@
         <!-- Approval History timeline -->
         {% if audit_logs %}
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-semibold border-bottom">
+            <div class="card-header bg-white fw-semibold border-bottom py-2">
                 <i class="bi bi-clock-history me-2 text-primary"></i>Approval History
             </div>
-            <div class="card-body">
-                <div class="ps-3" style="border-left:2px solid #dee2e6">
-                    {% for log in audit_logs %}
-                    <div class="mb-3 position-relative">
-                        <span class="position-absolute rounded-circle d-flex align-items-center justify-content-center text-white"
-                              style="width:20px;height:20px;left:-11px;top:2px;font-size:0.6rem;
-                              background:{% if 'approved' in log.action or log.action == 'it_provisioned' %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#adb5bd{% endif %}">
-                            {% if 'approved' in log.action or log.action == 'it_provisioned' %}
-                            <i class="bi bi-check"></i>
+            <div class="card-body p-0">
+                {% for log in audit_logs %}
+                <div class="d-flex gap-3 px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+                    <!-- Step icon + connector -->
+                    <div class="d-flex flex-column align-items-center flex-shrink-0" style="width:38px">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                             style="width:38px;height:38px;font-size:0.9rem;
+                             background:{% if 'approved' in log.action %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
+                            {% if 'approved' in log.action %}
+                            <i class="bi bi-check-lg"></i>
                             {% elif 'rejected' in log.action or 'terminated' in log.action %}
-                            <i class="bi bi-x"></i>
+                            <i class="bi bi-x-lg"></i>
                             {% elif 'submitted' in log.action %}
-                            <i class="bi bi-send"></i>
+                            <i class="bi bi-send-fill"></i>
                             {% else %}
-                            <i class="bi bi-dot"></i>
-                            {% endif %}
-                        </span>
-                        <div class="ms-2">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <span class="fw-semibold small">{{ log.actor.display_name|default:"System" }}</span>
-                                    <div class="text-muted" style="font-size:0.75rem">{{ log.created_at|date:"M d, Y · H:i" }}</div>
-                                </div>
-                                <span class="badge bg-light text-dark border small font-monospace">{{ log.action }}</span>
-                            </div>
-                            {% if log.notes %}
-                            <div class="mt-1 p-2 bg-light rounded small text-muted">{{ log.notes }}</div>
+                            <i class="bi bi-arrow-right"></i>
                             {% endif %}
                         </div>
+                        {% if not forloop.last %}
+                        <div style="width:2px;flex:1;min-height:14px;background:#dee2e6;margin-top:5px"></div>
+                        {% endif %}
                     </div>
-                    {% endfor %}
+                    <!-- Content -->
+                    <div class="flex-grow-1 pt-1">
+                        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                            <span class="fw-semibold">{{ log.actor.display_name|default:"System" }}</span>
+                            <span class="badge rounded-pill px-2 py-1 font-monospace
+                                {% if 'approved' in log.action %}text-success
+                                {% elif 'rejected' in log.action or 'terminated' in log.action %}text-danger
+                                {% elif 'submitted' in log.action %}text-primary
+                                {% else %}text-secondary{% endif %}"
+                                  style="font-size:0.7rem;
+                                  background:{% if 'approved' in log.action %}#d1e7dd{% elif 'rejected' in log.action or 'terminated' in log.action %}#f8d7da{% elif 'submitted' in log.action %}#cfe2ff{% else %}#e9ecef{% endif %}">
+                                {{ log.action }}
+                            </span>
+                        </div>
+                        <div class="text-muted small mb-2">{{ log.created_at|date:"M d, Y · H:i" }}</div>
+                        {% if log.notes %}
+                        <div class="small text-muted px-2 py-1 rounded"
+                             style="background:#f8f9fa;border-left:3px solid {% if 'approved' in log.action %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
+                            {{ log.notes }}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
 
         <!-- Back links (when no action sidebar) -->
-        {% if not can_manager_approve and not can_finance_approve and not can_provision and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' %}
+        {% if not can_manager_approve and not can_finance_approve and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' %}
         <div class="d-flex justify-content-between pt-2">
             <a href="{% url 'ams_approvals:all_requests' %}" class="small text-decoration-none">← Back to Requests</a>
             <a href="{% url 'ams_approvals:inbox' %}" class="small text-decoration-none">← Back to Inbox</a>
@@ -220,8 +214,8 @@
 
         {% if can_manager_approve %}
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-success bg-opacity-10 border-bottom fw-semibold text-success">
-                <i class="bi bi-check-circle me-1"></i>Manager Approval
+            <div class="card-header bg-white border-bottom fw-semibold">
+                Manager Approval
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
@@ -248,8 +242,8 @@
             </div>
         </div>
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-danger bg-opacity-10 border-bottom fw-semibold text-danger">
-                <i class="bi bi-x-circle me-1"></i>Reject Request
+            <div class="card-header bg-white border-bottom fw-semibold">
+                Reject Request
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
@@ -262,30 +256,90 @@
         {% endif %}
 
         {% if can_finance_approve %}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-success bg-opacity-10 border-bottom fw-semibold text-success">
-                <i class="bi bi-check-circle me-1"></i>{% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
+        <div id="finance-action-panel">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom fw-semibold">
+                    <i class="bi bi-check-circle me-1 text-muted"></i>{% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
+                </div>
+                <div class="card-body">
+                    <form id="finance-approve-form" method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
+                        {% csrf_token %}
+                        <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
+                        <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
-                    {% csrf_token %}
-                    <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
-                    <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
-                </form>
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom fw-semibold">
+                    <i class="bi bi-x-circle me-1 text-muted"></i>Reject Request
+                </div>
+                <div class="card-body">
+                    <form id="finance-reject-form" method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
+                        {% csrf_token %}
+                        <textarea name="reason" rows="2" placeholder="Reason for rejection…" class="form-control form-control-sm mb-2" required></textarea>
+                        <button type="submit" class="btn btn-danger btn-sm w-100">Reject</button>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-danger bg-opacity-10 border-bottom fw-semibold text-danger">
-                <i class="bi bi-x-circle me-1"></i>Reject Request
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
-                    {% csrf_token %}
-                    <textarea name="reason" rows="2" placeholder="Reason for rejection…" class="form-control form-control-sm mb-2" required></textarea>
-                    <button type="submit" class="btn btn-danger btn-sm w-100">Reject</button>
-                </form>
-            </div>
-        </div>
+        <div id="finance-action-result" class="d-none"></div>
+
+        <script>
+        (function () {
+            function handleFinanceAction(formId, type) {
+                var form = document.getElementById(formId);
+                if (!form) return;
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var textarea = form.querySelector('textarea');
+                    if (textarea && textarea.required && !textarea.value.trim()) {
+                        textarea.classList.add('is-invalid');
+                        return;
+                    }
+                    var panel = document.getElementById('finance-action-panel');
+                    var result = document.getElementById('finance-action-result');
+                    var btn = form.querySelector('button[type="submit"]');
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Processing…';
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        redirect: 'follow'
+                    }).then(function () {
+                        panel.classList.add('d-none');
+                        result.classList.remove('d-none');
+                        if (type === 'approve') {
+                            result.innerHTML =
+                                '<div class="alert alert-success d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                                '<i class="bi bi-check-circle-fill fs-4 flex-shrink-0"></i>' +
+                                '<div><strong>Approved!</strong><br><span class="small">The request has been successfully approved.</span></div>' +
+                                '</div>';
+                        } else {
+                            result.innerHTML =
+                                '<div class="alert alert-danger d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                                '<i class="bi bi-x-circle-fill fs-4 flex-shrink-0"></i>' +
+                                '<div><strong>Rejected.</strong><br><span class="small">The request has been rejected.</span></div>' +
+                                '</div>';
+                        }
+                    }).catch(function () {
+                        btn.disabled = false;
+                        btn.innerHTML = type === 'approve' ? 'Approve' : 'Reject';
+                        result.classList.remove('d-none');
+                        result.innerHTML =
+                            '<div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                            '<i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>' +
+                            '<div><strong>Error.</strong><br><span class="small">Something went wrong. Please try again.</span></div>' +
+                            '</div>';
+                    });
+                });
+            }
+
+            handleFinanceAction('finance-approve-form', 'approve');
+            handleFinanceAction('finance-reject-form', 'reject');
+        })();
+        </script>
         {% endif %}
 
         {% if can_renew %}

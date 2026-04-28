@@ -14,6 +14,12 @@ class UserCreateForm(forms.ModelForm):
         label="Confirm Password",
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
     )
+    # Override so there is no pre-selected default — Finance Head must
+    # explicitly pick the role for each new user.
+    role = forms.ChoiceField(
+        choices=[("", "— Select a role —")] + list(User.ROLE_CHOICES),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
 
     class Meta:
         model = User
@@ -23,7 +29,6 @@ class UserCreateForm(forms.ModelForm):
             "first_name": forms.TextInput(attrs={"class": "form-control"}),
             "last_name": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "role": forms.Select(attrs={"class": "form-select"}),
             "department": forms.TextInput(attrs={"class": "form-control"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }

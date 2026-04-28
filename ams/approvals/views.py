@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 from .models import ApprovalRequest, RequestType, PENDING_STATES
 from .services import (
@@ -37,10 +37,7 @@ def request_new(request):
                 submitted_by=request.user,
             )
 
-            if request_category == RequestCategory.ONE_OFF:
-                cost_str = request.POST.get('cost_oneoff', '').strip()
-            else:
-                cost_str = request.POST.get('cost', '').strip()
+            cost_str = request.POST.get('cost', '').strip()
             try:
                 obj.cost = Decimal(cost_str) if cost_str else None
             except InvalidOperation:
@@ -63,28 +60,12 @@ def request_new(request):
                 obj.service_name = request.POST.get('service_name_oneoff', '').strip() or request.POST.get('description', '').strip()
                 obj.expense_type = RequestCategory.ONE_OFF
 
-            if request.user.role == User.ROLE_MANAGER:
-                # Manager submits directly to finance — pick the chosen finance executive
-                finance_id = request.POST.get('finance_id', '').strip()
-                if finance_id:
-                    try:
-                        obj.finance_approver = User.objects.get(
-                            id=finance_id, role=User.ROLE_FINANCE_EXECUTIVE, is_active=True
-                        )
-                        obj.current_approver = obj.finance_approver
-                    except User.DoesNotExist:
-                        pass
-            elif request.user.role == User.ROLE_FINANCE_EXECUTIVE:
-                # Finance Executive submits directly to Finance Head — no selection needed
-                finance_head = User.objects.filter(role=User.ROLE_FINANCE_HEAD, is_active=True).first()
-                obj.current_approver = finance_head
-            else:
-                manager_id = request.POST.get('manager_id', '').strip()
-                if manager_id:
-                    try:
-                        obj.current_approver = User.objects.get(id=manager_id)
-                    except User.DoesNotExist:
-                        pass
+            manager_id = request.POST.get('manager_id', '').strip()
+            if manager_id:
+                try:
+                    obj.current_approver = User.objects.get(id=manager_id)
+                except User.DoesNotExist:
+                    pass
 
             obj.save()
             obj = submit(obj, actor=request.user)
@@ -99,10 +80,8 @@ def request_new(request):
             return redirect('ams_approvals:request_new')
 
     managers = User.objects.filter(role=User.ROLE_MANAGER, is_active=True).order_by('first_name')
-    finance_users = User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).order_by('first_name')
     return render(request, 'ams/approvals/request_new.html', {
         'managers': managers,
-        'finance_users': finance_users,
     })
 
 
@@ -113,12 +92,10 @@ def request_detail(request, pk):
 
     # Check access: submitter, approver, or admin/finance/hr
     user = request.user
-    _fe_submitted = obj.submitted_by.role == User.ROLE_FINANCE_EXECUTIVE
     can_view = (
         obj.submitted_by == user or
         obj.current_approver == user or
-        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_MANAGER) or
-        (user.role == User.ROLE_FINANCE_EXECUTIVE and not _fe_submitted)
+        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_MANAGER)
     )
     if not can_view:
         messages.error(request, "You don't have permission to view that request.")
@@ -131,10 +108,8 @@ def request_detail(request, pk):
     is_approver = (obj.current_approver == user)
     can_manager_approve = is_approver and obj.state == 'pending_manager'
     can_finance_approve = (
-        obj.state in ('pending_finance', 'renewing') and (
-            (user.role == User.ROLE_FINANCE_EXECUTIVE and not _fe_submitted) or
-            user.role in (User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
-        )
+        user.role in (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN) and
+        obj.state in ('pending_finance', 'renewing')
     )
     can_provision = False
     can_renew = (
@@ -143,7 +118,7 @@ def request_detail(request, pk):
         obj.submitted_by == user
     )
     can_terminate = (
-        obj.state in ('active', 'active_pending_renewal', 'renewing', 'approved') and
+        obj.state in ('active', 'active_pending_renewal', 'renewing', 'provisioning', 'approved') and
         user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE)
     )
 
@@ -283,18 +258,16 @@ def inbox(request):
     # Finance renewal queue
     renewal_queue = ApprovalRequest.objects.none()
     if user.role in finance_roles:
-        rq = ApprovalRequest.objects.filter(state='renewing').select_related('submitted_by', 'current_approver')
-        if user.role == User.ROLE_FINANCE_EXECUTIVE:
-            rq = rq.exclude(submitted_by__role=User.ROLE_FINANCE_EXECUTIVE)
-        renewal_queue = rq
+        renewal_queue = ApprovalRequest.objects.filter(
+            state='renewing',
+        ).select_related('submitted_by', 'current_approver')
 
-    # Finance pending queue — FE-submitted requests visible to Finance Head/Admin only
+    # Finance pending queue — all pending_finance requests, not just assigned ones
     finance_queue = ApprovalRequest.objects.none()
     if user.role in finance_roles:
-        fq = ApprovalRequest.objects.filter(state='pending_finance').select_related('submitted_by', 'current_approver')
-        if user.role == User.ROLE_FINANCE_EXECUTIVE:
-            fq = fq.exclude(submitted_by__role=User.ROLE_FINANCE_EXECUTIVE)
-        finance_queue = fq
+        finance_queue = ApprovalRequest.objects.filter(
+            state='pending_finance',
+        ).select_related('submitted_by', 'current_approver')
 
     # Upcoming renewals — subscriptions where employee has clicked Renew once
     # but hasn't yet submitted to finance (active_pending_renewal state)
@@ -318,7 +291,7 @@ def inbox(request):
 def my_requests(request):
     """Pending requests submitted by current user (both subscriptions and expenses)."""
     IN_PROGRESS = [
-        'pending_manager', 'pending_finance',
+        'pending_manager', 'pending_finance', 'provisioning',
         'active_pending_renewal', 'renewing',
     ]
     pending = ApprovalRequest.objects.filter(
@@ -340,18 +313,23 @@ def all_requests(request):
 
     active_subs    = base_qs.filter(request_type=RequestType.SUBSCRIPTION, state='active')
     renewing_subs  = base_qs.filter(request_type=RequestType.SUBSCRIPTION, state__in=['active_pending_renewal', 'renewing'])
-    pending_all    = base_qs.filter(state__in=['pending_manager', 'pending_finance'])
+    pending_all    = base_qs.filter(state__in=['pending_manager', 'pending_finance', 'provisioning'])
     approved_exp   = base_qs.filter(request_type=RequestType.MISC_EXPENSE, state='approved')
     rejected_all   = base_qs.filter(state__in=['rejected_manager', 'rejected_finance'])
     terminated_all = base_qs.filter(state='terminated')
 
+    exp_qs = base_qs.filter(request_type=RequestType.MISC_EXPENSE)
+    approved_exp_amount = exp_qs.filter(state='approved').aggregate(t=Sum('cost'))['t'] or 0
+    pending_exp_amount  = exp_qs.filter(state__in=['pending_manager', 'pending_finance']).aggregate(t=Sum('cost'))['t'] or 0
+
     return render(request, 'ams/approvals/all_requests.html', {
-        'active_subs':    active_subs,
-        'renewing_subs':  renewing_subs,
-        'pending_all':    pending_all,
-        'approved_exp':   approved_exp,
-        'rejected_all':   rejected_all,
-        'terminated_all': terminated_all,
-        'total_subs':     base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
-        'total_expenses': base_qs.filter(request_type=RequestType.MISC_EXPENSE).count(),
+        'active_subs':          active_subs,
+        'renewing_subs':        renewing_subs,
+        'pending_all':          pending_all,
+        'approved_exp':         approved_exp,
+        'rejected_all':         rejected_all,
+        'terminated_all':       terminated_all,
+        'total_subs':           base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
+        'approved_exp_amount':  approved_exp_amount,
+        'pending_exp_amount':   pending_exp_amount,
     })

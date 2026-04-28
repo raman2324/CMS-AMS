@@ -16,9 +16,6 @@
   .select2-container { width: 100% !important; }
   .type-card { cursor: pointer; transition: border-color 0.15s, background-color 0.15s; }
   .type-card.selected { border-color: #0d6efd !important; background-color: rgba(13,110,253,0.05); }
-  .field-error { display: none; color: #dc3545; font-size: 0.8rem; margin-top: 0.25rem; }
-  .field-error.show { display: block; }
-  .is-invalid-custom { border-color: #dc3545 !important; }
 </style>
 {% endblock %}
 
@@ -33,7 +30,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-        <form method="post" enctype="multipart/form-data" id="requestForm" novalidate>
+        <form method="post" enctype="multipart/form-data" id="requestForm">
             {% csrf_token %}
             <input type="hidden" name="request_category" id="request_category_input" value="">
 
@@ -64,9 +61,8 @@
             <div id="one_off-fields" class="request-section d-none">
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Service Name *</label>
-                    <input type="text" name="service_name_oneoff" id="service_name_oneoff" class="form-control form-control-sm"
+                    <input type="text" name="service_name_oneoff" class="form-control form-control-sm"
                            placeholder="e.g. DjangoCon conference ticket">
-                    <div class="field-error" id="err-service_name_oneoff">Service name is required.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Description</label>
@@ -75,14 +71,19 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Amount (USD)</label>
-                    <input type="number" name="cost_oneoff" step="0.01" min="0" class="form-control form-control-sm"
-                           placeholder="Optional">
+                    <input type="number" id="cost-input-oneoff" name="cost" step="0.01" min="0"
+                           class="form-control form-control-sm" placeholder="e.g. 199.00"
+                           oninput="resetDiscuss('oneoff')">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="cost-discuss-oneoff"
+                               onchange="applyDiscuss('oneoff')">
+                        <label class="form-check-label small text-muted" for="cost-discuss-oneoff">To be discussed</label>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Justification *</label>
-                    <textarea name="justification" id="justification_oneoff" rows="3" class="form-control form-control-sm"
+                    <textarea name="justification" rows="3" class="form-control form-control-sm"
                               placeholder="Why is this needed?"></textarea>
-                    <div class="field-error" id="err-justification_oneoff">Justification is required.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Receipt (optional)</label>
@@ -95,9 +96,8 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Service Name *</label>
-                        <input type="text" name="service_name" id="service_name_recurring" class="form-control form-control-sm"
+                        <input type="text" name="service_name" class="form-control form-control-sm"
                                placeholder="e.g. GitHub Copilot">
-                        <div class="field-error" id="err-service_name_recurring">Service name is required.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Vendor</label>
@@ -131,18 +131,23 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Amount (USD)</label>
-                    <input type="number" name="cost" step="0.01" min="0" class="form-control form-control-sm"
-                           placeholder="Optional">
+                    <input type="number" id="cost-input-recurring" name="cost" step="0.01" min="0"
+                           class="form-control form-control-sm" placeholder="e.g. 49.00"
+                           oninput="resetDiscuss('recurring')">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="cost-discuss-recurring"
+                               onchange="applyDiscuss('recurring')">
+                        <label class="form-check-label small text-muted" for="cost-discuss-recurring">To be discussed</label>
+                    </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold">Current Plan Expiry Date</label>
+                    <label class="form-label small fw-semibold">Expiry Date</label>
                     <input type="date" name="expires_on" class="form-control form-control-sm">
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Justification *</label>
-                    <textarea name="justification" id="justification_recurring" rows="3" class="form-control form-control-sm"
+                    <textarea name="justification" rows="3" class="form-control form-control-sm"
                               placeholder="Why is this tool needed?"></textarea>
-                    <div class="field-error" id="err-justification_recurring">Justification is required.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Receipt (optional)</label>
@@ -150,44 +155,19 @@
                 </div>
             </div>
 
-            <!-- Shared approver field -->
-            <div id="approver-section" class="d-none">
-                <hr class="my-3">
-                {% if user.role == 'manager' %}
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Finance Executive *</label>
-                    <select name="finance_id" id="manager_select">
-                        <option value="">Type to search finance executive...</option>
-                        {% for fe in finance_users %}
-                        <option value="{{ fe.id }}">{{ fe.display_name }} ({{ fe.email }})</option>
-                        {% endfor %}
-                    </select>
-                    <div class="field-error" id="err-manager">Please select a finance executive.</div>
-                </div>
-                {% elif user.role == 'finance_executive' %}
-                <div class="mb-3">
-                    <div class="alert alert-info py-2 small mb-0">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Your request will be sent directly to the <strong>Finance Head</strong> for approval.
-                    </div>
-                </div>
-                {% else %}
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Your Reporting Manager *</label>
-                    <select name="manager_id" id="manager_select">
-                        <option value="">Type to search manager...</option>
-                        {% for mgr in managers %}
-                        <option value="{{ mgr.id }}">{{ mgr.display_name }} ({{ mgr.email }})</option>
-                        {% endfor %}
-                    </select>
-                    <div class="field-error" id="err-manager">Please select your reporting manager.</div>
-                </div>
-                {% endif %}
+            <div id="manager-section" class="d-none mb-3">
+                <label class="form-label small fw-semibold">Your Reporting Manager</label>
+                <select name="manager_id" id="manager_select">
+                    <option value="">Search manager...</option>
+                    {% for mgr in managers %}
+                    <option value="{{ mgr.id }}">{{ mgr.display_name }} ({{ mgr.email }})</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div id="submit-section" class="d-none mt-3 pt-3 border-top d-flex justify-content-end gap-2">
-                <a href="{% url 'ams_approvals:inbox' %}" class="btn btn-link btn-sm text-muted">Cancel</a>
-                <button type="submit" class="btn btn-dark btn-sm">
+                <a href="{% url 'ams_approvals:inbox' %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                <button type="submit" id="submit-btn" class="btn btn-dark btn-sm">
                     <i class="bi bi-send me-1"></i>Submit for Approval
                 </button>
             </div>
@@ -199,13 +179,34 @@
 </div>
 
 <script>
-var activeSection = '';
+function applyDiscuss(section) {
+    var cb    = document.getElementById('cost-discuss-' + section);
+    var input = document.getElementById('cost-input-' + section);
+    if (cb.checked) {
+        input.value = '';
+        input.disabled = true;
+        input.placeholder = 'To be discussed';
+    } else {
+        input.disabled = false;
+        input.placeholder = section === 'oneoff' ? 'e.g. 199.00' : 'e.g. 49.00';
+    }
+}
+
+function resetDiscuss(section) {
+    document.getElementById('cost-discuss-' + section).checked = false;
+}
+
+var REQUIRED_FIELDS = {
+    one_off:   ['#one_off-fields [name="service_name_oneoff"]',
+                '#one_off-fields [name="justification"]'],
+    recurring: ['#recurring-fields [name="service_name"]',
+                '#recurring-fields [name="justification"]']
+};
 
 function showSection(type) {
     document.querySelectorAll('.request-section').forEach(function(el) {
         el.classList.add('d-none');
     });
-    clearErrors();
     document.getElementById('card-one_off').classList.remove('selected');
     document.getElementById('card-recurring').classList.remove('selected');
 
@@ -213,59 +214,34 @@ function showSection(type) {
     document.getElementById('card-' + type).classList.add('selected');
 
     document.getElementById('request_category_input').value = type;
-    document.getElementById('approver-section').classList.remove('d-none');
+    document.getElementById('manager-section').classList.remove('d-none');
     document.getElementById('submit-section').classList.remove('d-none');
-    activeSection = type;
-}
 
-function clearErrors() {
-    document.querySelectorAll('.field-error').forEach(function(el) { el.classList.remove('show'); });
-    document.querySelectorAll('.is-invalid-custom').forEach(function(el) { el.classList.remove('is-invalid-custom'); });
-}
-
-function showError(inputEl, errorId) {
-    inputEl.classList.add('is-invalid-custom');
-    document.getElementById(errorId).classList.add('show');
+    // Apply required only to the active section's starred fields
+    Object.keys(REQUIRED_FIELDS).forEach(function(section) {
+        REQUIRED_FIELDS[section].forEach(function(sel) {
+            var el = document.querySelector(sel);
+            if (el) el.required = (section === type);
+        });
+    });
 }
 
 $(document).ready(function() {
-    $('#manager_select').select2({ placeholder: 'Type to search manager...', allowClear: true });
+    $('#manager_select').select2({
+        placeholder: 'Type to search manager...',
+        allowClear: true
+    });
 });
 
-document.getElementById('requestForm').addEventListener('submit', function(e) {
-    clearErrors();
-    var valid = true;
-
-    if (activeSection === 'one_off') {
-        var svc = document.getElementById('service_name_oneoff');
-        var jst = document.getElementById('justification_oneoff');
-        if (!svc.value.trim()) { showError(svc, 'err-service_name_oneoff'); valid = false; }
-        if (!jst.value.trim()) { showError(jst, 'err-justification_oneoff'); valid = false; }
-    } else if (activeSection === 'recurring') {
-        var svc = document.getElementById('service_name_recurring');
-        var jst = document.getElementById('justification_recurring');
-        if (!svc.value.trim()) { showError(svc, 'err-service_name_recurring'); valid = false; }
-        if (!jst.value.trim()) { showError(jst, 'err-justification_recurring'); valid = false; }
-    }
-
-    var managerEl = document.getElementById('manager_select');
-    if (managerEl && !managerEl.value) {
-        document.getElementById('err-manager').classList.add('show');
-        valid = false;
-    }
-
-    if (!valid) {
-        e.preventDefault();
-        // Scroll to first error
-        var first = document.querySelector('.field-error.show');
-        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-    }
-
-    // Disable hidden section inputs before submit
+document.getElementById('requestForm').addEventListener('submit', function() {
     document.querySelectorAll('.request-section.d-none input, .request-section.d-none select, .request-section.d-none textarea').forEach(function(el) {
         el.disabled = true;
     });
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.classList.remove('btn-dark');
+    btn.classList.add('btn-success');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Submitting…';
 });
 </script>
 {% endblock %}

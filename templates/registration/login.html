@@ -22,7 +22,9 @@
 
           {% if messages %}
           {% for message in messages %}
-          <div class="alert alert-danger py-2 small">{{ message }}</div>
+          <div class="alert alert-{% if 'error' in message.tags %}danger{% elif 'warning' in message.tags %}warning{% elif 'success' in message.tags %}success{% else %}info{% endif %} py-2 small">
+            {{ message }}
+          </div>
           {% endfor %}
           {% endif %}
 

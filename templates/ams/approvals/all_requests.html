@@ -43,7 +43,7 @@
                         <i class="bi bi-clock text-warning fs-5"></i>
                     </div>
                     <div>
-                        <div class="fw-bold fs-4 text-warning">{{ pending_all.count }}</div>
+                        <div class="fw-bold fs-4 text-warning">${{ pending_exp_amount|floatformat:2 }}</div>
                         <div class="text-muted small">Pending Approval</div>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
                         <i class="bi bi-receipt-cutoff text-warning fs-5"></i>
                     </div>
                     <div>
-                        <div class="fw-bold fs-4">{{ total_expenses }}</div>
+                        <div class="fw-bold fs-4 text-success">${{ approved_exp_amount|floatformat:2 }}</div>
                         <div class="text-muted small">Total Expenses</div>
                     </div>
                 </div>
