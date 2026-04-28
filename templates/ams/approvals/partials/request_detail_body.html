@@ -54,7 +54,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Current Approver</div>
+                        <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Pending Approval From</div>
                         <div class="fw-medium">
                             {% if obj.current_approver %}{{ obj.current_approver.display_name }}{% else %}<span class="text-muted">—</span>{% endif %}
                         </div>
@@ -259,7 +259,7 @@
         <div id="finance-action-panel">
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white border-bottom fw-semibold">
-                    <i class="bi bi-check-circle me-1 text-muted"></i>{% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
+                    {% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
                 </div>
                 <div class="card-body">
                     <form id="finance-approve-form" method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
@@ -271,7 +271,7 @@
             </div>
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white border-bottom fw-semibold">
-                    <i class="bi bi-x-circle me-1 text-muted"></i>Reject Request
+                    Reject Request
                 </div>
                 <div class="card-body">
                     <form id="finance-reject-form" method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">

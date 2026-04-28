@@ -63,8 +63,12 @@ def audit_log(request):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="audit_log.csv"'
         writer = csv.writer(response)
-        writer.writerow(['ID', 'Actor', 'Service Name', 'Action', 'Target Type', 'Target ID', 'Notes', 'Created At'])
+        writer.writerow(['ID', 'Actor', 'Service Name', 'Action', 'Target Type', 'Target ID', 'Approved By', 'Created At'])
         for log in logs:
+            if log.action in ('submitted', 'renewal_submitted'):
+                approved_by = '—'
+            else:
+                approved_by = log.actor.display_name if log.actor else '—'
             writer.writerow([
                 log.id,
                 log.actor.email if log.actor else 'system',
@@ -72,7 +76,7 @@ def audit_log(request):
                 log.action,
                 log.target_type,
                 log.target_id,
-                log.notes,
+                approved_by,
                 log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             ])
         return response
