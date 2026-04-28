@@ -11,7 +11,6 @@ urlpatterns = [
     path('<int:pk>/', views.request_detail, name='request_detail'),
     path('<int:pk>/approve/', views.action_approve, name='action_approve'),
     path('<int:pk>/reject/', views.action_reject, name='action_reject'),
-    path('<int:pk>/provision/', views.action_provision, name='action_provision'),
     path('<int:pk>/renew/', views.action_renew, name='action_renew'),
     path('<int:pk>/terminate/', views.action_terminate, name='action_terminate'),
 ]

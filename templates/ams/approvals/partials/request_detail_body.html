@@ -1,7 +1,7 @@
-<div class="{% if can_manager_approve or can_finance_approve or can_provision or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}row g-4{% endif %}">
+<div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}row g-4{% endif %}">
 
     <!-- Left / Main content -->
-    <div class="{% if can_manager_approve or can_finance_approve or can_provision or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}col-md-8{% endif %}">
+    <div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}col-md-8{% endif %}">
 
         <!-- Status banner for final states -->
         {% if obj.state == 'approved' or obj.state == 'active' %}
@@ -156,8 +156,8 @@
                     <div class="d-flex flex-column align-items-center flex-shrink-0" style="width:38px">
                         <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
                              style="width:38px;height:38px;font-size:0.9rem;
-                             background:{% if 'approved' in log.action or log.action == 'it_provisioned' %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
-                            {% if 'approved' in log.action or log.action == 'it_provisioned' %}
+                             background:{% if 'approved' in log.action %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
+                            {% if 'approved' in log.action %}
                             <i class="bi bi-check-lg"></i>
                             {% elif 'rejected' in log.action or 'terminated' in log.action %}
                             <i class="bi bi-x-lg"></i>
@@ -176,19 +176,19 @@
                         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
                             <span class="fw-semibold">{{ log.actor.display_name|default:"System" }}</span>
                             <span class="badge rounded-pill px-2 py-1 font-monospace
-                                {% if 'approved' in log.action or log.action == 'it_provisioned' %}text-success
+                                {% if 'approved' in log.action %}text-success
                                 {% elif 'rejected' in log.action or 'terminated' in log.action %}text-danger
                                 {% elif 'submitted' in log.action %}text-primary
                                 {% else %}text-secondary{% endif %}"
                                   style="font-size:0.7rem;
-                                  background:{% if 'approved' in log.action or log.action == 'it_provisioned' %}#d1e7dd{% elif 'rejected' in log.action or 'terminated' in log.action %}#f8d7da{% elif 'submitted' in log.action %}#cfe2ff{% else %}#e9ecef{% endif %}">
+                                  background:{% if 'approved' in log.action %}#d1e7dd{% elif 'rejected' in log.action or 'terminated' in log.action %}#f8d7da{% elif 'submitted' in log.action %}#cfe2ff{% else %}#e9ecef{% endif %}">
                                 {{ log.action }}
                             </span>
                         </div>
                         <div class="text-muted small mb-2">{{ log.created_at|date:"M d, Y · H:i" }}</div>
                         {% if log.notes %}
                         <div class="small text-muted px-2 py-1 rounded"
-                             style="background:#f8f9fa;border-left:3px solid {% if 'approved' in log.action or log.action == 'it_provisioned' %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
+                             style="background:#f8f9fa;border-left:3px solid {% if 'approved' in log.action %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
                             {{ log.notes }}
                         </div>
                         {% endif %}
@@ -200,7 +200,7 @@
         {% endif %}
 
         <!-- Back links (when no action sidebar) -->
-        {% if not can_manager_approve and not can_finance_approve and not can_provision and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' %}
+        {% if not can_manager_approve and not can_finance_approve and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' %}
         <div class="d-flex justify-content-between pt-2">
             <a href="{% url 'ams_approvals:all_requests' %}" class="small text-decoration-none">← Back to Requests</a>
             <a href="{% url 'ams_approvals:inbox' %}" class="small text-decoration-none">← Back to Inbox</a>
@@ -209,7 +209,7 @@
     </div>
 
     <!-- Action sidebar -->
-    {% if can_manager_approve or can_finance_approve or can_provision or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}
+    {% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}
     <div class="col-md-4">
 
         {% if can_manager_approve %}
@@ -340,24 +340,6 @@
             handleFinanceAction('finance-reject-form', 'reject');
         })();
         </script>
-        {% endif %}
-
-        {% if can_provision %}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-secondary bg-opacity-10 border-bottom fw-semibold text-secondary">
-                <i class="bi bi-gear me-1"></i>Provision Subscription
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_provision' obj.pk %}">
-                    {% csrf_token %}
-                    <label class="form-label small text-muted mb-1">Vendor Account ID</label>
-                    <input type="text" name="vendor_account_id" class="form-control form-control-sm mb-2" placeholder="e.g. GH-12345" required>
-                    <label class="form-label small text-muted mb-1">Billing Start Date</label>
-                    <input type="date" name="billing_start" class="form-control form-control-sm mb-2" required>
-                    <button type="submit" class="btn btn-secondary btn-sm w-100">Mark as Provisioned</button>
-                </form>
-            </div>
-        </div>
         {% endif %}
 
         {% if can_renew %}

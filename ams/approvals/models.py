@@ -153,8 +153,10 @@ class ApprovalRequest(models.Model):
                 steps[1]['status'] = CURRENT
             elif s == 'rejected_manager':
                 steps[1]['status'] = REJECTED
-            elif s in ('pending_finance', 'provisioning'):
+            elif s == 'pending_finance':
                 steps[1]['status'] = DONE;  steps[2]['status'] = CURRENT
+            elif s == 'provisioning':
+                steps[1]['status'] = DONE;  steps[2]['status'] = DONE;  steps[3]['status'] = CURRENT
             elif s == 'rejected_finance':
                 steps[1]['status'] = DONE;  steps[2]['status'] = REJECTED
             elif s in ('active', 'active_pending_renewal', 'renewing', 'terminated', 'approved'):
@@ -191,7 +193,7 @@ class ApprovalRequest(models.Model):
     @transition(
         field=state,
         source=STATE_PENDING_FINANCE,
-        target=STATE_PROVISIONING,
+        target=STATE_ACTIVE,
         conditions=[lambda self: self.request_type == RequestType.SUBSCRIPTION],
     )
     def finance_approve_subscription(self, comment=''):
@@ -209,12 +211,6 @@ class ApprovalRequest(models.Model):
     @transition(field=state, source=STATE_PENDING_FINANCE, target=STATE_REJECTED_FINANCE)
     def finance_reject(self, reason=''):
         self.rejection_reason = reason
-
-    @transition(field=state, source=STATE_PROVISIONING, target=STATE_ACTIVE)
-    def it_provision(self, vendor_account_id='', billing_start=None):
-        self.vendor_account_id = vendor_account_id
-        if billing_start:
-            self.billing_start = billing_start
 
     @transition(field=state, source=STATE_ACTIVE, target=STATE_ACTIVE_PENDING_RENEWAL)
     def extend_pending(self):

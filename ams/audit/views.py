@@ -126,7 +126,7 @@ def offboard(request):
     # Finance Head can only offboard non-privileged roles; Admin can offboard anyone
     _offboardable_roles = [
         User.ROLE_EMPLOYEE, User.ROLE_MANAGER,
-        User.ROLE_FINANCE_EXECUTIVE, User.ROLE_VIEWER, User.ROLE_IT,
+        User.ROLE_FINANCE_EXECUTIVE, User.ROLE_VIEWER,
     ]
     base_qs = User.objects.filter(is_active=True).exclude(id=request.user.id)
     if request.user.role == User.ROLE_FINANCE_HEAD:

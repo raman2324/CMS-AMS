@@ -11,7 +11,6 @@ class User(AbstractUser):
     ROLE_MANAGER = "manager"           # AMS: approves team requests
     ROLE_EMPLOYEE = "employee"         # AMS: submits requests
     ROLE_VIEWER = "viewer"             # read-only audit access (CMS + AMS)
-    ROLE_IT = "it"                     # AMS: IT provisioning of subscriptions
 
     ROLE_CHOICES = [
         (ROLE_ADMIN, "Admin"),
@@ -20,7 +19,6 @@ class User(AbstractUser):
         (ROLE_MANAGER, "Manager"),
         (ROLE_EMPLOYEE, "Employee"),
         (ROLE_VIEWER, "Viewer"),
-        (ROLE_IT, "IT"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -75,12 +73,8 @@ class User(AbstractUser):
     def is_employee_role(self):
         return self.role == self.ROLE_EMPLOYEE
 
-    @property
-    def is_it_role(self):
-        return self.role == self.ROLE_IT
-
     # Roles that have AMS access only — no CMS access
-    AMS_ONLY_ROLES = {ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_IT}
+    AMS_ONLY_ROLES = {ROLE_EMPLOYEE, ROLE_MANAGER}
 
     @property
     def is_ams_only(self):

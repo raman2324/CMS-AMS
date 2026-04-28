@@ -213,11 +213,9 @@ def finance_approve(request_obj, actor, comment=''):
 
     if request_obj.request_type == 'subscription':
         request_obj.finance_approve_subscription(comment=comment)
-        # Assign to IT for provisioning
-        it_user = User.objects.filter(role=User.ROLE_IT, is_active=True).first()
-        request_obj.current_approver = it_user
+        request_obj.current_approver = None
         action = 'finance_approved_subscription'
-        next_state_msg = 'moved to provisioning'
+        next_state_msg = 'active'
     else:
         request_obj.finance_approve_expense(comment=comment)
         request_obj.current_approver = None
@@ -283,54 +281,6 @@ def finance_reject(request_obj, actor, reason=''):
         body=(
             f'Your {request_obj.get_request_type_display()} request was rejected by finance.\n\n'
             f'Reason: {reason}'
-        ),
-    )
-
-    return request_obj
-
-
-@transaction.atomic
-def it_provision(request_obj, actor, vendor_account_id, billing_start):
-    """IT provisions the subscription."""
-    from ams.audit.models import AuditLog
-    from ams.notifications.services import send_notification
-    from django.utils import timezone
-
-    if request_obj.state != 'provisioning':
-        raise PermissionDenied('Request is not in provisioning state.')
-    _require_role(actor, User.ROLE_IT, User.ROLE_ADMIN)
-
-    request_obj.it_provision(
-        vendor_account_id=vendor_account_id,
-        billing_start=billing_start,
-    )
-    request_obj.current_approver = None
-    new_expiry = _expiry_from_billing(request_obj.billing_period, billing_start)
-    if new_expiry:
-        request_obj.expires_on = new_expiry
-    request_obj.save()
-
-    AuditLog.objects.create(
-        actor=actor,
-        action='it_provisioned',
-        target_type='request',
-        target_id=request_obj.id,
-        notes=f'Provisioned: account={vendor_account_id}, billing_start={billing_start}',
-        payload={
-            'vendor_account_id': vendor_account_id,
-            'billing_start': str(billing_start),
-        },
-    )
-
-    send_notification(
-        subject_id=request_obj.id,
-        action_type='provisioned',
-        target_date=timezone.now().date(),
-        recipient=request_obj.submitted_by,
-        subject=f'Subscription provisioned: {request_obj.title}',
-        body=(
-            f'Your subscription to {request_obj.service_name} is now active.\n\n'
-            f'Account ID: {vendor_account_id}\nBilling starts: {billing_start}'
         ),
     )
 

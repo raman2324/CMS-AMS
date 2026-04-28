@@ -9,7 +9,7 @@ from django.db import transaction
 
 PASSWORD = 'Pass@1234'
 
-# Roles: admin, finance_head, finance_executive, manager, employee, viewer, it
+# Roles: admin, finance_head, finance_executive, manager, employee, viewer
 USERS = [
     # ── C-suite / top-level (no reports_to) ──────────────────────────────────
     {
@@ -42,14 +42,6 @@ USERS = [
         'first_name': 'Eve',
         'last_name': 'Finance',
         'role': 'finance_executive',
-        'reports_to_email': None,
-    },
-    {
-        'email': 'dave@bv.com',
-        'username': 'dave',
-        'first_name': 'Dave',
-        'last_name': 'IT',
-        'role': 'it',
         'reports_to_email': None,
     },
     {
@@ -165,7 +157,6 @@ class Command(BaseCommand):
         self.stdout.write('  Finance Head    finance.head@bv.com     Finance queue + CMS documents')
         self.stdout.write('  Finance Exec    carol@bv.com            Approves pending_finance requests')
         self.stdout.write('  Finance Exec    eve@bv.com              Approves pending_finance requests')
-        self.stdout.write('  IT              dave@bv.com             Provisions subscriptions')
         self.stdout.write('  Viewer          victor@bv.com           Read-only audit access')
         self.stdout.write('  Manager         bob@bv.com              Approves team requests')
         self.stdout.write('  Manager         meera@bv.com            Approves team requests')

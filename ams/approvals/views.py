@@ -9,7 +9,7 @@ from django.db.models import Q, Sum
 from .models import ApprovalRequest, RequestType, PENDING_STATES
 from .services import (
     submit, manager_approve, manager_reject,
-    finance_approve, finance_reject, it_provision,
+    finance_approve, finance_reject,
     initiate_renewal, complete_renewal, terminate_request,
 )
 from accounts.models import User
@@ -95,7 +95,7 @@ def request_detail(request, pk):
     can_view = (
         obj.submitted_by == user or
         obj.current_approver == user or
-        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_IT, User.ROLE_MANAGER)
+        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_MANAGER)
     )
     if not can_view:
         messages.error(request, "You don't have permission to view that request.")
@@ -111,9 +111,7 @@ def request_detail(request, pk):
         user.role in (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN) and
         obj.state in ('pending_finance', 'renewing')
     )
-    can_provision = (
-        user.role in (User.ROLE_IT, User.ROLE_ADMIN) and obj.state == 'provisioning'
-    )
+    can_provision = False
     can_renew = (
         obj.state in ('active', 'active_pending_renewal') and
         obj.request_type == RequestType.SUBSCRIPTION and
@@ -203,29 +201,6 @@ def action_reject(request, pk):
 
 
 @login_required
-def action_provision(request, pk):
-    """IT: provision a subscription."""
-    if request.method != 'POST':
-        return HttpResponse(status=405)
-
-    obj = get_object_or_404(ApprovalRequest, pk=pk)
-    vendor_account_id = request.POST.get('vendor_account_id', '')
-    billing_start_str = request.POST.get('billing_start', '')
-
-    try:
-        from datetime import date
-        billing_start = date.fromisoformat(billing_start_str) if billing_start_str else date.today()
-        obj = it_provision(obj, actor=request.user,
-                           vendor_account_id=vendor_account_id,
-                           billing_start=billing_start)
-        messages.success(request, 'Subscription provisioned and now active.')
-    except Exception as e:
-        messages.error(request, f'Error provisioning: {e}')
-
-    return redirect('ams_approvals:request_detail', pk=pk)
-
-
-@login_required
 def action_renew(request, pk):
     """Initiate renewal for an active subscription."""
     if request.method != 'POST':
@@ -280,13 +255,6 @@ def inbox(request):
         state__in=my_pending_states,
     ).select_related('submitted_by', 'current_approver')
 
-    # IT provisioning queue
-    it_queue = ApprovalRequest.objects.none()
-    if user.role in (User.ROLE_IT, User.ROLE_ADMIN):
-        it_queue = ApprovalRequest.objects.filter(
-            state='provisioning',
-        ).select_related('submitted_by')
-
     # Finance renewal queue
     renewal_queue = ApprovalRequest.objects.none()
     if user.role in finance_roles:
@@ -312,7 +280,6 @@ def inbox(request):
 
     context = {
         'my_pending': my_pending,
-        'it_queue': it_queue,
         'renewal_queue': renewal_queue,
         'finance_queue': finance_queue,
         'upcoming_renewals': upcoming_renewals,
