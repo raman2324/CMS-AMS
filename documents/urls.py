@@ -31,6 +31,7 @@ urlpatterns = [
     path("manage/templates/<uuid:template_id>/delete/", manage_views.manage_template_delete, name="manage_template_delete"),
     path("manage/templates/<uuid:template_id>/activate/", manage_views.manage_template_activate, name="manage_template_activate"),
     path("manage/templates/convert-docx/", manage_views.manage_template_convert_docx, name="manage_template_convert_docx"),
+    path("manage/audit/", manage_views.manage_audit_log, name="manage_audit"),
 
     # Contract Lens
     path("contract-lens/audit/", views.ContractLensAuditLogView.as_view(), name="contractlens_audit"),

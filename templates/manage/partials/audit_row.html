@@ -1,0 +1,61 @@
+<tr class="{{ row_cls }}">
+
+  <!-- Source pill -->
+  <td class="ps-3">
+    {% if event.event_type|slice:":5" == "user." %}
+    <span class="src-pill src-user" title="User Management"><i class="bi bi-person"></i></span>
+    {% else %}
+    <span class="src-pill src-template" title="Templates"><i class="bi bi-file-earmark-text"></i></span>
+    {% endif %}
+  </td>
+
+  <!-- Event badge -->
+  <td>
+    {% if event.event_type == "user.created" %}
+      <span class="ev-badge {{ badge_cls }}">User Created</span>
+    {% elif event.event_type == "user.role_changed" %}
+      <span class="ev-badge {{ badge_cls }}">Role Changed</span>
+    {% elif event.event_type == "user.deactivated" %}
+      <span class="ev-badge {{ badge_cls }}">Deactivated</span>
+    {% elif event.event_type == "template.published" %}
+      <span class="ev-badge {{ badge_cls }}">Published</span>
+    {% else %}
+      <span class="ev-badge {{ badge_cls }}">{{ event.get_event_type_display }}</span>
+    {% endif %}
+  </td>
+
+  <!-- Actor -->
+  <td class="text-muted small">
+    {% if event.actor %}{{ event.actor.username }}{% else %}<em>system</em>{% endif %}
+  </td>
+
+  <!-- Target -->
+  <td class="small">
+    {% if event.event_type|slice:":5" == "user." and event.metadata.username %}
+      <i class="bi bi-person me-1 text-muted"></i>{{ event.metadata.username }}
+    {% elif event.target_type and event.target_id %}
+      <span class="text-muted">{{ event.target_type }}</span>
+    {% else %}
+      <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+
+  <!-- Details -->
+  <td class="small text-muted">
+    {% if event.event_type == "user.created" %}
+      Role: <strong>{{ event.metadata.role|default:"—" }}</strong>
+    {% elif event.event_type == "user.role_changed" %}
+      <span class="badge bg-secondary">{{ event.metadata.from|default:"?" }}</span>
+      <i class="bi bi-arrow-right mx-1"></i>
+      <span class="badge bg-primary">{{ event.metadata.to|default:"?" }}</span>
+    {% elif event.event_type == "template.published" %}
+      {{ event.metadata.template_name|default:"—" }}{% if event.metadata.version %} v{{ event.metadata.version }}{% endif %}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+
+  <!-- Time -->
+  <td class="text-muted small">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
+
+</tr>

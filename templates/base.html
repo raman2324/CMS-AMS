@@ -121,10 +121,25 @@
       </div>
 
       {% if user.role == 'finance_head' %}
-      <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
-         href="{% url 'documents:manage_dashboard' %}">
+      <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#manageMenu"
+              aria-expanded="{% if 'manage' in request.path %}true{% else %}false{% endif %}"
+              aria-controls="manageMenu">
         <i class="bi bi-gear me-2"></i>Manage
-      </a>
+        <i class="bi bi-chevron-down ms-auto small {% if 'manage' in request.path %}rotate-180{% endif %}"></i>
+      </button>
+      <div class="collapse {% if 'manage' in request.path %}show{% endif %}" id="manageMenu">
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'manage_dashboard' %}active{% endif %}"
+           href="{% url 'documents:manage_dashboard' %}">
+          <i class="bi bi-dot me-1"></i>Dashboard
+        </a>
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'manage_audit' %}active{% endif %}"
+           href="{% url 'documents:manage_audit' %}">
+          <i class="bi bi-dot me-1"></i>Audit Log
+        </a>
+      </div>
       {% endif %}
 
     </nav>

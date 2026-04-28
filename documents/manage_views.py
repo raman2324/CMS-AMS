@@ -8,6 +8,8 @@ from functools import wraps
 import mammoth
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -66,11 +68,11 @@ def manage_user_add(request):
         if form.is_valid():
             user = form.save()
             AuditEvent.objects.create(
-                event_type="user.role_changed",
+                event_type="user.created",
                 actor=request.user,
                 target_type="User",
                 target_id=str(user.id),
-                metadata={"action": "created", "role": user.role, "username": user.username},
+                metadata={"role": user.role, "username": user.username},
             )
             messages.success(request, f"User \"{user.username}\" created successfully.")
             return redirect("documents:manage_users")
@@ -118,11 +120,11 @@ def manage_user_deactivate(request, user_id):
     target.is_active = False
     target.save(update_fields=["is_active"])
     AuditEvent.objects.create(
-        event_type="user.role_changed",
+        event_type="user.deactivated",
         actor=request.user,
         target_type="User",
         target_id=str(target.id),
-        metadata={"action": "deactivated", "username": target.username},
+        metadata={"username": target.username},
     )
     messages.success(request, f"User \"{target.username}\" has been deactivated.")
     return redirect("documents:manage_users")
@@ -364,3 +366,55 @@ def manage_template_convert_docx(request):
         _json.dumps({"ok": True, "html": html, "warnings": warnings, "filename": uploaded.name}),
         content_type="application/json",
     )
+
+
+# ---------------------------------------------------------------------------
+# Manage Audit Log
+# ---------------------------------------------------------------------------
+
+@finance_head_required
+def manage_audit_log(request):
+    qs = (
+        AuditEvent.objects
+        .filter(
+            Q(event_type__startswith="user.") |
+            Q(event_type__startswith="template.")
+        )
+        .select_related("actor")
+        .order_by("-occurred_at")
+    )
+
+    event_type_filter = request.GET.get("event_type", "").strip()
+    actor_filter      = request.GET.get("actor", "").strip()
+    date_from         = request.GET.get("date_from", "").strip()
+    date_to           = request.GET.get("date_to", "").strip()
+
+    if event_type_filter:
+        qs = qs.filter(event_type=event_type_filter)
+    if actor_filter:
+        qs = qs.filter(
+            Q(actor__username__icontains=actor_filter) |
+            Q(actor__first_name__icontains=actor_filter) |
+            Q(actor__last_name__icontains=actor_filter)
+        )
+    if date_from:
+        qs = qs.filter(occurred_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(occurred_at__date__lte=date_to)
+
+    paginator = Paginator(qs, 50)
+    page_obj  = paginator.get_page(request.GET.get("page"))
+
+    manage_event_types = [
+        et for et in AuditEvent.EVENT_TYPES
+        if et[0].startswith("user.") or et[0].startswith("template.")
+    ]
+
+    return render(request, "manage/audit.html", {
+        "page_obj":           page_obj,
+        "event_types":        manage_event_types,
+        "event_type_filter":  event_type_filter,
+        "actor_filter":       actor_filter,
+        "date_from":          date_from,
+        "date_to":            date_to,
+    })

@@ -524,8 +524,7 @@ class AuditLogView(LoginRequiredMixin, View):
             AuditEvent.objects
             .filter(
                 Q(event_type__startswith="document.") |
-                Q(event_type__startswith="upload.") |
-                Q(event_type__startswith="template.")
+                Q(event_type__startswith="upload.")
             )
             .select_related("actor")
             .order_by("-occurred_at")
