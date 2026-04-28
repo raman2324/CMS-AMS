@@ -319,17 +319,19 @@ def all_requests(request):
     terminated_all = base_qs.filter(state='terminated')
 
     exp_qs = base_qs.filter(request_type=RequestType.MISC_EXPENSE)
-    approved_exp_amount = exp_qs.filter(state='approved').aggregate(t=Sum('cost'))['t'] or 0
-    pending_exp_amount  = exp_qs.filter(state__in=['pending_manager', 'pending_finance']).aggregate(t=Sum('cost'))['t'] or 0
+    approved_exp_amount  = exp_qs.filter(state='approved').aggregate(t=Sum('cost'))['t'] or 0
+    pending_exp_amount   = exp_qs.filter(state__in=['pending_manager', 'pending_finance']).aggregate(t=Sum('cost'))['t'] or 0
+    active_subs_cost     = active_subs.aggregate(t=Sum('cost'))['t'] or 0
+    total_expense_amount = active_subs_cost + approved_exp_amount
 
     return render(request, 'ams/approvals/all_requests.html', {
-        'active_subs':          active_subs,
-        'renewing_subs':        renewing_subs,
-        'pending_all':          pending_all,
-        'approved_exp':         approved_exp,
-        'rejected_all':         rejected_all,
-        'terminated_all':       terminated_all,
-        'total_subs':           base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
-        'approved_exp_amount':  approved_exp_amount,
-        'pending_exp_amount':   pending_exp_amount,
+        'active_subs':           active_subs,
+        'renewing_subs':         renewing_subs,
+        'pending_all':           pending_all,
+        'approved_exp':          approved_exp,
+        'rejected_all':          rejected_all,
+        'terminated_all':        terminated_all,
+        'total_subs':            base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
+        'pending_exp_amount':    pending_exp_amount,
+        'total_expense_amount':  total_expense_amount,
     })

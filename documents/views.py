@@ -522,7 +522,11 @@ class AuditLogView(LoginRequiredMixin, View):
 
         qs = (
             AuditEvent.objects
-            .exclude(event_type__startswith="contractlens.")
+            .filter(
+                Q(event_type__startswith="document.") |
+                Q(event_type__startswith="upload.") |
+                Q(event_type__startswith="template.")
+            )
             .select_related("actor")
             .order_by("-occurred_at")
         )

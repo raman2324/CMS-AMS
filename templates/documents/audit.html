@@ -76,11 +76,11 @@
 
 <!-- Color legend -->
 <div class="d-flex gap-2 mb-4 flex-wrap">
-  <span class="ev-badge success">Generated / OK</span>
+  <span class="ev-badge success">Generated</span>
   <span class="ev-badge info">Viewed</span>
   <span class="ev-badge download">Downloaded</span>
-  <span class="ev-badge warning">Locked / Changed</span>
-  <span class="ev-badge danger">Voided / Error</span>
+  <span class="ev-badge warning">Modified</span>
+  <span class="ev-badge danger">Voided / Deleted</span>
   <span class="ev-badge upload">Uploaded</span>
 </div>
 
@@ -150,53 +150,53 @@
 
         {# Determine category for row accent and badge colour #}
         {% if event.event_type|slice:":13" == "contractlens." %}
-          {% with row_cls="ev-cl" badge_cls="cl" %}
+          {% with row_cls="ev-cl" badge_cls="cl" badge_label="Contract Lens" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
         {% elif event.event_type == "upload.created" %}
-          {% with row_cls="ev-upload" badge_cls="upload" %}
+          {% with row_cls="ev-upload" badge_cls="upload" badge_label="Uploaded" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
         {% elif event.event_type == "upload.viewed" %}
-          {% with row_cls="ev-info" badge_cls="info" %}
+          {% with row_cls="ev-info" badge_cls="info" badge_label="Viewed" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
         {% elif event.event_type == "upload.downloaded" %}
-          {% with row_cls="ev-download" badge_cls="download" %}
+          {% with row_cls="ev-download" badge_cls="download" badge_label="Downloaded" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
         {% elif event.event_type == "upload.deleted" %}
-          {% with row_cls="ev-danger" badge_cls="danger" %}
+          {% with row_cls="ev-danger" badge_cls="danger" badge_label="Deleted" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
-        {% elif event.event_type == "document.generated" or event.event_type == "template.published" or event.event_type == "reconciliation.ok" or event.event_type == "document.unlocked" %}
-          {% with row_cls="ev-success" badge_cls="success" %}
+        {% elif event.event_type == "document.generated" or event.event_type == "template.published" or event.event_type == "document.unlocked" %}
+          {% with row_cls="ev-success" badge_cls="success" badge_label="Generated" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
         {% elif event.event_type == "document.viewed" %}
-          {% with row_cls="ev-info" badge_cls="info" %}
+          {% with row_cls="ev-info" badge_cls="info" badge_label="Viewed" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
         {% elif event.event_type == "document.downloaded" %}
-          {% with row_cls="ev-download" badge_cls="download" %}
+          {% with row_cls="ev-download" badge_cls="download" badge_label="Downloaded" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
-        {% elif event.event_type == "document.locked" or event.event_type == "user.role_changed" or event.event_type == "audit.flag.template_issuer_overlap" %}
-          {% with row_cls="ev-warning" badge_cls="warning" %}
+        {% elif event.event_type == "document.locked" %}
+          {% with row_cls="ev-warning" badge_cls="warning" badge_label="Modified" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
 
         {% else %}
-          {# voided, access_denied, generation_failed, mismatch, etc. #}
-          {% with row_cls="ev-danger" badge_cls="danger" %}
+          {# voided, access_denied, generation_failed, etc. #}
+          {% with row_cls="ev-danger" badge_cls="danger" badge_label="Voided / Error" %}
           {% include "documents/partials/audit_row.html" %}
           {% endwith %}
         {% endif %}
