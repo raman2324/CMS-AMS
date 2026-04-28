@@ -71,8 +71,14 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Amount (USD)</label>
-                    <input type="number" name="cost" step="0.01" min="0" class="form-control form-control-sm"
-                           placeholder="Optional">
+                    <input type="number" id="cost-input-oneoff" name="cost" step="0.01" min="0"
+                           class="form-control form-control-sm" placeholder="e.g. 199.00"
+                           oninput="resetDiscuss('oneoff')">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="cost-discuss-oneoff"
+                               onchange="applyDiscuss('oneoff')">
+                        <label class="form-check-label small text-muted" for="cost-discuss-oneoff">To be discussed</label>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Justification *</label>
@@ -125,8 +131,14 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Amount (USD)</label>
-                    <input type="number" name="cost" step="0.01" min="0" class="form-control form-control-sm"
-                           placeholder="Optional">
+                    <input type="number" id="cost-input-recurring" name="cost" step="0.01" min="0"
+                           class="form-control form-control-sm" placeholder="e.g. 49.00"
+                           oninput="resetDiscuss('recurring')">
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="cost-discuss-recurring"
+                               onchange="applyDiscuss('recurring')">
+                        <label class="form-check-label small text-muted" for="cost-discuss-recurring">To be discussed</label>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">Expiry Date</label>
@@ -154,8 +166,8 @@
             </div>
 
             <div id="submit-section" class="d-none mt-3 pt-3 border-top d-flex justify-content-end gap-2">
-                <a href="{% url 'ams_approvals:inbox' %}" class="btn btn-link btn-sm text-muted">Cancel</a>
-                <button type="submit" class="btn btn-dark btn-sm">
+                <a href="{% url 'ams_approvals:inbox' %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                <button type="submit" id="submit-btn" class="btn btn-dark btn-sm">
                     <i class="bi bi-send me-1"></i>Submit for Approval
                 </button>
             </div>
@@ -167,6 +179,30 @@
 </div>
 
 <script>
+function applyDiscuss(section) {
+    var cb    = document.getElementById('cost-discuss-' + section);
+    var input = document.getElementById('cost-input-' + section);
+    if (cb.checked) {
+        input.value = '';
+        input.disabled = true;
+        input.placeholder = 'To be discussed';
+    } else {
+        input.disabled = false;
+        input.placeholder = section === 'oneoff' ? 'e.g. 199.00' : 'e.g. 49.00';
+    }
+}
+
+function resetDiscuss(section) {
+    document.getElementById('cost-discuss-' + section).checked = false;
+}
+
+var REQUIRED_FIELDS = {
+    one_off:   ['#one_off-fields [name="service_name_oneoff"]',
+                '#one_off-fields [name="justification"]'],
+    recurring: ['#recurring-fields [name="service_name"]',
+                '#recurring-fields [name="justification"]']
+};
+
 function showSection(type) {
     document.querySelectorAll('.request-section').forEach(function(el) {
         el.classList.add('d-none');
@@ -180,6 +216,14 @@ function showSection(type) {
     document.getElementById('request_category_input').value = type;
     document.getElementById('manager-section').classList.remove('d-none');
     document.getElementById('submit-section').classList.remove('d-none');
+
+    // Apply required only to the active section's starred fields
+    Object.keys(REQUIRED_FIELDS).forEach(function(section) {
+        REQUIRED_FIELDS[section].forEach(function(sel) {
+            var el = document.querySelector(sel);
+            if (el) el.required = (section === type);
+        });
+    });
 }
 
 $(document).ready(function() {
@@ -193,6 +237,11 @@ document.getElementById('requestForm').addEventListener('submit', function() {
     document.querySelectorAll('.request-section.d-none input, .request-section.d-none select, .request-section.d-none textarea').forEach(function(el) {
         el.disabled = true;
     });
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.classList.remove('btn-dark');
+    btn.classList.add('btn-success');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Submitting…';
 });
 </script>
 {% endblock %}

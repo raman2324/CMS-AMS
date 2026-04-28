@@ -33,16 +33,11 @@ urlpatterns = [
     path("manage/templates/convert-docx/", manage_views.manage_template_convert_docx, name="manage_template_convert_docx"),
 
     # Contract Lens
-<<<<<<< HEAD
     path("contract-lens/audit/", views.ContractLensAuditLogView.as_view(), name="contractlens_audit"),
     path("contract-lens/cadient/", views.cadient_talent_view, name="cadient_talent"),
     path("contract-lens/api/extract/", views.cadient_talent_extract, name="cadient_talent_extract"),
     path("contract-lens/api/confirm/", views.cadient_talent_confirm, name="cadient_talent_confirm"),
     path("contract-lens/api/record/<uuid:record_id>/file/", views.cadient_talent_download_file, name="cadient_talent_download_file"),
-=======
-    path("contract-lens/cadient/", views.cadient_talent_view, name="cadient_talent"),
-    path("contract-lens/api/extract/", views.cadient_talent_extract, name="cadient_talent_extract"),
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
     path("contract-lens/api/analyse-group/", views.cadient_talent_analyse_group, name="cadient_talent_analyse_group"),
     path("contract-lens/api/merge/", views.cadient_talent_merge, name="cadient_talent_merge"),
 ]

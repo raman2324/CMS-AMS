@@ -71,13 +71,7 @@
   <span class="src-pill src-doc"><i class="bi bi-file-earmark-text me-1"></i>HR Docs</span>
   <span class="text-muted small me-2">Generated letters &amp; templates</span>
   <span class="src-pill src-upload"><i class="bi bi-folder2-open me-1"></i>Other Docs</span>
-<<<<<<< HEAD
   <span class="text-muted small">Uploaded receipts, slips &amp; files</span>
-=======
-  <span class="text-muted small me-2">Uploaded receipts, slips &amp; files</span>
-  <span class="src-pill src-cl"><i class="bi bi-file-earmark-ruled me-1"></i>Contract Lens</span>
-  <span class="text-muted small">Contract analysis</span>
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 </div>
 
 <!-- Color legend -->
@@ -87,10 +81,6 @@
   <span class="ev-badge download">Downloaded</span>
   <span class="ev-badge warning">Locked / Changed</span>
   <span class="ev-badge danger">Voided / Error</span>
-<<<<<<< HEAD
-=======
-  <span class="ev-badge cl">Contract Lens</span>
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
   <span class="ev-badge upload">Uploaded</span>
 </div>
 
@@ -102,11 +92,7 @@
       <select name="event_type" class="form-select form-select-sm">
         <option value="">All events</option>
         <optgroup label="── HR Documents ──">
-<<<<<<< HEAD
           {% for value, label in event_types %}{% if not value|slice:":7" == "upload." %}
-=======
-          {% for value, label in event_types %}{% if not value|slice:":7" == "upload." and not value|slice:":13" == "contractlens." %}
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
           <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
           {% endif %}{% endfor %}
         </optgroup>
@@ -114,14 +100,6 @@
           {% for value, label in event_types %}{% if value|slice:":7" == "upload." %}
           <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
           {% endif %}{% endfor %}
-<<<<<<< HEAD
-=======
-        </optgroup>
-        <optgroup label="── Contract Lens ──">
-          {% for value, label in event_types %}{% if value|slice:":13" == "contractlens." %}
-          <option value="{{ value }}" {% if event_type_filter == value %}selected{% endif %}>{{ label }}</option>
-          {% endif %}{% endfor %}
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
         </optgroup>
       </select>
     </div>

@@ -40,11 +40,11 @@
       <div class="collapse {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}show{% endif %}" id="cmsMenu">
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' %}active{% endif %}"
            href="{% url 'documents:list' %}">
-          <i class="bi bi-dot me-1"></i>Documents
+          <i class="bi bi-dot me-1"></i>HR Letters
         </a>
         <a class="sidebar-link ps-4 {% if request.resolver_match.app_name == 'uploads' %}active{% endif %}"
            href="{% url 'uploads:list' %}">
-          <i class="bi bi-dot me-1"></i>Other Documents
+          <i class="bi bi-dot me-1"></i>File Uploads
         </a>
         {% if user.role == 'finance_head' or user.role == 'viewer' %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'audit' %}active{% endif %}"
@@ -60,7 +60,6 @@
         <i class="bi bi-gear me-2"></i>Manage
       </a>
       {% endif %}
-<<<<<<< HEAD
 
       <!-- Contract Lens — Finance Head and Finance Executive only -->
       {% if user.role == 'finance_head' or user.role == 'finance_executive' %}
@@ -128,33 +127,6 @@
         {% endif %}
       </div>
 
-=======
-      {% if user.role == 'finance_head' %}
-      <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
-         href="{% url 'documents:manage_dashboard' %}">
-        <i class="bi bi-gear me-2"></i>Manage
-      </a>
-      {% endif %}
-
-      <!-- Contract Lens — Finance Head and Issuer only -->
-      {% if user.role == 'finance_head' or user.role == 'issuer' %}
-      <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#contractLensMenu"
-              aria-expanded="{% if 'contract-lens' in request.path %}true{% else %}false{% endif %}"
-              aria-controls="contractLensMenu">
-        <i class="bi bi-file-earmark-ruled me-2"></i>Contract Lens
-        <i class="bi bi-chevron-down ms-auto small {% if 'contract-lens' in request.path %}rotate-180{% endif %}" id="cl-chevron"></i>
-      </button>
-      <div class="collapse {% if 'contract-lens' in request.path %}show{% endif %}" id="contractLensMenu">
-        <a class="sidebar-link ps-4 {% if 'cadient' in request.path %}active{% endif %}"
-           href="{% url 'documents:cadient_talent' %}">
-          <i class="bi bi-dot me-1"></i>Cadient Talent
-        </a>
-      </div>
-      {% endif %}
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
     </nav>
 
     <div class="sidebar-footer">
@@ -179,9 +151,18 @@
   <main class="main-content {% if not user.is_authenticated %}no-sidebar{% endif %}">
     {% if messages %}
       {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        {% if message.tags == 'success' %}
+          <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+        {% elif message.tags == 'error' or message.tags == 'danger' %}
+          <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+        {% elif message.tags == 'warning' %}
+          <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+        {% else %}
+          <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
+        {% endif %}
+        <div>{{ message }}</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
       </div>
       {% endfor %}
     {% endif %}

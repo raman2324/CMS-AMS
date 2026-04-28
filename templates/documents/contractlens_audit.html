@@ -99,7 +99,7 @@
       </thead>
       <tbody>
         {% for event in page_obj %}
-        <tr class="ev-cl">
+        <tr class="ev-cl" onclick="window.location='{% url 'documents:cadient_talent' %}'" style="cursor:pointer">
           <td class="ps-3">
             <span class="ev-badge cl">{{ event.get_event_type_display }}</span>
           </td>

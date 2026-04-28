@@ -13,12 +13,6 @@
     <h4 class="mb-0 fw-bold">Letter Templates</h4>
     <div class="text-muted small">Editing an active template requires creating a new version.</div>
   </div>
-<<<<<<< HEAD
-=======
-  <a href="{% url 'documents:manage_template_add' %}" class="btn btn-warning btn-sm text-dark">
-    <i class="bi bi-file-earmark-plus me-1"></i>Add Template
-  </a>
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -50,15 +44,6 @@
           <td class="text-muted small">{{ tmpl.created_at|date:"d M Y" }}</td>
           <td class="text-end">
             <div class="d-flex justify-content-end gap-2">
-<<<<<<< HEAD
-=======
-              <!-- Edit -->
-              <a href="{% url 'documents:manage_template_edit' tmpl.id %}"
-                 class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-pencil"></i> Edit
-              </a>
-
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
               <!-- Activate (inactive only) -->
               {% if not tmpl.is_active %}
               <form method="post"

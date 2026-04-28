@@ -277,11 +277,8 @@ class AuditEvent(models.Model):
         ("upload.deleted", "File Deleted"),
         # Contract Lens (Cadient Talent)
         ("contractlens.extracted", "ContractLens: PDF Extracted"),
-<<<<<<< HEAD
         ("contractlens.confirmed", "ContractLens: Data Confirmed"),
         ("contractlens.downloaded", "ContractLens: File Downloaded"),
-=======
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
         ("contractlens.group_analysed", "ContractLens: Group Analysed"),
         ("contractlens.merged", "ContractLens: Contracts Merged"),
     ]

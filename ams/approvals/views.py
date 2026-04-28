@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 from .models import ApprovalRequest, RequestType, PENDING_STATES
 from .services import (
@@ -351,13 +351,18 @@ def all_requests(request):
     rejected_all   = base_qs.filter(state__in=['rejected_manager', 'rejected_finance'])
     terminated_all = base_qs.filter(state='terminated')
 
+    exp_qs = base_qs.filter(request_type=RequestType.MISC_EXPENSE)
+    approved_exp_amount = exp_qs.filter(state='approved').aggregate(t=Sum('cost'))['t'] or 0
+    pending_exp_amount  = exp_qs.filter(state__in=['pending_manager', 'pending_finance']).aggregate(t=Sum('cost'))['t'] or 0
+
     return render(request, 'ams/approvals/all_requests.html', {
-        'active_subs':    active_subs,
-        'renewing_subs':  renewing_subs,
-        'pending_all':    pending_all,
-        'approved_exp':   approved_exp,
-        'rejected_all':   rejected_all,
-        'terminated_all': terminated_all,
-        'total_subs':     base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
-        'total_expenses': base_qs.filter(request_type=RequestType.MISC_EXPENSE).count(),
+        'active_subs':          active_subs,
+        'renewing_subs':        renewing_subs,
+        'pending_all':          pending_all,
+        'approved_exp':         approved_exp,
+        'rejected_all':         rejected_all,
+        'terminated_all':       terminated_all,
+        'total_subs':           base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
+        'approved_exp_amount':  approved_exp_amount,
+        'pending_exp_amount':   pending_exp_amount,
     })

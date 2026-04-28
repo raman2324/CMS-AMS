@@ -566,7 +566,6 @@ class AuditLogView(LoginRequiredMixin, View):
         })
 
 
-<<<<<<< HEAD
 class ContractLensAuditLogView(LoginRequiredMixin, View):
     """
     Contract Lens audit log — contractlens.* events only.
@@ -623,17 +622,11 @@ class ContractLensAuditLogView(LoginRequiredMixin, View):
         })
 
 
-=======
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 # ── Contract Lens ──────────────────────────────────────────────────────────────
 
 @login_required
 def cadient_talent_view(request):
-<<<<<<< HEAD
     if request.user.role not in ("finance_head", "finance_executive"):
-=======
-    if request.user.role not in ("finance_head", "issuer"):
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
         raise PermissionDenied
     return render(request, "contractlens/cadient_talent_app.html")
 
@@ -743,7 +736,6 @@ def cadient_talent_extract(request):
 
 @login_required
 @require_POST
-<<<<<<< HEAD
 def cadient_talent_confirm(request):
     try:
         from datetime import datetime as _dt
@@ -859,8 +851,6 @@ def cadient_talent_download_file(request, record_id):
 
 @login_required
 @require_POST
-=======
->>>>>>> 7d317fcda0f2f53fd2ff2f6e1be1c85bc807c1a3
 def cadient_talent_analyse_group(request):
     try:
         data = json.loads(request.body)
