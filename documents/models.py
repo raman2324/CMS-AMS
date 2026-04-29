@@ -36,7 +36,6 @@ TEMPLATE_EXTRA_SCHEMAS = {
     "offer_letter": {
         # Header fields
         "subject": {"type": "text", "label": "Subject", "required": True},
-        "start_date": {"type": "date", "label": "Date of Joining", "required": True},
         "probation_months": {"type": "number", "label": "Probation Period (months)", "required": False, "default": "3"},
         "offer_expiry_date": {"type": "date", "label": "Offer Expiry Date", "required": True},
         # Compensation summary (body)
