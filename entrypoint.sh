@@ -45,13 +45,30 @@ python manage.py migrate --no-input
 echo "==> Collecting static files..."
 python manage.py collectstatic --no-input
 
-echo "==> Configuring site domain for Google SSO..."
+echo "==> Configuring site domain and Google SSO credentials..."
 python manage.py shell -c "
-from django.contrib.sites.models import Site
 import os
-domain = os.environ.get('SITE_DOMAIN', 'localhost:8000')
-Site.objects.update_or_create(id=1, defaults={'domain': domain, 'name': domain})
+from django.contrib.sites.models import Site
+from allauth.socialaccount.models import SocialApp
+
+domain = os.environ.get('SITE_DOMAIN', 'localhost:8001')
+site, _ = Site.objects.update_or_create(id=1, defaults={'domain': domain, 'name': domain})
 print(f'  Site domain set to: {domain}')
+
+client_id = os.environ.get('GOOGLE_CLIENT_ID', '')
+secret = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+if client_id and secret:
+    SocialApp.objects.filter(provider='google').delete()
+    app = SocialApp.objects.create(
+        provider='google',
+        name='Google',
+        client_id=client_id,
+        secret=secret,
+    )
+    app.sites.add(site)
+    print(f'  Google SocialApp created: {client_id[:40]}')
+else:
+    print('  WARNING: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set — SSO disabled')
 "
 
 echo "==> Seeding all initial data (CMS + AMS)..."

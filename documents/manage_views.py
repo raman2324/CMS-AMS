@@ -8,6 +8,8 @@ from functools import wraps
 import mammoth
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -66,11 +68,11 @@ def manage_user_add(request):
         if form.is_valid():
             user = form.save()
             AuditEvent.objects.create(
-                event_type="user.role_changed",
+                event_type="user.created",
                 actor=request.user,
                 target_type="User",
                 target_id=str(user.id),
-                metadata={"action": "created", "role": user.role, "username": user.username},
+                metadata={"role": user.role, "username": user.username},
             )
             messages.success(request, f"User \"{user.username}\" created successfully.")
             return redirect("documents:manage_users")
@@ -118,11 +120,11 @@ def manage_user_deactivate(request, user_id):
     target.is_active = False
     target.save(update_fields=["is_active"])
     AuditEvent.objects.create(
-        event_type="user.role_changed",
+        event_type="user.deactivated",
         actor=request.user,
         target_type="User",
         target_id=str(target.id),
-        metadata={"action": "deactivated", "username": target.username},
+        metadata={"username": target.username},
     )
     messages.success(request, f"User \"{target.username}\" has been deactivated.")
     return redirect("documents:manage_users")
@@ -144,6 +146,13 @@ def manage_company_add(request):
         form = CompanyForm(request.POST, request.FILES)
         if form.is_valid():
             company = form.save()
+            AuditEvent.objects.create(
+                event_type="company.created",
+                actor=request.user,
+                target_type="Company",
+                target_id=str(company.id),
+                metadata={"name": company.name},
+            )
             messages.success(request, f"Company \"{company.name}\" created.")
             return redirect("documents:manage_companies")
     else:
@@ -158,6 +167,13 @@ def manage_company_edit(request, company_id):
         form = CompanyForm(request.POST, request.FILES, instance=company)
         if form.is_valid():
             company = form.save()
+            AuditEvent.objects.create(
+                event_type="company.updated",
+                actor=request.user,
+                target_type="Company",
+                target_id=str(company.id),
+                metadata={"name": company.name},
+            )
             messages.success(request, f"Company \"{company.name}\" updated.")
             return redirect("documents:manage_companies")
     else:
@@ -285,6 +301,13 @@ def manage_template_delete(request, template_id):
         )
         return redirect("documents:manage_templates")
     name = str(tmpl)
+    AuditEvent.objects.create(
+        event_type="template.deleted",
+        actor=request.user,
+        target_type="LetterTemplate",
+        target_id=str(tmpl.id),
+        metadata={"template_name": tmpl.name, "version": tmpl.version},
+    )
     tmpl.delete()
     messages.success(request, f'Template "{name}" deleted.')
     return redirect("documents:manage_templates")
@@ -364,3 +387,162 @@ def manage_template_convert_docx(request):
         _json.dumps({"ok": True, "html": html, "warnings": warnings, "filename": uploaded.name}),
         content_type="application/json",
     )
+
+
+# ---------------------------------------------------------------------------
+# Manage Audit Log
+# ---------------------------------------------------------------------------
+
+_ROLE_LABELS = {
+    "employee":     "Employee",
+    "finance_head": "Finance Head",
+    "hr":           "HR",
+    "admin":        "Admin",
+}
+
+
+def _annotate_manage_event(event):
+    """Attach display_* attributes to a manage AuditEvent for simple template rendering."""
+    meta = event.metadata or {}
+
+    if event.event_type == "user.created":
+        event.src_type      = "user"
+        event.badge_label   = "User Created"
+        event.badge_cls     = "success"
+        event.row_cls       = "ev-success"
+        event.display_target = meta.get("username", "—")
+        role = _ROLE_LABELS.get(meta.get("role", ""), meta.get("role", ""))
+        event.display_details = f"Role: {role}" if role else "—"
+
+    elif event.event_type == "user.role_changed":
+        action = meta.get("action", "role_changed")
+        event.src_type = "user"
+        if action == "deactivated":
+            event.badge_label    = "Deactivated"
+            event.badge_cls      = "danger"
+            event.row_cls        = "ev-danger"
+            event.display_target  = meta.get("username", "—")
+            event.display_details = "—"
+        elif action == "created":
+            event.badge_label    = "User Created"
+            event.badge_cls      = "success"
+            event.row_cls        = "ev-success"
+            event.display_target  = meta.get("username", "—")
+            role = _ROLE_LABELS.get(meta.get("role", ""), meta.get("role", ""))
+            event.display_details = f"Role: {role}" if role else "—"
+        else:
+            event.badge_label    = "Role Changed"
+            event.badge_cls      = "warning"
+            event.row_cls        = "ev-warning"
+            event.display_target  = meta.get("username", "—")
+            fr = _ROLE_LABELS.get(meta.get("from", ""), meta.get("from", "?"))
+            to = _ROLE_LABELS.get(meta.get("to", ""), meta.get("to", "?"))
+            event.display_details = f"{fr} → {to}"
+
+    elif event.event_type == "user.deactivated":
+        event.src_type        = "user"
+        event.badge_label     = "Deactivated"
+        event.badge_cls       = "danger"
+        event.row_cls         = "ev-danger"
+        event.display_target  = meta.get("username", "—")
+        event.display_details = "—"
+
+    elif event.event_type == "template.published":
+        event.src_type = "template"
+        action = meta.get("action", "")
+        if action == "edited":
+            event.badge_label = "Template Updated"
+            event.badge_cls   = "info"
+            event.row_cls     = "ev-info"
+        else:
+            event.badge_label = "Template Published"
+            event.badge_cls   = "success"
+            event.row_cls     = "ev-success"
+        event.display_target  = meta.get("template_name", "—")
+        ver = meta.get("version")
+        event.display_details = f"v{ver}" if ver else "—"
+
+    elif event.event_type == "template.deleted":
+        event.src_type        = "template"
+        event.badge_label     = "Template Deleted"
+        event.badge_cls       = "danger"
+        event.row_cls         = "ev-danger"
+        event.display_target  = meta.get("template_name", "—")
+        ver = meta.get("version")
+        event.display_details = f"v{ver}" if ver else "—"
+
+    elif event.event_type == "company.created":
+        event.src_type        = "company"
+        event.badge_label     = "Company Added"
+        event.badge_cls       = "success"
+        event.row_cls         = "ev-success"
+        event.display_target  = meta.get("name", "—")
+        event.display_details = "—"
+
+    elif event.event_type == "company.updated":
+        event.src_type        = "company"
+        event.badge_label     = "Company Updated"
+        event.badge_cls       = "info"
+        event.row_cls         = "ev-info"
+        event.display_target  = meta.get("name", "—")
+        event.display_details = "—"
+
+    else:
+        event.src_type        = "other"
+        event.badge_label     = event.get_event_type_display()
+        event.badge_cls       = "info"
+        event.row_cls         = "ev-info"
+        event.display_target  = f"{event.target_type}#{event.target_id}" if event.target_type else "—"
+        event.display_details = "—"
+
+
+@finance_head_required
+def manage_audit_log(request):
+    qs = (
+        AuditEvent.objects
+        .filter(
+            Q(event_type__startswith="user.") |
+            Q(event_type__startswith="template.") |
+            Q(event_type__startswith="company.")
+        )
+        .select_related("actor")
+        .order_by("-occurred_at")
+    )
+
+    event_type_filter = request.GET.get("event_type", "").strip()
+    actor_filter      = request.GET.get("actor", "").strip()
+    date_from         = request.GET.get("date_from", "").strip()
+    date_to           = request.GET.get("date_to", "").strip()
+
+    if event_type_filter:
+        qs = qs.filter(event_type=event_type_filter)
+    if actor_filter:
+        qs = qs.filter(
+            Q(actor__username__icontains=actor_filter) |
+            Q(actor__first_name__icontains=actor_filter) |
+            Q(actor__last_name__icontains=actor_filter)
+        )
+    if date_from:
+        qs = qs.filter(occurred_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(occurred_at__date__lte=date_to)
+
+    paginator = Paginator(qs, 50)
+    page_obj  = paginator.get_page(request.GET.get("page"))
+
+    for event in page_obj:
+        _annotate_manage_event(event)
+
+    manage_event_types = [
+        et for et in AuditEvent.EVENT_TYPES
+        if et[0].startswith("user.") or et[0].startswith("template.") or et[0].startswith("company.")
+    ]
+
+    return render(request, "manage/audit.html", {
+        "page_obj":           page_obj,
+        "event_types":        manage_event_types,
+        "event_type_filter":  event_type_filter,
+        "actor_filter":       actor_filter,
+        "date_from":          date_from,
+        "date_to":            date_to,
+    })

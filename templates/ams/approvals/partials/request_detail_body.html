@@ -1,7 +1,7 @@
-<div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}row g-4{% endif %}">
+<div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}row g-4{% endif %}">
 
     <!-- Left / Main content -->
-    <div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}col-md-8{% endif %}">
+    <div class="{% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}col-md-8{% endif %}">
 
         <!-- Status banner for final states -->
         {% if obj.state == 'approved' or obj.state == 'active' %}
@@ -32,28 +32,10 @@
 
         <!-- Request Details card -->
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-semibold border-bottom d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-file-text me-2 text-primary"></i>Request Details</span>
-                <button type="button" id="togglePrivacy" onclick="toggleDetails()"
-                        class="btn btn-sm btn-outline-secondary border-0 px-2 py-0"
-                        title="Show / hide sensitive details">
-                    <i class="bi bi-eye-slash" id="privacyIcon"></i>
-                </button>
+            <div class="card-header bg-white fw-semibold border-bottom">
+                <i class="bi bi-file-text me-2 text-primary"></i>Request Details
             </div>
             <div class="card-body">
-            <style>
-                .private { filter: blur(4px); user-select: none; transition: filter 0.2s; }
-            </style>
-            <script>
-                var _revealed = false;
-                function toggleDetails() {
-                    _revealed = !_revealed;
-                    document.querySelectorAll('.private').forEach(function(el) {
-                        el.style.filter = _revealed ? 'none' : 'blur(4px)';
-                    });
-                    document.getElementById('privacyIcon').className = _revealed ? 'bi bi-eye' : 'bi bi-eye-slash';
-                }
-            </script>
                 <div class="row g-3 small">
 
                     <div class="col-md-4">
@@ -72,7 +54,7 @@
                     </div>
 
                     <div class="col-md-4">
-                        <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Current Approver</div>
+                        <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Pending Approval From</div>
                         <div class="fw-medium">
                             {% if obj.current_approver %}{{ obj.current_approver.display_name }}{% else %}<span class="text-muted">—</span>{% endif %}
                         </div>
@@ -81,15 +63,15 @@
                     {% if obj.request_type == 'subscription' %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Service</div>
-                        <div class="fw-medium private">{{ obj.service_name }}</div>
+                        <div class="fw-medium">{{ obj.service_name }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Vendor</div>
-                        <div class="fw-medium private">{{ obj.vendor|default:"—" }}</div>
+                        <div class="fw-medium">{{ obj.vendor|default:"—" }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Cost</div>
-                        <div class="fw-semibold fs-6 private">
+                        <div class="fw-semibold fs-6">
                             {% if obj.cost %}${{ obj.cost }}{% else %}—{% endif %}
                             {% if obj.billing_period %}<span class="fs-6 fw-normal text-muted"> / {{ obj.get_billing_period_display }}</span>{% endif %}
                         </div>
@@ -97,66 +79,64 @@
                     {% if obj.request_category == 'recurring' and obj.amount_type %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Amount Type</div>
-                        <div class="fw-medium private">{{ obj.get_amount_type_display }}</div>
+                        <div class="fw-medium">{{ obj.get_amount_type_display }}</div>
                     </div>
                     {% endif %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Expires On</div>
-                        <div class="fw-medium private">{{ obj.expires_on|default:"—" }}</div>
+                        <div class="fw-medium">{{ obj.expires_on|default:"—" }}</div>
                     </div>
                     {% if obj.vendor_account_id %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Account ID</div>
-                        <div class="fw-medium private">{{ obj.vendor_account_id }}</div>
+                        <div class="fw-medium">{{ obj.vendor_account_id }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Billing Start</div>
-                        <div class="fw-medium private">{{ obj.billing_start|default:"—" }}</div>
+                        <div class="fw-medium">{{ obj.billing_start|default:"—" }}</div>
                     </div>
                     {% endif %}
 
                     {% else %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Expense Type</div>
-                        <div class="fw-medium private">{{ obj.get_expense_type_display|default:"One-Off" }}</div>
+                        <div class="fw-medium">{{ obj.get_expense_type_display|default:"One-Off" }}</div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Amount</div>
-                        <div class="fw-semibold fs-6 private">{% if obj.cost %}${{ obj.cost }}{% else %}—{% endif %}</div>
+                        <div class="fw-semibold fs-6">{% if obj.cost %}${{ obj.cost }}{% else %}—{% endif %}</div>
                     </div>
                     {% if obj.receipt %}
                     <div class="col-md-4">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Receipt</div>
-                        <div class="private">
-                            <a href="{{ obj.receipt.url }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download me-1"></i>Download
-                            </a>
-                        </div>
+                        <a href="{{ obj.receipt.url }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-download me-1"></i>Download
+                        </a>
                     </div>
                     {% endif %}
                     {% endif %}
 
                     <div class="col-12">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Justification</div>
-                        <div class="bg-light rounded p-3 fw-medium private">{{ obj.justification|default:"—" }}</div>
+                        <div class="bg-light rounded p-3 fw-medium">{{ obj.justification|default:"—" }}</div>
                     </div>
 
                     {% if obj.manager_comment %}
                     <div class="col-12">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Manager Comment</div>
-                        <div class="bg-primary bg-opacity-10 rounded p-3 border-start border-4 border-primary fw-medium private">{{ obj.manager_comment }}</div>
+                        <div class="bg-primary bg-opacity-10 rounded p-3 border-start border-4 border-primary fw-medium">{{ obj.manager_comment }}</div>
                     </div>
                     {% endif %}
                     {% if obj.finance_comment %}
                     <div class="col-12">
                         <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Finance Comment</div>
-                        <div class="bg-success bg-opacity-10 rounded p-3 border-start border-4 border-success fw-medium private">{{ obj.finance_comment }}</div>
+                        <div class="bg-success bg-opacity-10 rounded p-3 border-start border-4 border-success fw-medium">{{ obj.finance_comment }}</div>
                     </div>
                     {% endif %}
                     {% if obj.rejection_reason and 'rejected' not in obj.state and obj.state != 'terminated' %}
                     <div class="col-12">
                         <div class="text-danger text-uppercase fw-semibold mb-1" style="font-size:0.7rem">Rejection Reason</div>
-                        <div class="bg-danger bg-opacity-10 rounded p-3 border-start border-4 border-danger text-danger fw-medium private">{{ obj.rejection_reason }}</div>
+                        <div class="bg-danger bg-opacity-10 rounded p-3 border-start border-4 border-danger text-danger fw-medium">{{ obj.rejection_reason }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -166,47 +146,61 @@
         <!-- Approval History timeline -->
         {% if audit_logs %}
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-semibold border-bottom">
+            <div class="card-header bg-white fw-semibold border-bottom py-2">
                 <i class="bi bi-clock-history me-2 text-primary"></i>Approval History
             </div>
-            <div class="card-body">
-                <div class="ps-3" style="border-left:2px solid #dee2e6">
-                    {% for log in audit_logs %}
-                    <div class="mb-3 position-relative">
-                        <span class="position-absolute rounded-circle d-flex align-items-center justify-content-center text-white"
-                              style="width:20px;height:20px;left:-11px;top:2px;font-size:0.6rem;
-                              background:{% if 'approved' in log.action or log.action == 'it_provisioned' %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#adb5bd{% endif %}">
-                            {% if 'approved' in log.action or log.action == 'it_provisioned' %}
-                            <i class="bi bi-check"></i>
+            <div class="card-body p-0">
+                {% for log in audit_logs %}
+                <div class="d-flex gap-3 px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+                    <!-- Step icon + connector -->
+                    <div class="d-flex flex-column align-items-center flex-shrink-0" style="width:38px">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+                             style="width:38px;height:38px;font-size:0.9rem;
+                             background:{% if 'approved' in log.action %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
+                            {% if 'approved' in log.action %}
+                            <i class="bi bi-check-lg"></i>
                             {% elif 'rejected' in log.action or 'terminated' in log.action %}
-                            <i class="bi bi-x"></i>
+                            <i class="bi bi-x-lg"></i>
                             {% elif 'submitted' in log.action %}
-                            <i class="bi bi-send"></i>
+                            <i class="bi bi-send-fill"></i>
                             {% else %}
-                            <i class="bi bi-dot"></i>
-                            {% endif %}
-                        </span>
-                        <div class="ms-2">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <span class="fw-semibold small">{{ log.actor.display_name|default:"System" }}</span>
-                                    <div class="text-muted" style="font-size:0.75rem">{{ log.created_at|date:"M d, Y · H:i" }}</div>
-                                </div>
-                                <span class="badge bg-light text-dark border small font-monospace">{{ log.action }}</span>
-                            </div>
-                            {% if log.notes %}
-                            <div class="mt-1 p-2 bg-light rounded small text-muted">{{ log.notes }}</div>
+                            <i class="bi bi-arrow-right"></i>
                             {% endif %}
                         </div>
+                        {% if not forloop.last %}
+                        <div style="width:2px;flex:1;min-height:14px;background:#dee2e6;margin-top:5px"></div>
+                        {% endif %}
                     </div>
-                    {% endfor %}
+                    <!-- Content -->
+                    <div class="flex-grow-1 pt-1">
+                        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                            <span class="fw-semibold">{{ log.actor.display_name|default:"System" }}</span>
+                            <span class="badge rounded-pill px-2 py-1 font-monospace
+                                {% if 'approved' in log.action %}text-success
+                                {% elif 'rejected' in log.action or 'terminated' in log.action %}text-danger
+                                {% elif 'submitted' in log.action %}text-primary
+                                {% else %}text-secondary{% endif %}"
+                                  style="font-size:0.7rem;
+                                  background:{% if 'approved' in log.action %}#d1e7dd{% elif 'rejected' in log.action or 'terminated' in log.action %}#f8d7da{% elif 'submitted' in log.action %}#cfe2ff{% else %}#e9ecef{% endif %}">
+                                {{ log.action }}
+                            </span>
+                        </div>
+                        <div class="text-muted small mb-2">{{ log.created_at|date:"M d, Y · H:i" }}</div>
+                        {% if log.notes %}
+                        <div class="small text-muted px-2 py-1 rounded"
+                             style="background:#f8f9fa;border-left:3px solid {% if 'approved' in log.action %}#198754{% elif 'rejected' in log.action or 'terminated' in log.action %}#dc3545{% elif 'submitted' in log.action %}#0d6efd{% else %}#6c757d{% endif %}">
+                            {{ log.notes }}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
 
         <!-- Back links (when no action sidebar) -->
-        {% if not can_manager_approve and not can_finance_approve and not can_provision and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' %}
+        {% if not can_manager_approve and not can_finance_approve and not can_renew and not can_terminate and obj.state != 'active_pending_renewal' and obj.state != 'renewing' %}
         <div class="d-flex justify-content-between pt-2">
             <a href="{% url 'ams_approvals:all_requests' %}" class="small text-decoration-none">← Back to Requests</a>
             <a href="{% url 'ams_approvals:inbox' %}" class="small text-decoration-none">← Back to Inbox</a>
@@ -215,17 +209,18 @@
     </div>
 
     <!-- Action sidebar -->
-    {% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' %}
+    {% if can_manager_approve or can_finance_approve or can_renew or can_terminate or obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}
     <div class="col-md-4">
 
         {% if can_manager_approve %}
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-success bg-opacity-10 border-bottom fw-semibold text-success">
-                <i class="bi bi-check-circle me-1"></i>Manager Approval
+            <div class="card-header bg-white border-bottom fw-semibold">
+                {% if obj.state == 'active_pending_renewal' %}Approve Renewal{% else %}Manager Approval{% endif %}
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
                     {% csrf_token %}
+                    {% if obj.state == 'pending_manager' %}
                     <label class="form-label small text-muted mb-1">Send to Finance Executive</label>
                     <select name="finance_id" id="finance_select" class="form-select form-select-sm mb-2" required>
                         <option value="">Type to search...</option>
@@ -242,14 +237,15 @@
                             });
                         });
                     </script>
+                    {% endif %}
                     <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
                     <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
                 </form>
             </div>
         </div>
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-danger bg-opacity-10 border-bottom fw-semibold text-danger">
-                <i class="bi bi-x-circle me-1"></i>Reject Request
+            <div class="card-header bg-white border-bottom fw-semibold">
+                {% if obj.state == 'active_pending_renewal' %}Reject Renewal{% else %}Reject Request{% endif %}
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
@@ -262,49 +258,149 @@
         {% endif %}
 
         {% if can_finance_approve %}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-success bg-opacity-10 border-bottom fw-semibold text-success">
-                <i class="bi bi-check-circle me-1"></i>{% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
+        <div id="finance-action-panel">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom fw-semibold">
+                    {% if obj.state == 'renewing' %}Approve Renewal{% else %}Finance Approval{% endif %}
+                </div>
+                <div class="card-body">
+                    <form id="finance-approve-form" method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
+                        {% csrf_token %}
+                        <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
+                        <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_approve' obj.pk %}">
-                    {% csrf_token %}
-                    <textarea name="comment" rows="2" placeholder="Optional comment…" class="form-control form-control-sm mb-2"></textarea>
-                    <button type="submit" class="btn btn-success btn-sm w-100">Approve</button>
-                </form>
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom fw-semibold">
+                    Reject Request
+                </div>
+                <div class="card-body">
+                    <form id="finance-reject-form" method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
+                        {% csrf_token %}
+                        <textarea name="reason" rows="2" placeholder="Reason for rejection…" class="form-control form-control-sm mb-2" required></textarea>
+                        <button type="submit" class="btn btn-danger btn-sm w-100">Reject</button>
+                    </form>
+                </div>
             </div>
         </div>
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-danger bg-opacity-10 border-bottom fw-semibold text-danger">
-                <i class="bi bi-x-circle me-1"></i>Reject Request
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_reject' obj.pk %}">
-                    {% csrf_token %}
-                    <textarea name="reason" rows="2" placeholder="Reason for rejection…" class="form-control form-control-sm mb-2" required></textarea>
-                    <button type="submit" class="btn btn-danger btn-sm w-100">Reject</button>
-                </form>
-            </div>
-        </div>
+        <div id="finance-action-result" class="d-none"></div>
+
+        <script>
+        (function () {
+            function handleFinanceAction(formId, type) {
+                var form = document.getElementById(formId);
+                if (!form) return;
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var textarea = form.querySelector('textarea');
+                    if (textarea && textarea.required && !textarea.value.trim()) {
+                        textarea.classList.add('is-invalid');
+                        return;
+                    }
+                    var panel = document.getElementById('finance-action-panel');
+                    var result = document.getElementById('finance-action-result');
+                    var btn = form.querySelector('button[type="submit"]');
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Processing…';
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        redirect: 'follow'
+                    }).then(function () {
+                        panel.classList.add('d-none');
+                        result.classList.remove('d-none');
+                        if (type === 'approve') {
+                            result.innerHTML =
+                                '<div class="alert alert-success d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                                '<i class="bi bi-check-circle-fill fs-4 flex-shrink-0"></i>' +
+                                '<div><strong>Approved!</strong><br><span class="small">The request has been successfully approved.</span></div>' +
+                                '</div>';
+                        } else {
+                            result.innerHTML =
+                                '<div class="alert alert-danger d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                                '<i class="bi bi-x-circle-fill fs-4 flex-shrink-0"></i>' +
+                                '<div><strong>Rejected.</strong><br><span class="small">The request has been rejected.</span></div>' +
+                                '</div>';
+                        }
+                    }).catch(function () {
+                        btn.disabled = false;
+                        btn.innerHTML = type === 'approve' ? 'Approve' : 'Reject';
+                        result.classList.remove('d-none');
+                        result.innerHTML =
+                            '<div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">' +
+                            '<i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>' +
+                            '<div><strong>Error.</strong><br><span class="small">Something went wrong. Please try again.</span></div>' +
+                            '</div>';
+                    });
+                });
+            }
+
+            handleFinanceAction('finance-approve-form', 'approve');
+            handleFinanceAction('finance-reject-form', 'reject');
+        })();
+        </script>
         {% endif %}
 
         {% if can_renew %}
         <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-primary bg-opacity-10 border-bottom fw-semibold text-primary">
-                <i class="bi bi-arrow-repeat me-1"></i>Renewal
+            <div class="card-header bg-warning bg-opacity-10 border-bottom fw-semibold text-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>Renewal Due
             </div>
             <div class="card-body">
-                <form method="post" action="{% url 'ams_approvals:action_renew' obj.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary btn-sm w-100">Initiate Renewal</button>
-                </form>
+                {% if obj.expires_on %}
+                <p class="small text-muted mb-2">Expires <strong class="text-danger">{{ obj.expires_on|date:"M d, Y" }}</strong></p>
+                {% endif %}
+                <button type="button" class="btn btn-primary btn-sm w-100"
+                        data-bs-toggle="modal" data-bs-target="#renewalModal">
+                    <i class="bi bi-arrow-repeat me-1"></i>Renew Subscription
+                </button>
             </div>
         </div>
+
+        {% elif obj.state == 'active_pending_renewal' and obj.submitted_by == request.user %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-warning bg-opacity-10 border-bottom fw-semibold text-warning">
+                <i class="bi bi-arrow-repeat me-1"></i>Complete Renewal
+            </div>
+            <div class="card-body">
+                <div class="small text-muted">Renewal pending manager approval.</div>
+            </div>
+        </div>
+
+        {% elif obj.state == 'active_pending_renewal' and can_manager_approve %}
+        <div class="alert alert-warning mb-3">
+            <div class="fw-semibold small">Renewal Awaiting Your Approval</div>
+            <div class="small">Review the proposed renewal values and approve or reject.</div>
+        </div>
+
         {% elif obj.state == 'active_pending_renewal' %}
         <div class="alert alert-warning mb-3">
-            <div class="fw-semibold small">Awaiting Renewal Submission</div>
-            <div class="small">The subscription owner needs to confirm and submit this renewal.</div>
+            <div class="fw-semibold small">Awaiting Manager Approval</div>
+            <div class="small">This renewal is pending manager review.</div>
         </div>
+        {% endif %}
+
+        {% if obj.state == 'active_pending_renewal' or obj.state == 'renewing' %}
+        {% if obj.renewal_expires_on or obj.renewal_cost %}
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-info bg-opacity-10 border-bottom fw-semibold text-info small">
+                <i class="bi bi-info-circle me-1"></i>Proposed Renewal Values
+            </div>
+            <div class="card-body small">
+                <div class="row g-2">
+                    <div class="col-6 text-muted">New Expiry</div>
+                    <div class="col-6 fw-semibold">{{ obj.renewal_expires_on|date:"M d, Y"|default:"—" }}</div>
+                    {% if obj.amount_type == 'variable' %}
+                    <div class="col-6 text-muted">New Cost</div>
+                    <div class="col-6 fw-semibold">{% if obj.renewal_cost %}${{ obj.renewal_cost }}{% else %}—{% endif %}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
 
         {% if can_terminate %}
@@ -328,3 +424,91 @@
     {% endif %}
 
 </div>
+
+{% if can_renew or obj.state == 'active_pending_renewal' and obj.submitted_by == request.user %}
+<div class="modal fade" id="renewalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-arrow-repeat me-2 text-primary"></i>Renew Subscription
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'ams_approvals:action_renew' obj.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3 p-3 bg-light rounded small">
+                        <div class="text-muted mb-1">Current subscription</div>
+                        <div class="fw-semibold">{{ obj.service_name }}</div>
+                        {% if obj.expires_on %}<div>Expires: <span class="text-danger">{{ obj.expires_on|date:"M d, Y" }}</span></div>{% endif %}
+                        {% if obj.cost %}<div>Cost: ${{ obj.cost }} / {{ obj.get_billing_period_display }}</div>{% endif %}
+                    </div>
+
+                    {% if request.user.role == 'employee' %}
+                    <div class="mb-3">
+                        <label for="renewal_manager_id" class="form-label fw-semibold small">
+                            Manager <span class="text-danger">*</span>
+                        </label>
+                        <select id="renewal_manager_id" name="manager_id" class="form-select form-select-sm" required>
+                            <option value="">— Select manager —</option>
+                            {% for m in managers %}
+                            <option value="{{ m.id }}"
+                                {% if obj.submitted_by.reports_to_id == m.id %}selected{% endif %}>
+                                {{ m.display_name }}
+                            </option>
+                            {% empty %}
+                            {% endfor %}
+                        </select>
+                        {% if not managers %}
+                        <div class="form-text text-danger">No managers available. Contact your administrator.</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if obj.amount_type == 'variable' %}
+                    <div class="mb-3">
+                        <label for="renewal_cost" class="form-label fw-semibold small">
+                            New Cost (USD) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="renewal_cost" name="renewal_cost"
+                                   class="form-control" step="0.01" min="0" required
+                                   placeholder="e.g. 199.00">
+                        </div>
+                        {% if obj.cost %}
+                        <div class="form-text">
+                            Current: ${{ obj.cost }}
+                            &nbsp;·&nbsp;
+                            <a href="#" class="text-primary text-decoration-none fw-semibold"
+                               onclick="document.getElementById('renewal_cost').value='{{ obj.cost }}'; return false;">
+                                Use current amount
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="form-text">No current cost set.</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {% if request.user.role == 'employee' %}
+                            Submitted to your manager for approval first.
+                        {% else %}
+                            Submitted directly to finance for approval.
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-send me-1"></i>Submit for Approval
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}

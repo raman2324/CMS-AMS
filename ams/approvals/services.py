@@ -44,79 +44,41 @@ def _require_role(actor, *roles):
 @transaction.atomic
 def submit(request_obj, actor):
     """
-    Submit a new request.
-    Manager role → skips manager approval, goes directly to pending_finance.
-    Everyone else → pending_manager.
+    Submit a new request. Every request goes to pending_manager first.
+    The approver is taken from the form selection, falling back to actor.reports_to.
     """
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
-    from ams.approvals.models import ApprovalRequest
     from django.utils import timezone
 
-    if actor.role in (User.ROLE_MANAGER, User.ROLE_FINANCE_EXECUTIVE):
-        # Manager → routes to chosen Finance Executive
-        # Finance Executive → routes exclusively to Finance Head
-        if actor.role == User.ROLE_FINANCE_EXECUTIVE:
-            finance_exec = _get_finance_head_admin()
-        else:
-            finance_exec = request_obj.finance_approver or _get_finance_head()
-        request_obj.current_approver = finance_exec
-        request_obj.save()
-        ApprovalRequest.objects.filter(pk=request_obj.pk).update(state='pending_finance')
-        request_obj = ApprovalRequest.objects.get(pk=request_obj.pk)
+    manager = request_obj.current_approver or actor.reports_to
+    request_obj.current_approver = manager
+    request_obj.save()
 
-        AuditLog.objects.create(
-            actor=actor,
-            action='submitted',
-            target_type='request',
-            target_id=request_obj.id,
-            notes='Submitted by manager/finance executive — sent directly to finance',
-            payload={'finance_exec_id': str(finance_exec.id) if finance_exec else None},
-        )
-        if finance_exec:
-            send_notification(
-                subject_id=request_obj.id,
-                action_type='pending_finance',
-                target_date=timezone.now().date(),
-                recipient=finance_exec,
-                subject=f'New approval needed: {request_obj.title}',
-                body=(
-                    f'Manager {actor.display_name} submitted a '
-                    f'{request_obj.get_request_type_display()} request for finance approval.\n\n'
-                    f'Service: {request_obj.service_name or "N/A"}\n'
-                    f'Cost: {request_obj.cost or "N/A"}\n'
-                    f'Justification: {request_obj.justification}'
-                ),
-            )
-    else:
-        # Employee → pending_manager
-        manager = request_obj.current_approver or actor.reports_to
-        request_obj.current_approver = manager
-        request_obj.save()
+    AuditLog.objects.create(
+        actor=actor,
+        action='submitted',
+        target_type='request',
+        target_id=request_obj.id,
+        notes='Submitted for manager approval',
+        payload={'manager_id': str(manager.id) if manager else None},
+    )
 
-        AuditLog.objects.create(
-            actor=actor,
-            action='submitted',
-            target_type='request',
-            target_id=request_obj.id,
-            notes='Submitted for manager approval',
-            payload={'manager_id': str(manager.id) if manager else None},
+    if manager:
+        send_notification(
+            subject_id=request_obj.id,
+            action_type='pending_manager',
+            target_date=timezone.now().date(),
+            recipient=manager,
+            subject=f'Approval needed: {request_obj.title}',
+            body=(
+                f'{actor.display_name} has submitted a '
+                f'{request_obj.get_request_type_display()} request.\n\n'
+                f'Service: {request_obj.service_name or "N/A"}\n'
+                f'Cost: {request_obj.cost or "N/A"}\n'
+                f'Justification: {request_obj.justification}'
+            ),
         )
-        if manager:
-            send_notification(
-                subject_id=request_obj.id,
-                action_type='pending_manager',
-                target_date=timezone.now().date(),
-                recipient=manager,
-                subject=f'Approval needed: {request_obj.title}',
-                body=(
-                    f'{actor.display_name} has submitted a '
-                    f'{request_obj.get_request_type_display()} request.\n\n'
-                    f'Service: {request_obj.service_name or "N/A"}\n'
-                    f'Cost: {request_obj.cost or "N/A"}\n'
-                    f'Justification: {request_obj.justification}'
-                ),
-            )
 
     return request_obj
 
@@ -133,7 +95,7 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
     if actor.role not in (User.ROLE_MANAGER, User.ROLE_ADMIN) and actor != request_obj.current_approver:
         raise PermissionDenied('You are not the assigned manager approver.')
 
-    # Resolve finance executive: manager's choice → employee's pre-selection → first active
+    # Resolve chosen finance executive, fall back to first active finance user
     finance_exec = None
     if finance_user_id:
         try:
@@ -142,8 +104,6 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
             )
         except User.DoesNotExist:
             pass
-    if finance_exec is None and request_obj.finance_approver:
-        finance_exec = request_obj.finance_approver
     if finance_exec is None:
         finance_exec = _get_finance_head()
 
@@ -242,7 +202,7 @@ def manager_reject(request_obj, actor, reason=''):
 
 @transaction.atomic
 def finance_approve(request_obj, actor, comment=''):
-    """Finance approves → active (subscription) or approved (expense)."""
+    """Finance approves → provisioning (subscription) or approved (expense)."""
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
     from django.utils import timezone
@@ -254,8 +214,11 @@ def finance_approve(request_obj, actor, comment=''):
     if request_obj.request_type == 'subscription':
         request_obj.finance_approve_subscription(comment=comment)
         request_obj.current_approver = None
+        # Set expiry from the approval date based on billing period
+        approval_date = timezone.now().date()
+        request_obj.expires_on = _expiry_from_billing(request_obj.billing_period, approval_date)
         action = 'finance_approved_subscription'
-        next_state_msg = 'now active'
+        next_state_msg = 'active'
     else:
         request_obj.finance_approve_expense(comment=comment)
         request_obj.current_approver = None
@@ -328,21 +291,93 @@ def finance_reject(request_obj, actor, reason=''):
 
 
 @transaction.atomic
-def initiate_renewal(request_obj, actor):
-    """Move active subscription to renewal workflow."""
+def initiate_renewal(request_obj, actor, renewal_cost=None, manager_id=None):
+    """Move active subscription to renewal workflow with full approval flow."""
     from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
+    from django.utils import timezone
+
+    # Always auto-calculate the new expiry from the current expires_on + billing period,
+    # so the user never loses subscription days.
+    renewal_expires_on = _expiry_from_billing(request_obj.billing_period, request_obj.expires_on)
 
     if request_obj.state == 'active':
-        request_obj.extend_pending()
-        request_obj.save()
-        AuditLog.objects.create(
-            actor=actor,
-            action='renewal_initiated',
-            target_type='request',
-            target_id=request_obj.id,
-            notes='Subscription marked active_pending_renewal',
-        )
+        request_obj.renewal_expires_on = renewal_expires_on
+        request_obj.renewal_cost = renewal_cost
+
+        if actor.role in (User.ROLE_MANAGER, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN):
+            # Manager/Finance: skip manager step, go directly to renewing
+            finance_head = _get_finance_head()
+            request_obj.extend_pending()
+            request_obj.start_renewal()
+            request_obj.current_approver = finance_head
+            request_obj.save()
+            AuditLog.objects.create(
+                actor=actor,
+                action='renewal_submitted',
+                target_type='request',
+                target_id=request_obj.id,
+                notes='Renewal submitted directly to finance',
+                payload={
+                    'finance_approver_id': str(finance_head.id) if finance_head else None,
+                    'renewal_expires_on': str(renewal_expires_on) if renewal_expires_on else None,
+                    'renewal_cost': str(renewal_cost) if renewal_cost else None,
+                },
+            )
+            if finance_head:
+                send_notification(
+                    subject_id=request_obj.id,
+                    action_type='renewal_pending_finance',
+                    target_date=timezone.now().date(),
+                    recipient=finance_head,
+                    subject=f'Renewal approval needed: {request_obj.title}',
+                    body=(
+                        f'{actor.display_name} submitted a renewal for {request_obj.service_name}.\n'
+                        f'Proposed expiry: {renewal_expires_on}'
+                    ),
+                )
+        else:
+            # Employee: goes to manager first
+            manager = None
+            if manager_id:
+                try:
+                    manager = User.objects.get(id=manager_id, role=User.ROLE_MANAGER, is_active=True)
+                except User.DoesNotExist:
+                    pass
+            if manager is None:
+                manager = actor.reports_to
+            request_obj.extend_pending()
+            request_obj.current_approver = manager
+            request_obj.save()
+            AuditLog.objects.create(
+                actor=actor,
+                action='renewal_submitted',
+                target_type='request',
+                target_id=request_obj.id,
+                notes='Renewal submitted for manager approval',
+                payload={
+                    'manager_id': str(manager.id) if manager else None,
+                    'renewal_expires_on': str(renewal_expires_on) if renewal_expires_on else None,
+                },
+            )
+            if manager:
+                send_notification(
+                    subject_id=request_obj.id,
+                    action_type='renewal_pending_manager',
+                    target_date=timezone.now().date(),
+                    recipient=manager,
+                    subject=f'Renewal approval needed: {request_obj.title}',
+                    body=(
+                        f'{actor.display_name} submitted a renewal for {request_obj.service_name}.\n'
+                        f'Proposed expiry: {renewal_expires_on}'
+                    ),
+                )
+
     elif request_obj.state == 'active_pending_renewal':
+        # Backward compat: requests already in active_pending_renewal — push to finance
+        request_obj.renewal_expires_on = renewal_expires_on
+        if renewal_cost is not None:
+            request_obj.renewal_cost = renewal_cost
         finance_head = _get_finance_head()
         request_obj.start_renewal()
         request_obj.current_approver = finance_head
@@ -352,10 +387,87 @@ def initiate_renewal(request_obj, actor):
             action='renewal_submitted',
             target_type='request',
             target_id=request_obj.id,
-            notes='Renewal submitted for finance approval',
+            notes='Renewal submitted to finance',
             payload={'finance_approver_id': str(finance_head.id) if finance_head else None},
         )
 
+    return request_obj
+
+
+@transaction.atomic
+def manager_approve_renewal(request_obj, actor, comment=''):
+    """Manager approves a renewal → moves to renewing for finance."""
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
+    from django.utils import timezone
+
+    if request_obj.state != 'active_pending_renewal':
+        raise PermissionDenied('Request is not awaiting renewal approval.')
+    if actor.role not in (User.ROLE_MANAGER, User.ROLE_ADMIN) and actor != request_obj.current_approver:
+        raise PermissionDenied('You are not the assigned manager for this renewal.')
+
+    finance_head = _get_finance_head()
+    request_obj.start_renewal()
+    request_obj.current_approver = finance_head
+    request_obj.manager_comment = comment
+    request_obj.save()
+
+    AuditLog.objects.create(
+        actor=actor,
+        action='renewal_manager_approved',
+        target_type='request',
+        target_id=request_obj.id,
+        notes=comment or 'Manager approved renewal',
+    )
+    if finance_head:
+        send_notification(
+            subject_id=request_obj.id,
+            action_type='renewal_pending_finance',
+            target_date=timezone.now().date(),
+            recipient=finance_head,
+            subject=f'Renewal approval needed: {request_obj.title}',
+            body=(
+                f'Manager {actor.display_name} approved renewal for {request_obj.service_name}.\n'
+                f'Proposed expiry: {request_obj.renewal_expires_on}'
+            ),
+        )
+    return request_obj
+
+
+@transaction.atomic
+def manager_reject_renewal(request_obj, actor, reason=''):
+    """Manager rejects a renewal — subscription stays active."""
+    from ams.audit.models import AuditLog
+    from ams.notifications.services import send_notification
+    from django.utils import timezone
+
+    if request_obj.state != 'active_pending_renewal':
+        raise PermissionDenied('Request is not awaiting renewal approval.')
+
+    request_obj.renewal_cancelled(reason=reason)
+    request_obj.renewal_expires_on = None
+    request_obj.renewal_cost = None
+    request_obj.current_approver = None
+    request_obj.save()
+
+    AuditLog.objects.create(
+        actor=actor,
+        action='renewal_manager_rejected',
+        target_type='request',
+        target_id=request_obj.id,
+        notes=reason or 'Manager rejected renewal',
+    )
+    send_notification(
+        subject_id=request_obj.id,
+        action_type='renewal_rejected_by_manager',
+        target_date=timezone.now().date(),
+        recipient=request_obj.submitted_by,
+        subject=f'Renewal rejected: {request_obj.title}',
+        body=(
+            f'Your renewal was rejected by {actor.display_name}.\n'
+            f'Reason: {reason}\nYour subscription remains active.'
+        ),
+    )
     return request_obj
 
 
@@ -373,9 +485,23 @@ def complete_renewal(request_obj, actor, approved=True, reason=''):
     if approved:
         request_obj.renewal_approved()
         request_obj.current_approver = None
-        new_expiry = _expiry_from_billing(request_obj.billing_period, timezone.now().date())
-        if new_expiry:
-            request_obj.expires_on = new_expiry
+
+        # Use proposed expiry; fallback to auto-calculate for legacy requests
+        if request_obj.renewal_expires_on:
+            request_obj.expires_on = request_obj.renewal_expires_on
+        else:
+            new_expiry = _expiry_from_billing(request_obj.billing_period, timezone.now().date())
+            if new_expiry:
+                request_obj.expires_on = new_expiry
+
+        # Apply proposed cost for variable subscriptions
+        if request_obj.renewal_cost is not None:
+            request_obj.cost = request_obj.renewal_cost
+
+        # Clear staging fields
+        request_obj.renewal_expires_on = None
+        request_obj.renewal_cost = None
+
         request_obj.save()
         AuditLog.objects.create(
             actor=actor,
@@ -383,6 +509,7 @@ def complete_renewal(request_obj, actor, approved=True, reason=''):
             target_type='request',
             target_id=request_obj.id,
             notes='Renewal approved by finance',
+            payload={'new_expires_on': str(request_obj.expires_on), 'new_cost': str(request_obj.cost) if request_obj.cost else None},
         )
         send_notification(
             subject_id=request_obj.id,
@@ -390,7 +517,7 @@ def complete_renewal(request_obj, actor, approved=True, reason=''):
             target_date=timezone.now().date(),
             recipient=request_obj.submitted_by,
             subject=f'Renewal approved: {request_obj.title}',
-            body=f'Your subscription renewal for {request_obj.service_name} has been approved.',
+            body=f'Your subscription renewal for {request_obj.service_name} has been approved.\nNew expiry: {request_obj.expires_on}.',
         )
     else:
         request_obj.renewal_rejected(reason=reason)

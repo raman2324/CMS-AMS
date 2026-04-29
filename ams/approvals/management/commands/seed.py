@@ -9,7 +9,7 @@ from django.db import transaction
 
 PASSWORD = 'Pass@1234'
 
-# Roles: admin, finance_head, finance_executive, manager, employee, viewer, it
+# Roles: admin, finance_head, finance_executive, manager, employee, viewer
 USERS = [
     # ── C-suite / top-level (no reports_to) ──────────────────────────────────
     {

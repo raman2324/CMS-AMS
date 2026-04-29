@@ -40,11 +40,11 @@
       <div class="collapse {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}show{% endif %}" id="cmsMenu">
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' %}active{% endif %}"
            href="{% url 'documents:list' %}">
-          <i class="bi bi-dot me-1"></i>Documents
+          <i class="bi bi-dot me-1"></i>HR Letters
         </a>
         <a class="sidebar-link ps-4 {% if request.resolver_match.app_name == 'uploads' %}active{% endif %}"
            href="{% url 'uploads:list' %}">
-          <i class="bi bi-dot me-1"></i>Other Documents
+          <i class="bi bi-dot me-1"></i>File Uploads
         </a>
         {% if user.role == 'finance_head' or user.role == 'viewer' %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'audit' %}active{% endif %}"
@@ -121,10 +121,25 @@
       </div>
 
       {% if user.role == 'finance_head' %}
-      <a class="sidebar-link {% if 'manage' in request.path %}active{% endif %}"
-         href="{% url 'documents:manage_dashboard' %}">
+      <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#manageMenu"
+              aria-expanded="{% if 'manage' in request.path %}true{% else %}false{% endif %}"
+              aria-controls="manageMenu">
         <i class="bi bi-gear me-2"></i>Manage
-      </a>
+        <i class="bi bi-chevron-down ms-auto small {% if 'manage' in request.path %}rotate-180{% endif %}"></i>
+      </button>
+      <div class="collapse {% if 'manage' in request.path %}show{% endif %}" id="manageMenu">
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'manage_dashboard' %}active{% endif %}"
+           href="{% url 'documents:manage_dashboard' %}">
+          <i class="bi bi-dot me-1"></i>Dashboard
+        </a>
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'manage_audit' %}active{% endif %}"
+           href="{% url 'documents:manage_audit' %}">
+          <i class="bi bi-dot me-1"></i>Audit Log
+        </a>
+      </div>
       {% endif %}
 
     </nav>
@@ -151,9 +166,18 @@
   <main class="main-content {% if not user.is_authenticated %}no-sidebar{% endif %}">
     {% if messages %}
       {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        {% if message.tags == 'success' %}
+          <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+        {% elif message.tags == 'error' or message.tags == 'danger' %}
+          <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+        {% elif message.tags == 'warning' %}
+          <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+        {% else %}
+          <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
+        {% endif %}
+        <div>{{ message }}</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
       </div>
       {% endfor %}
     {% endif %}

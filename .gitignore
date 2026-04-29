@@ -24,6 +24,13 @@ documents/Experience Certificate/
 # Claude Code local settings — machine-specific permissions
 .claude/settings.local.json
 
+# Virtual environment — local Python packages, never commit
+venv/
+
+# Log files
+*.log
+server.log
+
 # Common OS / editor noise
 .DS_Store
 Thumbs.db

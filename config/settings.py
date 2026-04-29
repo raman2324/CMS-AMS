@@ -190,6 +190,12 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # ---------------------------------------------------------------------------
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@example.com")
 EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+SITE_URL = config("SITE_URL", default="http://localhost:8001")
 
 # ---------------------------------------------------------------------------
 # CSRF trusted origins (needed for AMS production deployments)
@@ -253,6 +259,7 @@ SOCIALACCOUNT_PROVIDERS = {
         "APP": {
             "client_id": config("GOOGLE_CLIENT_ID", default=""),
             "secret": config("GOOGLE_CLIENT_SECRET", default=""),
+            "key": "",
         },
         "SCOPE": ["email", "profile"],
         "AUTH_PARAMS": {"access_type": "online"},

@@ -19,6 +19,19 @@
                 {% if req.vendor %}
                 <div class="text-muted small">{{ req.vendor }}</div>
                 {% endif %}
+                {% if expiring_soon_pks and req.pk in expiring_soon_pks %}
+                <div class="mt-1">
+                    <span class="badge bg-warning text-dark" style="font-size:0.65rem">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        {% if req.expires_in_days is not None %}
+                            {% if req.expires_in_days < 0 %}Expired
+                            {% elif req.expires_in_days == 0 %}Expires today
+                            {% else %}Expires in {{ req.expires_in_days }}d
+                            {% endif %}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
             </td>
             <td>
                 {% if req.request_type == 'subscription' %}

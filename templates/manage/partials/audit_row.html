@@ -1,0 +1,45 @@
+<tr class="{{ event.row_cls }}">
+
+  <!-- Source pill -->
+  <td class="ps-3">
+    {% if event.src_type == "user" %}
+    <span class="src-pill src-user" title="User Management"><i class="bi bi-person"></i></span>
+    {% elif event.src_type == "template" %}
+    <span class="src-pill src-template" title="Templates"><i class="bi bi-file-earmark-text"></i></span>
+    {% elif event.src_type == "company" %}
+    <span class="src-pill src-company" title="Companies"><i class="bi bi-building"></i></span>
+    {% else %}
+    <span class="src-pill src-other" title="Other"><i class="bi bi-gear"></i></span>
+    {% endif %}
+  </td>
+
+  <!-- Event badge -->
+  <td>
+    <span class="ev-badge {{ event.badge_cls }}">{{ event.badge_label }}</span>
+  </td>
+
+  <!-- Actor -->
+  <td class="text-muted small">
+    {% if event.actor %}{{ event.actor.username }}{% else %}<em>system</em>{% endif %}
+  </td>
+
+  <!-- Target -->
+  <td class="small">
+    {% if event.src_type == "user" %}
+      <i class="bi bi-person me-1 text-muted"></i>{{ event.display_target }}
+    {% elif event.src_type == "template" %}
+      <i class="bi bi-file-earmark-text me-1 text-muted"></i>{{ event.display_target }}
+    {% elif event.src_type == "company" %}
+      <i class="bi bi-building me-1 text-muted"></i>{{ event.display_target }}
+    {% else %}
+      <span class="text-muted">{{ event.display_target }}</span>
+    {% endif %}
+  </td>
+
+  <!-- Details -->
+  <td class="small text-muted">{{ event.display_details }}</td>
+
+  <!-- Time -->
+  <td class="text-muted small">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
+
+</tr>

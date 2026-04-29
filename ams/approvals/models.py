@@ -40,13 +40,14 @@ STATE_ACTIVE = 'active'
 STATE_ACTIVE_PENDING_RENEWAL = 'active_pending_renewal'
 STATE_RENEWING = 'renewing'
 STATE_TERMINATED = 'terminated'
+STATE_EXPIRED = 'expired'
 
 ALL_STATES = [
     STATE_PENDING_MANAGER, STATE_PENDING_FINANCE,
     STATE_REJECTED_MANAGER, STATE_REJECTED_FINANCE,
     STATE_APPROVED, STATE_PROVISIONING,
     STATE_ACTIVE, STATE_ACTIVE_PENDING_RENEWAL,
-    STATE_RENEWING, STATE_TERMINATED,
+    STATE_RENEWING, STATE_TERMINATED, STATE_EXPIRED,
 ]
 
 PENDING_STATES = [STATE_PENDING_MANAGER, STATE_PENDING_FINANCE]
@@ -63,6 +64,7 @@ STATE_BADGE_COLORS = {
     STATE_ACTIVE_PENDING_RENEWAL: 'badge bg-warning text-dark',
     STATE_RENEWING: 'badge bg-info text-dark',
     STATE_TERMINATED: 'badge bg-dark',
+    STATE_EXPIRED: 'badge bg-danger',
 }
 
 
@@ -99,6 +101,8 @@ class ApprovalRequest(models.Model):
     )
     justification = models.TextField(blank=True)
     expires_on = models.DateField(null=True, blank=True)
+    renewal_expires_on = models.DateField(null=True, blank=True)
+    renewal_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # Misc expense fields
     expense_type = models.CharField(
@@ -143,6 +147,13 @@ class ApprovalRequest(models.Model):
         return self.service_name or 'One-off Expense'
 
     @property
+    def expires_in_days(self):
+        if not self.expires_on:
+            return None
+        from datetime import date
+        return (self.expires_on - date.today()).days
+
+    @property
     def status_steps(self):
         """Approval workflow steps with completion status for progress display."""
         DONE, CURRENT, PENDING, REJECTED = 'done', 'current', 'pending', 'rejected'
@@ -162,9 +173,11 @@ class ApprovalRequest(models.Model):
                 steps[1]['status'] = REJECTED
             elif s == 'pending_finance':
                 steps[1]['status'] = DONE;  steps[2]['status'] = CURRENT
+            elif s == 'provisioning':
+                steps[1]['status'] = DONE;  steps[2]['status'] = DONE;  steps[3]['status'] = CURRENT
             elif s == 'rejected_finance':
                 steps[1]['status'] = DONE;  steps[2]['status'] = REJECTED
-            elif s in ('active', 'active_pending_renewal', 'renewing', 'terminated', 'approved'):
+            elif s in ('active', 'active_pending_renewal', 'renewing', 'terminated', 'approved', 'expired'):
                 steps[1]['status'] = DONE;  steps[2]['status'] = DONE;  steps[3]['status'] = DONE
         else:
             steps = [
@@ -225,6 +238,10 @@ class ApprovalRequest(models.Model):
     def start_renewal(self):
         pass
 
+    @transition(field=state, source=STATE_ACTIVE_PENDING_RENEWAL, target=STATE_ACTIVE)
+    def renewal_cancelled(self, reason=''):
+        self.rejection_reason = reason
+
     @transition(field=state, source=STATE_RENEWING, target=STATE_ACTIVE)
     def renewal_approved(self):
         pass
@@ -233,11 +250,15 @@ class ApprovalRequest(models.Model):
     def renewal_rejected(self, reason=''):
         self.rejection_reason = reason
 
+    @transition(field=state, source=STATE_ACTIVE, target=STATE_EXPIRED)
+    def expire(self):
+        pass
+
     @transition(
         field=state,
         source=[
             STATE_ACTIVE, STATE_ACTIVE_PENDING_RENEWAL,
-            STATE_RENEWING, STATE_APPROVED,
+            STATE_RENEWING, STATE_APPROVED, STATE_EXPIRED,
         ],
         target=STATE_TERMINATED,
     )

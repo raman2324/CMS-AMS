@@ -1,5 +1,11 @@
 {% with is_upload=event.event_type|slice:":7" is_cl=event.event_type|slice:":13" %}
-<tr class="{{ row_cls }}">
+<tr class="{{ row_cls }}"
+  {% if is_upload == "upload." and event.target_id %}
+    onclick="window.location='{% url 'uploads:detail' event.target_id %}'" style="cursor:pointer"
+  {% elif event.target_type == "Document" and event.target_id %}
+    onclick="window.location='{% url 'documents:detail' event.target_id %}'" style="cursor:pointer"
+  {% endif %}
+>
 
   <!-- Source pill -->
   <td class="ps-3">
@@ -14,7 +20,7 @@
 
   <!-- Event badge -->
   <td>
-    <span class="ev-badge {{ badge_cls }}">{{ event.get_event_type_display }}</span>
+    <span class="ev-badge {{ badge_cls }}">{{ badge_label }}</span>
   </td>
 
   <!-- Actor -->

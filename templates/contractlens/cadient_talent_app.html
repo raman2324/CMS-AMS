@@ -163,15 +163,15 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
 <div class="cl-app">
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('extract')">Extract PDFs</div>
+  <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="switchTab('extract')">Extract PDFs</div>
   <div class="tab" onclick="switchTab('groups')">Document Groups</div>
-  <div class="tab" onclick="switchTab('dashboard')">Dashboard</div>
 </div>
 
 <div class="cl-main">
 
 <!-- EXTRACT -->
-<div class="panel active" id="panel-extract">
+<div class="panel" id="panel-extract">
   <div class="section-title">Extract from PDFs</div>
   <div class="section-sub">Upload scanned contracts. Claude extracts all key fields automatically.</div>
   <div style="margin-bottom:16px;background:var(--blue-lt);border:1px solid var(--blue);border-radius:var(--r);padding:14px 16px;">
@@ -263,7 +263,7 @@ textarea.edit-field{resize:vertical;min-height:72px;line-height:1.5;}
 </div>
 
 <!-- DASHBOARD -->
-<div class="panel" id="panel-dashboard">
+<div class="panel active" id="panel-dashboard">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
     <div>
       <div class="section-title">Contract Dashboard</div>
@@ -340,7 +340,7 @@ function saveG(){localStorage.setItem(LS_GROUPS,JSON.stringify(groups));}
 
 // — Tabs —————————————————————————————————————————
 function switchTab(t){
-  ['extract','groups','dashboard'].forEach((id,i)=>{
+  ['dashboard','extract','groups'].forEach((id,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',id===t);
     document.getElementById('panel-'+id).classList.toggle('active',id===t);
   });
@@ -1222,6 +1222,7 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 window.addEventListener('DOMContentLoaded',()=>{
   if(contracts.length)document.getElementById('demo-bar').style.display='none';
   updateBtn();
+  renderDashboard();
 });
 </script>
 {% endblock %}

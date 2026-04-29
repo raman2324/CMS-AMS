@@ -31,10 +31,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label small fw-semibold">Last Day</label>
-                        <input type="date" name="last_day" class="form-control form-control-sm">
-                    </div>
                 </div>
             </form>
         </div>
@@ -95,11 +91,31 @@
                         <label class="form-label small fw-semibold">Last Day</label>
                         <input type="date" name="last_day" required class="form-control form-control-sm">
                     </div>
-                    <div class="col-md-6">
-                        <button type="submit" class="btn btn-danger btn-sm"
-                            onclick="return confirm('Are you sure you want to offboard {{ selected_user.display_name }}? This action cannot be undone.')">
+                    <div class="col-md-6 d-flex flex-column gap-2">
+                        <!-- Step 1: initial button -->
+                        <button type="button" id="offboard-step1" class="btn btn-danger btn-sm"
+                                onclick="document.getElementById('offboard-step1').classList.add('d-none');
+                                         document.getElementById('offboard-step2').classList.remove('d-none');">
                             <i class="bi bi-person-x me-1"></i>Confirm Offboard
                         </button>
+
+                        <!-- Step 2: confirmation prompt (hidden until step 1 clicked) -->
+                        <div id="offboard-step2" class="d-none">
+                            <div class="alert alert-danger py-2 px-3 mb-2 small fw-semibold">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                This will permanently offboard <strong>{{ selected_user.display_name }}</strong> and cannot be undone.
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-check-lg me-1"></i>Yes, Offboard
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                        onclick="document.getElementById('offboard-step2').classList.add('d-none');
+                                                 document.getElementById('offboard-step1').classList.remove('d-none');">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>

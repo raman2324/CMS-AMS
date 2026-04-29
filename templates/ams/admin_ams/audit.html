@@ -64,26 +64,30 @@
                 <tr>
                     <th>Timestamp</th>
                     <th>Actor</th>
-                    <th>Action</th>
+                    <th>Service Name</th>
                     <th>Target</th>
-                    <th>Notes</th>
+                    <th>Approved By</th>
                 </tr>
             </thead>
             <tbody>
                 {% for log in logs %}
-                <tr>
+                <tr {% if log.target_type == 'request' %}onclick="window.location='{% url 'ams_approvals:request_detail' log.target_id %}'" style="cursor:pointer"{% endif %}>
                     <td class="text-muted small">{{ log.created_at|date:"M d Y H:i" }}</td>
                     <td>{{ log.actor.display_name|default:"system" }}</td>
-                    <td>
-                        <span class="badge bg-light text-dark border font-monospace small">{{ log.action }}</span>
-                    </td>
+                    <td class="fw-medium">{{ log.service_name_display }}</td>
                     <td class="text-muted small">
                         {{ log.target_type }}#{{ log.target_id }}
                         {% if log.target_type == 'request' %}
                         <a href="{% url 'ams_approvals:request_detail' log.target_id %}" class="ms-1">↗</a>
                         {% endif %}
                     </td>
-                    <td class="text-muted small" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ log.notes }}</td>
+                    <td class="small">
+                        {% if log.action == "submitted" or log.action == "renewal_submitted" %}
+                        <span class="text-muted">—</span>
+                        {% else %}
+                        {{ log.actor.display_name|default:"—" }}
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
