@@ -95,7 +95,7 @@ def manage_user_edit(request, user_id):
                     actor=request.user,
                     target_type="User",
                     target_id=str(user.id),
-                    metadata={"action": "role_changed", "from": old_role, "to": user.role},
+                    metadata={"action": "role_changed", "from": old_role, "to": user.role, "username": user.username},
                 )
             messages.success(request, f"User \"{user.username}\" updated.")
             return redirect("documents:manage_users")
@@ -124,7 +124,7 @@ def manage_user_deactivate(request, user_id):
         actor=request.user,
         target_type="User",
         target_id=str(target.id),
-        metadata={"username": target.username},
+        metadata={"username": target.username, "role": target.role},
     )
     messages.success(request, f"User \"{target.username}\" has been deactivated.")
     return redirect("documents:manage_users")
@@ -434,7 +434,8 @@ def _annotate_manage_event(event):
             event.badge_label    = "Role Changed"
             event.badge_cls      = "warning"
             event.row_cls        = "ev-warning"
-            event.display_target  = meta.get("username", "—")
+            username = meta.get("username") or event.target_id
+            event.display_target  = username if username else "—"
             fr = _ROLE_LABELS.get(meta.get("from", ""), meta.get("from", "?"))
             to = _ROLE_LABELS.get(meta.get("to", ""), meta.get("to", "?"))
             event.display_details = f"{fr} → {to}"
@@ -445,7 +446,8 @@ def _annotate_manage_event(event):
         event.badge_cls       = "danger"
         event.row_cls         = "ev-danger"
         event.display_target  = meta.get("username", "—")
-        event.display_details = "—"
+        role = _ROLE_LABELS.get(meta.get("role", ""), meta.get("role", ""))
+        event.display_details = f"Was: {role}" if role else "—"
 
     elif event.event_type == "template.published":
         event.src_type = "template"

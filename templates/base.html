@@ -68,7 +68,7 @@
       <div class="collapse {% if 'contract-lens' in request.path %}show{% endif %}" id="contractLensMenu">
         <a class="sidebar-link ps-4 {% if 'cadient' in request.path %}active{% endif %}"
            href="{% url 'documents:cadient_talent' %}">
-          <i class="bi bi-dot me-1"></i>Cadient Talent
+          <i class="bi bi-dot me-1"></i>Contract Suite
         </a>
         {% if user.role == 'finance_head' or user.role == 'viewer' %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'contractlens_audit' %}active{% endif %}"
