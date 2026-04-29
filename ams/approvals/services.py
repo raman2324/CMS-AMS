@@ -214,6 +214,9 @@ def finance_approve(request_obj, actor, comment=''):
     if request_obj.request_type == 'subscription':
         request_obj.finance_approve_subscription(comment=comment)
         request_obj.current_approver = None
+        # Set expiry from the approval date based on billing period
+        approval_date = timezone.now().date()
+        request_obj.expires_on = _expiry_from_billing(request_obj.billing_period, approval_date)
         action = 'finance_approved_subscription'
         next_state_msg = 'active'
     else:
@@ -288,11 +291,15 @@ def finance_reject(request_obj, actor, reason=''):
 
 
 @transaction.atomic
-def initiate_renewal(request_obj, actor, renewal_expires_on=None, renewal_cost=None, manager_id=None):
+def initiate_renewal(request_obj, actor, renewal_cost=None, manager_id=None):
     """Move active subscription to renewal workflow with full approval flow."""
     from ams.audit.models import AuditLog
     from ams.notifications.services import send_notification
     from django.utils import timezone
+
+    # Always auto-calculate the new expiry from the current expires_on + billing period,
+    # so the user never loses subscription days.
+    renewal_expires_on = _expiry_from_billing(request_obj.billing_period, request_obj.expires_on)
 
     if request_obj.state == 'active':
         request_obj.renewal_expires_on = renewal_expires_on
@@ -368,8 +375,7 @@ def initiate_renewal(request_obj, actor, renewal_expires_on=None, renewal_cost=N
 
     elif request_obj.state == 'active_pending_renewal':
         # Backward compat: requests already in active_pending_renewal — push to finance
-        if renewal_expires_on:
-            request_obj.renewal_expires_on = renewal_expires_on
+        request_obj.renewal_expires_on = renewal_expires_on
         if renewal_cost is not None:
             request_obj.renewal_cost = renewal_cost
         finance_head = _get_finance_head()

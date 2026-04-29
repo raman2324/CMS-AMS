@@ -466,16 +466,6 @@
                     </div>
                     {% endif %}
 
-                    <div class="mb-3">
-                        <label for="renewal_expires_on" class="form-label fw-semibold small">
-                            New Expiry Date <span class="text-danger">*</span>
-                        </label>
-                        <input type="date" id="renewal_expires_on" name="renewal_expires_on"
-                               class="form-control form-control-sm" required
-                               min="{{ today|date:'Y-m-d' }}">
-                        <div class="form-text">Proposed new expiry date for this subscription.</div>
-                    </div>
-
                     {% if obj.amount_type == 'variable' %}
                     <div class="mb-3">
                         <label for="renewal_cost" class="form-label fw-semibold small">

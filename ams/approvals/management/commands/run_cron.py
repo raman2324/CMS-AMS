@@ -2,13 +2,19 @@
 Management command: python manage.py run_cron
 
 Checks:
-1. Subscriptions expiring in 14 days → send renewal reminder (idempotent)
+1. Subscriptions expiring in exactly 10, 5, or 1 day(s) → send staged renewal reminders
 2. Subscriptions in 'renewing' state past their expires_on → move to active_pending_renewal
 3. Subscriptions in 'active_pending_renewal' past 30 days → escalate to finance
 """
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
+
+REMINDER_SCHEDULE = [
+    (10, 'renewal_reminder_10d', 'Renewal reminder'),
+    (5,  'renewal_reminder_5d',  'Renewal reminder'),
+    (1,  'renewal_reminder_1d',  'Final renewal reminder — expires tomorrow'),
+]
 
 
 class Command(BaseCommand):
@@ -28,47 +34,93 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE(f'[run_cron] Starting cron run for {today}'))
 
         self._check_renewal_reminders(today, dry_run)
+        self._check_expired_subscriptions(today, dry_run)
         self._check_expired_renewing(today, dry_run)
         self._check_escalations(today, dry_run)
 
         self.stdout.write(self.style.SUCCESS('[run_cron] Done.'))
 
     def _check_renewal_reminders(self, today, dry_run):
-        """Send renewal reminders for subscriptions expiring within 14 days."""
+        """Send renewal reminders at 10, 5, and 1 day(s) before expiry."""
         from ams.approvals.models import ApprovalRequest
         from ams.notifications.services import send_notification
 
-        threshold = today + timedelta(days=14)
-        upcoming = ApprovalRequest.objects.filter(
-            request_type='subscription',
-            state='active',
-            expires_on__lte=threshold,
-            expires_on__gte=today,
-        ).select_related('submitted_by')
+        for days_left, action_type, label in REMINDER_SCHEDULE:
+            target_date = today + timedelta(days=days_left)
+            due = ApprovalRequest.objects.filter(
+                request_type='subscription',
+                state='active',
+                expires_on=target_date,
+            ).select_related('submitted_by')
 
-        self.stdout.write(f'[run_cron] Renewal reminders: {upcoming.count()} subscriptions expiring within 14 days')
+            self.stdout.write(
+                f'[run_cron] {label} ({days_left}d): {due.count()} subscription(s) expiring on {target_date}'
+            )
 
-        for req in upcoming:
-            days_left = (req.expires_on - today).days
-            self.stdout.write(f'  >> {req.service_name} (id={req.id}) expires in {days_left} days')
+            for req in due:
+                self.stdout.write(f'  >> {req.service_name} (id={req.id}) expires in {days_left} day(s)')
 
-            if not dry_run:
-                sent = send_notification(
-                    subject_id=req.id,
-                    action_type='renewal_reminder_14d',
-                    target_date=req.expires_on,
-                    recipient=req.submitted_by,
-                    subject=f'Renewal reminder: {req.service_name} expires in {days_left} days',
-                    body=(
+                if days_left == 1:
+                    subject = f'Final reminder: {req.service_name} expires tomorrow'
+                    body = (
+                        f'Your subscription to {req.service_name} expires TOMORROW ({req.expires_on}).\n\n'
+                        f'Please visit the AMS portal immediately to initiate renewal.'
+                    )
+                else:
+                    subject = f'Renewal reminder: {req.service_name} expires in {days_left} days'
+                    body = (
                         f'Your subscription to {req.service_name} expires on {req.expires_on} '
                         f'({days_left} days from now).\n\n'
                         f'Please visit the AMS portal to initiate renewal.'
+                    )
+
+                if not dry_run:
+                    sent = send_notification(
+                        subject_id=req.id,
+                        action_type=action_type,
+                        target_date=req.expires_on,
+                        recipient=req.submitted_by,
+                        subject=subject,
+                        body=body,
+                    )
+                    if sent:
+                        self.stdout.write(self.style.SUCCESS(f'    Reminder sent to {req.submitted_by.email}'))
+                    else:
+                        self.stdout.write(f'    Reminder already sent (idempotent)')
+
+    def _check_expired_subscriptions(self, today, dry_run):
+        """
+        Active subscriptions whose expires_on is in the past
+        → transition to 'expired' and notify the subscriber.
+        """
+        from ams.approvals.models import ApprovalRequest
+        from ams.notifications.services import send_notification
+
+        overdue = ApprovalRequest.objects.filter(
+            request_type='subscription',
+            state='active',
+            expires_on__lt=today,
+        ).select_related('submitted_by')
+
+        self.stdout.write(f'[run_cron] Expired subscriptions: {overdue.count()} to mark as expired')
+
+        for req in overdue:
+            self.stdout.write(f'  >> {req.service_name} (id={req.id}) expired on {req.expires_on}')
+            if not dry_run:
+                req.expire()
+                req.save()
+                send_notification(
+                    subject_id=req.id,
+                    action_type='subscription_expired',
+                    target_date=req.expires_on,
+                    recipient=req.submitted_by,
+                    subject=f'Subscription expired: {req.service_name}',
+                    body=(
+                        f'Your subscription to {req.service_name} expired on {req.expires_on}.\n\n'
+                        f'Please visit the AMS portal to submit a new subscription request if needed.'
                     ),
                 )
-                if sent:
-                    self.stdout.write(self.style.SUCCESS(f'    Reminder sent to {req.submitted_by.email}'))
-                else:
-                    self.stdout.write(f'    Reminder already sent (idempotent)')
+                self.stdout.write(self.style.WARNING(f'    Marked expired, notified {req.submitted_by.email}'))
 
     def _check_expired_renewing(self, today, dry_run):
         """

@@ -53,10 +53,6 @@ def request_new(request):
                 obj.vendor = request.POST.get('vendor', '').strip()
                 obj.billing_period = request.POST.get('billing_period', '')
                 obj.amount_type = request.POST.get('amount_type', '')
-                expires_on = request.POST.get('expires_on', '').strip()
-                if expires_on:
-                    from datetime import date
-                    obj.expires_on = date.fromisoformat(expires_on)
             else:  # one_off
                 obj.service_name = request.POST.get('service_name_oneoff', '').strip() or request.POST.get('description', '').strip()
                 obj.expense_type = RequestCategory.ONE_OFF
@@ -237,17 +233,6 @@ def action_renew(request, pk):
         messages.error(request, "You are not allowed to renew this request.")
         return redirect('ams_approvals:request_detail', pk=pk)
 
-    from datetime import date as date_type
-    expires_str = request.POST.get('renewal_expires_on', '').strip()
-    if not expires_str:
-        messages.error(request, 'Renewal expiry date is required.')
-        return redirect('ams_approvals:request_detail', pk=pk)
-    try:
-        renewal_expires_on = date_type.fromisoformat(expires_str)
-    except ValueError:
-        messages.error(request, 'Invalid expiry date format.')
-        return redirect('ams_approvals:request_detail', pk=pk)
-
     renewal_cost = None
     if obj.amount_type == 'variable':
         cost_str = request.POST.get('renewal_cost', '').strip()
@@ -265,7 +250,6 @@ def action_renew(request, pk):
     try:
         obj = initiate_renewal(
             obj, actor=request.user,
-            renewal_expires_on=renewal_expires_on,
             renewal_cost=renewal_cost,
             manager_id=manager_id,
         )
@@ -377,6 +361,7 @@ def all_requests(request):
     approved_exp   = base_qs.filter(request_type=RequestType.MISC_EXPENSE, state='approved')
     rejected_all   = base_qs.filter(state__in=['rejected_manager', 'rejected_finance'])
     terminated_all = base_qs.filter(state='terminated')
+    expired_subs   = base_qs.filter(request_type=RequestType.SUBSCRIPTION, state='expired')
 
     from datetime import date as _date, timedelta as _td
     _today = _date.today()
@@ -401,6 +386,7 @@ def all_requests(request):
         'approved_exp':          approved_exp,
         'rejected_all':          rejected_all,
         'terminated_all':        terminated_all,
+        'expired_subs':          expired_subs,
         'total_subs':            base_qs.filter(request_type=RequestType.SUBSCRIPTION).count(),
         'pending_exp_amount':    pending_exp_amount,
         'total_expense_amount':  total_expense_amount,

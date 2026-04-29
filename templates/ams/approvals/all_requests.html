@@ -82,7 +82,7 @@
     </div>
 </div>
 
-{% if not active_subs and not renewing_subs and not pending_all and not approved_exp and not rejected_all and not terminated_all %}
+{% if not active_subs and not renewing_subs and not pending_all and not approved_exp and not rejected_all and not terminated_all and not expired_subs %}
 <div class="text-center text-muted py-5">
     <i class="bi bi-collection" style="font-size:3rem"></i>
     <p class="mt-3 fw-medium">No requests yet.</p>
@@ -167,6 +167,21 @@
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             {% include "ams/approvals/partials/all_requests_table.html" with rows=rejected_all %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Expired subscriptions -->
+{% if expired_subs %}
+<div class="mb-4">
+    <h6 class="fw-semibold text-muted mb-2">
+        <span class="badge bg-danger rounded-circle me-1" style="width:10px;height:10px;padding:0;vertical-align:middle">&nbsp;</span>
+        Expired ({{ expired_subs.count }})
+    </h6>
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            {% include "ams/approvals/partials/all_requests_table.html" with rows=expired_subs %}
         </div>
     </div>
 </div>

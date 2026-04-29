@@ -256,6 +256,11 @@ SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
 _allowed_domains = config("GOOGLE_ALLOWED_DOMAINS", default="cadienttalent.com", cast=Csv())
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
+        "APP": {
+            "client_id": config("GOOGLE_CLIENT_ID", default=""),
+            "secret": config("GOOGLE_CLIENT_SECRET", default=""),
+            "key": "",
+        },
         "SCOPE": ["email", "profile"],
         "AUTH_PARAMS": {"access_type": "online"},
         "WHITELISTED_DOMAINS": list(_allowed_domains),
