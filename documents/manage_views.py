@@ -421,7 +421,11 @@ def _annotate_manage_event(event):
             event.badge_label    = "Deactivated"
             event.badge_cls      = "danger"
             event.row_cls        = "ev-danger"
-            event.display_target  = meta.get("username", "—")
+            username = meta.get("username")
+            if not username and event.target_id:
+                u = User.objects.filter(pk=event.target_id).values_list("username", flat=True).first()
+                username = u or event.target_id
+            event.display_target  = username if username else "—"
             event.display_details = "—"
         elif action == "created":
             event.badge_label    = "User Created"
@@ -434,7 +438,10 @@ def _annotate_manage_event(event):
             event.badge_label    = "Role Changed"
             event.badge_cls      = "warning"
             event.row_cls        = "ev-warning"
-            username = meta.get("username") or event.target_id
+            username = meta.get("username")
+            if not username and event.target_id:
+                u = User.objects.filter(pk=event.target_id).values_list("username", flat=True).first()
+                username = u or event.target_id
             event.display_target  = username if username else "—"
             fr = _ROLE_LABELS.get(meta.get("from", ""), meta.get("from", "?"))
             to = _ROLE_LABELS.get(meta.get("to", ""), meta.get("to", "?"))
