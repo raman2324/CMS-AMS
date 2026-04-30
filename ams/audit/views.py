@@ -11,13 +11,13 @@ from .models import AuditLog
 from accounts.models import User
 from ams.approvals.models import ApprovalRequest
 
-_AUDIT_ROLES = (User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN, User.ROLE_VIEWER)
-_OFFBOARD_ROLES = (User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
+_AUDIT_ROLES = (User.ROLE_FINANCE_HEAD, User.ROLE_VIEWER)
+_OFFBOARD_ROLES = (User.ROLE_FINANCE_HEAD,)
 
 
 def require_audit_access(user):
     if user.role not in _AUDIT_ROLES:
-        raise PermissionDenied('Finance Head, Admin, or Viewer role required.')
+        raise PermissionDenied('Finance Head or Viewer role required.')
 
 
 @login_required

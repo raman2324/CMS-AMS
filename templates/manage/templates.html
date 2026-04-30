@@ -11,72 +11,141 @@
       </ol>
     </nav>
     <h4 class="mb-0 fw-bold">Letter Templates</h4>
-    <div class="text-muted small">Editing an active template requires creating a new version.</div>
+    <div class="text-muted small">Templates save as inactive drafts — activate a version to make it available for document generation.</div>
   </div>
+  <a href="{% url 'documents:manage_template_add' %}" class="btn btn-warning text-dark btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>New Template
+  </a>
 </div>
 
+{% if grouped_templates %}
+<div class="accordion" id="templatesAccordion">
+  {% for group in grouped_templates %}
+  <div class="accordion-item border-0 shadow-sm mb-2">
+    <h2 class="accordion-header" id="hd-{{ forloop.counter }}">
+      <button class="accordion-button collapsed fw-semibold"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#ac-{{ forloop.counter }}"
+              aria-expanded="false"
+              aria-controls="ac-{{ forloop.counter }}">
+        <span class="me-3">{{ group.name }}</span>
+        {% if group.active_version %}
+          <span class="badge bg-success me-2">Active v{{ group.active_version.version }}</span>
+        {% else %}
+          <span class="badge bg-secondary me-2">No active version</span>
+        {% endif %}
+        <span class="text-muted fw-normal small">{{ group.versions|length }} version{{ group.versions|length|pluralize }}</span>
+      </button>
+    </h2>
+    <div id="ac-{{ forloop.counter }}"
+         class="accordion-collapse collapse"
+         aria-labelledby="hd-{{ forloop.counter }}"
+         data-bs-parent="#templatesAccordion">
+      <div class="accordion-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Version</th>
+                <th>Status</th>
+                <th>Docs</th>
+                <th>Created By</th>
+                <th>Created</th>
+                <th class="text-end pe-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tmpl in group.versions %}
+              <tr {% if tmpl.is_active %}class="table-success bg-opacity-50"{% endif %}>
+                <td class="ps-3 fw-medium">
+                  v{{ tmpl.version }}
+                  {% if tmpl.is_active %}<span class="badge bg-success ms-1">Active</span>{% endif %}
+                </td>
+                <td>
+                  {% if tmpl.is_active %}
+                    <span class="text-success"><i class="bi bi-check-circle-fill"></i> Active</span>
+                  {% else %}
+                    <span class="text-muted"><i class="bi bi-circle"></i> Inactive</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if tmpl.doc_count %}
+                    <span class="badge bg-light text-dark border">{{ tmpl.doc_count }}</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted">{{ tmpl.created_by.get_full_name|default:tmpl.created_by.username }}</td>
+                <td class="text-muted">{{ tmpl.created_at|date:"d M Y" }}</td>
+                <td class="text-end pe-3">
+                  <div class="d-flex justify-content-end gap-1">
+                    <!-- Preview -->
+                    <a href="{% url 'documents:manage_template_preview' tmpl.id %}"
+                       class="btn btn-sm btn-outline-secondary"
+                       title="Preview">
+                      <i class="bi bi-eye"></i>
+                    </a>
+
+                    <!-- Edit (create new version) -->
+                    <a href="{% url 'documents:manage_template_edit' tmpl.id %}"
+                       class="btn btn-sm btn-outline-primary"
+                       title="Edit (creates new version)">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+
+                    <!-- Activate (inactive only) -->
+                    {% if not tmpl.is_active %}
+                    <form method="post"
+                          action="{% url 'documents:manage_template_activate' tmpl.id %}"
+                          class="d-inline"
+                          onsubmit="return confirm('Activate {{ tmpl.name }} v{{ tmpl.version }}? The current active version will be deactivated.')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-success" title="Activate">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn-sm btn-outline-success disabled" title="Already active" tabindex="-1">
+                      <i class="bi bi-check-circle-fill"></i>
+                    </button>
+                    {% endif %}
+
+                    <!-- Delete -->
+                    <form method="post"
+                          action="{% url 'documents:manage_template_delete' tmpl.id %}"
+                          class="d-inline"
+                          onsubmit="return confirm('Delete {{ tmpl.name }} v{{ tmpl.version }}? This cannot be undone.')">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="btn btn-sm btn-outline-danger"
+                              title="Delete"
+                              {% if tmpl.doc_count %}disabled title="Cannot delete — documents linked"{% endif %}>
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
 <div class="card border-0 shadow-sm">
-  <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Template</th>
-          <th>Version</th>
-          <th>Status</th>
-          <th>Created By</th>
-          <th>Created At</th>
-          <th class="text-end">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for tmpl in templates %}
-        <tr>
-          <td class="fw-medium">{{ tmpl.name }}</td>
-          <td>v{{ tmpl.version }}</td>
-          <td>
-            {% if tmpl.is_active %}
-              <span class="badge bg-success">Active</span>
-            {% else %}
-              <span class="badge bg-secondary">Inactive</span>
-            {% endif %}
-          </td>
-          <td class="text-muted small">{{ tmpl.created_by.get_full_name|default:tmpl.created_by.username }}</td>
-          <td class="text-muted small">{{ tmpl.created_at|date:"d M Y" }}</td>
-          <td class="text-end">
-            <div class="d-flex justify-content-end gap-2">
-              <!-- Activate (inactive only) -->
-              {% if not tmpl.is_active %}
-              <form method="post"
-                    action="{% url 'documents:manage_template_activate' tmpl.id %}"
-                    class="d-inline"
-                    onsubmit="return confirm('Activate this template? The current active version will be deactivated.')">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-success">
-                  <i class="bi bi-check-circle"></i> Activate
-                </button>
-              </form>
-              {% endif %}
-
-              <!-- Delete -->
-              <form method="post"
-                    action="{% url 'documents:manage_template_delete' tmpl.id %}"
-                    class="d-inline"
-                    onsubmit="return confirm('Delete &quot;{{ tmpl }}&quot;? This cannot be undone.')">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6" class="text-center text-muted py-4">No templates found.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-file-earmark-text fs-1 d-block mb-2 opacity-25"></i>
+    No templates yet.
+    <a href="{% url 'documents:manage_template_add' %}" class="d-block mt-2 text-decoration-none">
+      <i class="bi bi-plus-lg me-1"></i>Create your first template
+    </a>
   </div>
 </div>
+{% endif %}
 {% endblock %}

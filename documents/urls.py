@@ -30,6 +30,7 @@ urlpatterns = [
     path("manage/templates/<uuid:template_id>/edit/", manage_views.manage_template_edit, name="manage_template_edit"),
     path("manage/templates/<uuid:template_id>/delete/", manage_views.manage_template_delete, name="manage_template_delete"),
     path("manage/templates/<uuid:template_id>/activate/", manage_views.manage_template_activate, name="manage_template_activate"),
+    path("manage/templates/<uuid:template_id>/preview/", manage_views.manage_template_preview, name="manage_template_preview"),
     path("manage/templates/convert-docx/", manage_views.manage_template_convert_docx, name="manage_template_convert_docx"),
     path("manage/audit/", manage_views.manage_audit_log, name="manage_audit"),
 

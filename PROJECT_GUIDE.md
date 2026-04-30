@@ -3,7 +3,33 @@
 ## Overview
 This application is a dual-purpose enterprise platform designed to streamline Human Resources operations and financial approval workflows. It combines a **Contract Management System (CMS)** for document automation and an **Approval Management System (AMS)** for expenditure control, supplemented by an AI-powered **Contract Lens** for automated data extraction.
 
+
 ---
+
+## Workflow Highlights
+
+### 1. Document Flow
+**Create** → **Generate** → **Store (Encrypted)** → **Track** → **Audit**
+
+![Document List UI](docs/images/cms_list.png)
+*CMS Document List showing tracked HR letters.*
+
+### 2. Approval Flow
+**Submit** → **Manager Approval** → **Finance Review** → **Final Decision** → **Record Audit**
+
+![AMS Inbox UI](docs/images/ams_inbox.png)
+*AMS Inbox showing pending approval requests.*
+
+### 3. AI Contract Flow
+**Upload** → **AI Extracts** → **Human Verifies** → **Store Structured Data**
+
+![Contract Lens UI](docs/images/contract_lens.png)
+*Contract Lens Dashboard for AI-powered contract extraction.*
+
+![Workflow Visualization](docs/images/workflow_flows.png)
+
+---
+
 
 ## Technical Architecture
 

@@ -92,6 +92,10 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
 
     if request_obj.state != 'pending_manager':
         raise PermissionDenied('Request is not in pending_manager state.')
+    if not actor.has_permission('approve_requests'):
+        raise PermissionDenied('Approval permission has been revoked for your account.')
+    if actor == request_obj.submitted_by:
+        raise PermissionDenied('You cannot approve your own request.')
     if actor.role not in (User.ROLE_MANAGER, User.ROLE_ADMIN) and actor != request_obj.current_approver:
         raise PermissionDenied('You are not the assigned manager approver.')
 
@@ -106,6 +110,9 @@ def manager_approve(request_obj, actor, comment='', finance_user_id=None):
             pass
     if finance_exec is None:
         finance_exec = _get_finance_head()
+
+    if finance_exec and finance_exec == request_obj.submitted_by:
+        raise PermissionDenied("Cannot assign the request back to the person who submitted it.")
 
     request_obj.manager_approve(comment=comment)
     request_obj.current_approver = finance_exec
@@ -171,6 +178,10 @@ def manager_reject(request_obj, actor, reason=''):
 
     if request_obj.state != 'pending_manager':
         raise PermissionDenied('Request is not in pending_manager state.')
+    if actor == request_obj.submitted_by:
+        raise PermissionDenied('You cannot reject your own request.')
+    if actor.role not in (User.ROLE_MANAGER, User.ROLE_ADMIN) and actor != request_obj.current_approver:
+        raise PermissionDenied('You are not the assigned manager approver.')
 
     request_obj.manager_reject(reason=reason)
     request_obj.current_approver = None
@@ -209,7 +220,9 @@ def finance_approve(request_obj, actor, comment=''):
 
     if request_obj.state != 'pending_finance':
         raise PermissionDenied('Request is not in pending_finance state.')
-    _require_role(actor, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
+    if not actor.has_permission('approve_requests'):
+        raise PermissionDenied('Approval permission has been revoked for your account.')
+    _require_role(actor, User.ROLE_FINANCE_EXECUTIVE)
 
     if request_obj.request_type == 'subscription':
         request_obj.finance_approve_subscription(comment=comment)
@@ -260,7 +273,9 @@ def finance_reject(request_obj, actor, reason=''):
 
     if request_obj.state != 'pending_finance':
         raise PermissionDenied('Request is not in pending_finance state.')
-    _require_role(actor, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
+    if not actor.has_permission('approve_requests'):
+        raise PermissionDenied('Approval permission has been revoked for your account.')
+    _require_role(actor, User.ROLE_FINANCE_EXECUTIVE)
 
     request_obj.finance_reject(reason=reason)
     request_obj.current_approver = None

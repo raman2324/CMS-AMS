@@ -1,207 +1,282 @@
 {% extends "base.html" %}
-{% block title %}Add Template — Manage — HR Docs{% endblock %}
+{% block title %}{% if editing_from %}Edit Template{% else %}New Template{% endif %} — Manage — HR Docs{% endblock %}
+
+{% block extra_head %}
+<style>
+  .template-editor-wrap {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  .editor-panel {
+    flex: 0 0 55%;
+    min-width: 0;
+  }
+  .preview-panel {
+    flex: 1 1 0;
+    position: sticky;
+    top: 16px;
+  }
+  .preview-iframe {
+    width: 100%;
+    height: 600px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .mode-btn.active {
+    background: var(--bs-warning);
+    border-color: var(--bs-warning);
+    color: #000;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="mb-4">
+<div class="mb-3">
   <nav aria-label="breadcrumb">
     <ol class="breadcrumb mb-1 small">
       <li class="breadcrumb-item"><a href="{% url 'documents:manage_dashboard' %}">Manage</a></li>
       <li class="breadcrumb-item"><a href="{% url 'documents:manage_templates' %}">Templates</a></li>
-      <li class="breadcrumb-item active">Add Template</li>
+      <li class="breadcrumb-item active">{% if editing_from %}Edit — {{ editing_from.name }} v{{ editing_from.version }}{% else %}New Template{% endif %}</li>
     </ol>
   </nav>
-  <h4 class="mb-0 fw-bold">Add Letter Template</h4>
-  <div class="text-muted small">Upload a .docx file to auto-convert, or write HTML directly.</div>
+  <h4 class="mb-0 fw-bold">{% if editing_from %}Edit Template{% else %}New Template{% endif %}</h4>
+  <div class="text-muted small">
+    {% if editing_from %}
+      Saving creates a new version — the original is preserved.
+    {% else %}
+      Templates are always saved as inactive drafts. Activate from the list when ready.
+    {% endif %}
+  </div>
 </div>
 
-<div class="row g-4">
+<form method="post" novalidate id="template-form">
+{% csrf_token %}
 
-  <!-- LEFT: main form -->
-  <div class="col-lg-8">
+{% if form.non_field_errors %}
+<div class="alert alert-danger mb-3">
+  {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+</div>
+{% endif %}
 
-    <!-- Step 1: DOCX Upload -->
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-header bg-white fw-semibold border-bottom d-flex align-items-center gap-2">
-        <span class="badge bg-dark rounded-circle" style="width:22px;height:22px;line-height:14px;display:inline-flex;align-items:center;justify-content:center;">1</span>
-        Upload Word Document <span class="text-muted fw-normal small ms-1">(optional — auto-converts to HTML)</span>
-      </div>
-      <div class="card-body">
-        <div class="mb-2">
-          <label class="form-label fw-medium mb-1" for="docx-upload">Select .docx file</label>
-          <input type="file"
-                 id="docx-upload"
-                 name="docx_file"
-                 accept=".docx"
-                 class="form-control">
-          <div class="form-text text-muted">
-            Write <code>{% templatetag openvariable %} employee.name {% templatetag closevariable %}</code>, <code>{% templatetag openvariable %} company.name {% templatetag closevariable %}</code> etc. directly in your Word doc — they will be preserved as template variables.
-          </div>
-        </div>
-        <div id="docx-spinner" class="d-none text-muted small mt-1">
-          <span class="spinner-border spinner-border-sm me-1"></span> Converting…
-        </div>
-        <div id="docx-status" class="mt-2"></div>
+<!-- Template Name -->
+<div class="mb-3">
+  <label class="form-label fw-medium" for="{{ form.name.id_for_label }}">
+    Template Name <span class="text-danger">*</span>
+  </label>
+  {{ form.name }}
+  <datalist id="template-name-suggestions">
+    {% for name in existing_names %}<option value="{{ name }}">{% endfor %}
+  </datalist>
+  {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+  <div class="form-text text-muted">
+    {% if editing_from %}Changing the name creates a new template group.{% else %}Reusing an existing name creates the next version in that group.{% endif %}
+  </div>
+</div>
 
-        <script>
-        document.getElementById('docx-upload').addEventListener('change', async function () {
-          const file = this.files[0];
-          if (!file) return;
+<!-- Editor + Preview split pane -->
+<div class="template-editor-wrap mb-3">
 
-          const spinner = document.getElementById('docx-spinner');
-          const status  = document.getElementById('docx-status');
-          const textarea = document.getElementById('{{ form.html_content.id_for_label }}');
-
-          spinner.classList.remove('d-none');
-          status.innerHTML = '';
-
-          const fd = new FormData();
-          fd.append('docx_file', file);
-          fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-          try {
-            const resp = await fetch('{% url "documents:manage_template_convert_docx" %}', {
-              method: 'POST',
-              body: fd,
-            });
-            const data = await resp.json();
-
-            if (data.ok) {
-              textarea.value = data.html;
-              let msg = '<div class="alert alert-success py-1 px-2 small mb-0">'
-                      + '<i class="bi bi-check-circle me-1"></i>Converted <strong>' + data.filename + '</strong>';
-              if (data.warnings && data.warnings.length) {
-                msg += '<ul class="mb-0 mt-1">' + data.warnings.map(w => '<li>' + w + '</li>').join('') + '</ul>';
-              }
-              msg += '</div>';
-              status.innerHTML = msg;
-            } else {
-              status.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-0">'
-                               + '<i class="bi bi-exclamation-triangle me-1"></i>' + data.error + '</div>';
-            }
-          } catch (err) {
-            status.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-0">Network error: ' + err + '</div>';
-          } finally {
-            spinner.classList.add('d-none');
-          }
-        });
-        </script>
-      </div>
-    </div>
-
-    <!-- Step 2: Main form -->
+  <!-- Left: editor -->
+  <div class="editor-panel">
     <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white fw-semibold border-bottom d-flex align-items-center gap-2">
-        <span class="badge bg-dark rounded-circle" style="width:22px;height:22px;line-height:14px;display:inline-flex;align-items:center;justify-content:center;">2</span>
-        Template Details
+      <div class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-2">
+        <span class="fw-semibold me-auto">HTML Content <span class="text-danger">*</span></span>
+        <!-- Mode toggle -->
+        <button type="button" class="btn btn-sm btn-outline-secondary mode-btn active" id="btn-type-html" onclick="setMode('type')">
+          <i class="bi bi-code-slash me-1"></i>Type HTML
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary mode-btn" id="btn-upload-file" onclick="setMode('upload')">
+          <i class="bi bi-upload me-1"></i>Upload File
+        </button>
       </div>
-      <div class="card-body p-4">
-        <form method="post" novalidate>
-          {% csrf_token %}
+      <div class="card-body p-2">
+        <!-- Conversion status — lives outside both modes so it persists after mode switch -->
+        <div id="docx-status" class="mb-2"></div>
 
-          {% if form.non_field_errors %}
-          <div class="alert alert-danger">
-            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-          </div>
-          {% endif %}
-
-          <div class="mb-3">
-            <label class="form-label fw-medium" for="{{ form.name.id_for_label }}">
-              Template Name <span class="text-danger">*</span>
-            </label>
-            {{ form.name }}
-            <datalist id="template-name-suggestions">
-              {% for tmpl in existing_names %}
-              <option value="{{ tmpl }}">
-              {% endfor %}
-            </datalist>
-            {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
-            <div class="form-text text-muted">Type any name. Picking an existing name creates a new version automatically.</div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label fw-medium d-flex justify-content-between" for="{{ form.html_content.id_for_label }}">
-              <span>HTML Content <span class="text-danger">*</span></span>
-              <span class="text-muted fw-normal small">Auto-filled when you upload a .docx above</span>
-            </label>
-            {{ form.html_content }}
-            {% if form.html_content.errors %}<div class="invalid-feedback d-block">{{ form.html_content.errors.0 }}</div>{% endif %}
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label fw-medium" for="{{ form.extra_variables_schema.id_for_label }}">
-              Extra Variables Schema
-            </label>
-            {{ form.extra_variables_schema }}
-            {% if form.extra_variables_schema.errors %}<div class="invalid-feedback d-block">{{ form.extra_variables_schema.errors.0 }}</div>{% endif %}
-            <div class="form-text text-muted">{{ form.extra_variables_schema.help_text }}</div>
-          </div>
-
-          <div class="mb-4">
-            <div class="form-check">
-              {{ form.is_active }}
-              <label class="form-check-label fw-medium" for="{{ form.is_active.id_for_label }}">
-                Activate immediately
-              </label>
-              <div class="form-text text-muted">Previous active version of this type will be deactivated.</div>
+        <!-- Type HTML mode -->
+        <div id="mode-type">
+          {{ form.html_content }}
+          {% if form.html_content.errors %}<div class="invalid-feedback d-block">{{ form.html_content.errors.0 }}</div>{% endif %}
+        </div>
+        <!-- Upload File mode -->
+        <div id="mode-upload" class="d-none">
+          <div class="mb-2">
+            <label class="form-label small fw-medium mb-1">Upload .docx or .pdf file (auto-converts to HTML)</label>
+            <input type="file" id="docx-upload" accept=".docx,.pdf" class="form-control form-control-sm">
+            <div id="docx-spinner" class="d-none text-muted small mt-1">
+              <span class="spinner-border spinner-border-sm me-1"></span>Converting…
             </div>
           </div>
-
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-warning text-dark">
-              <i class="bi bi-check-lg me-1"></i>Create Template
-            </button>
-            <a href="{% url 'documents:manage_templates' %}" class="btn btn-outline-secondary">Cancel</a>
+          <div class="alert alert-light border small mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            The converted HTML will appear in the editor. Switch back to <strong>Type HTML</strong> to review or edit.
           </div>
-        </form>
+        </div>
       </div>
     </div>
 
+    <!-- Schema -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white border-bottom fw-semibold py-2">
+        <i class="bi bi-braces me-2 text-muted"></i>Extra Variables Schema
+        <span class="text-muted fw-normal small ms-1">(optional)</span>
+      </div>
+      <div class="card-body p-2">
+        {{ form.extra_variables_schema }}
+        {% if form.extra_variables_schema.errors %}<div class="invalid-feedback d-block">{{ form.extra_variables_schema.errors.0 }}</div>{% endif %}
+        <div class="form-text text-muted small">{{ form.extra_variables_schema.help_text }}</div>
+      </div>
+    </div>
+
+    <!-- Variable reference (collapsed) -->
+    <div class="mt-3">
+      <button class="btn btn-sm btn-outline-secondary w-100" type="button"
+              data-bs-toggle="collapse" data-bs-target="#varRef" aria-expanded="false">
+        <i class="bi bi-braces me-1"></i>Show Available Variables
+      </button>
+      <div class="collapse mt-2" id="varRef">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3" style="font-size:0.82rem;">
+            <div class="mb-3">
+              <div class="text-uppercase text-muted fw-bold mb-1" style="font-size:0.7rem;letter-spacing:.05em;">Company</div>
+              {% for var, desc in company_vars %}
+              <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                <code class="text-primary">{% templatetag openvariable %} {{ var }} {% templatetag closevariable %}</code>
+                <span class="text-muted">{{ desc }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="mb-3">
+              <div class="text-uppercase text-muted fw-bold mb-1" style="font-size:0.7rem;letter-spacing:.05em;">Employee</div>
+              {% for var, desc in employee_vars %}
+              <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                <code class="text-success">{% templatetag openvariable %} {{ var }} {% templatetag closevariable %}</code>
+                <span class="text-muted">{{ desc }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            <div>
+              <div class="text-uppercase text-muted fw-bold mb-1" style="font-size:0.7rem;letter-spacing:.05em;">Document</div>
+              {% for var, desc in doc_vars %}
+              <div class="d-flex justify-content-between py-1 border-bottom border-light">
+                <code class="text-warning-emphasis">{% templatetag openvariable %} {{ var }} {% templatetag closevariable %}</code>
+                <span class="text-muted">{{ desc }}</span>
+              </div>
+              {% endfor %}
+              <div class="alert alert-light border mt-2 mb-0 small">
+                <strong>Extra variables</strong> (from schema) are accessed directly:<br>
+                <code>{% templatetag openvariable %} field_name {% templatetag closevariable %}</code> — not <code>variables.field_name</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn btn-warning text-dark">
+        <i class="bi bi-floppy me-1"></i>
+        {% if editing_from %}Save as New Version{% else %}Create Template{% endif %}
+      </button>
+      <a href="{% url 'documents:manage_templates' %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
   </div>
 
-  <!-- RIGHT: variable reference -->
-  <div class="col-lg-4">
-    <div class="card border-0 shadow-sm position-sticky" style="top: 24px;">
-      <div class="card-header bg-white fw-semibold border-bottom">
-        <i class="bi bi-braces me-2 text-muted"></i>Available Variables
+  <!-- Right: live preview -->
+  <div class="preview-panel">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom d-flex align-items-center py-2">
+        <span class="fw-semibold me-auto"><i class="bi bi-eye me-2 text-muted"></i>Live Preview</span>
+        <span class="text-muted small">Updates as you type</span>
       </div>
-      <div class="card-body p-3" style="font-size: 0.82rem;">
-
-        <div class="mb-3">
-          <div class="text-uppercase text-muted fw-bold mb-1" style="font-size:0.7rem;letter-spacing:.05em;">Company</div>
-          {% for var, desc in company_vars %}
-          <div class="d-flex justify-content-between py-1 border-bottom border-light">
-            <code class="text-primary">{% templatetag openvariable %} {{ var }} {% templatetag closevariable %}</code>
-            <span class="text-muted">{{ desc }}</span>
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="mb-3">
-          <div class="text-uppercase text-muted fw-bold mb-1" style="font-size:0.7rem;letter-spacing:.05em;">Employee</div>
-          {% for var, desc in employee_vars %}
-          <div class="d-flex justify-content-between py-1 border-bottom border-light">
-            <code class="text-success">{% templatetag openvariable %} {{ var }} {% templatetag closevariable %}</code>
-            <span class="text-muted">{{ desc }}</span>
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="mb-3">
-          <div class="text-uppercase text-muted fw-bold mb-1" style="font-size:0.7rem;letter-spacing:.05em;">Document</div>
-          {% for var, desc in doc_vars %}
-          <div class="d-flex justify-content-between py-1 border-bottom border-light">
-            <code class="text-warning">{% templatetag openvariable %} {{ var }} {% templatetag closevariable %}</code>
-            <span class="text-muted">{{ desc }}</span>
-          </div>
-          {% endfor %}
-        </div>
-
-        <div class="alert alert-light border mb-0 small">
-          <strong>Tip:</strong> Type these placeholders anywhere in your Word doc. They survive conversion and will be replaced with real data when a document is generated.
-        </div>
+      <div class="card-body p-2">
+        <iframe id="preview-frame" class="preview-iframe" sandbox="allow-same-origin"></iframe>
       </div>
     </div>
   </div>
 
 </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const textarea = document.getElementById('{{ form.html_content.id_for_label }}');
+  const frame    = document.getElementById('preview-frame');
+
+  function refreshPreview() {
+    const html = textarea ? textarea.value : '';
+    try {
+      frame.srcdoc = html || '<p style="color:#aaa;padding:1rem;">Start typing HTML to see a preview…</p>';
+    } catch (e) {}
+  }
+
+  if (textarea) {
+    textarea.addEventListener('input', refreshPreview);
+    refreshPreview();
+  }
+
+  // Mode toggle
+  window.setMode = function (mode) {
+    const typeDiv   = document.getElementById('mode-type');
+    const uploadDiv = document.getElementById('mode-upload');
+    const btnType   = document.getElementById('btn-type-html');
+    const btnUpload = document.getElementById('btn-upload-file');
+    if (mode === 'type') {
+      typeDiv.classList.remove('d-none');
+      uploadDiv.classList.add('d-none');
+      btnType.classList.add('active');
+      btnUpload.classList.remove('active');
+    } else {
+      typeDiv.classList.add('d-none');
+      uploadDiv.classList.remove('d-none');
+      btnType.classList.remove('active');
+      btnUpload.classList.add('active');
+    }
+  };
+
+  // DOCX upload → mammoth conversion
+  const docxInput = document.getElementById('docx-upload');
+  if (docxInput) {
+    docxInput.addEventListener('change', async function () {
+      const file = this.files[0];
+      if (!file) return;
+      const spinner = document.getElementById('docx-spinner');
+      const status  = document.getElementById('docx-status');
+      spinner.classList.remove('d-none');
+      status.innerHTML = '';
+      const fd = new FormData();
+      fd.append('docx_file', file);
+      fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+      try {
+        const resp = await fetch('{% url "documents:manage_template_convert_docx" %}', { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (data.ok) {
+          textarea.value = data.html;
+          refreshPreview();
+          let msg = '<div class="alert alert-success py-1 px-2 small mb-0">'
+                  + '<i class="bi bi-check-circle me-1"></i>Converted <strong>' + data.filename + '</strong> — content loaded into editor.';
+          if (data.warnings && data.warnings.length) {
+            msg += '<ul class="mb-0 mt-1">' + data.warnings.map(w => '<li>' + w + '</li>').join('') + '</ul>';
+          }
+          msg += '</div>';
+          status.innerHTML = msg;
+          setMode('type');
+        } else {
+          status.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>' + data.error + '</div>';
+        }
+      } catch (err) {
+        status.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-0">Network error: ' + err + '</div>';
+      } finally {
+        spinner.classList.add('d-none');
+      }
+    });
+  }
+})();
+</script>
 {% endblock %}

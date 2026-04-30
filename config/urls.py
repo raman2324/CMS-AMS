@@ -34,6 +34,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("", lambda request: (
         redirect("ams_approvals:inbox") if request.user.is_authenticated and request.user.is_ams_only
+        else redirect("documents:manage_dashboard") if request.user.is_authenticated and request.user.role == "admin"
         else redirect("documents:list")
     ), name="home"),
     # Catch-all — must be last. Renders custom 404 for any unmatched path.

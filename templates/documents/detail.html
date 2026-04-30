@@ -73,12 +73,17 @@
             <div>{{ document.download_count }} time{{ document.download_count|pluralize }}</div>
           </div>
           <div class="col-12">
-            <div class="small text-muted fw-semibold">SHA-256 Hash</div>
-            <code class="small">{{ document.content_hash }}</code>
-          </div>
-          <div class="col-12">
-            <div class="small text-muted fw-semibold">Document ID</div>
-            <code class="small">{{ document.id }}</code>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="small text-muted fw-semibold">SHA-256 Hash &amp; Document ID</span>
+              <button id="blur-toggle-btn" type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                      onclick="toggleSensitiveBlur()" title="Unblur">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="small text-muted mb-1">SHA-256</div>
+            <code id="doc-hash-val" class="small doc-sensitive blurred">{{ document.content_hash }}</code>
+            <div class="small text-muted mt-2 mb-1">Document ID</div>
+            <code id="doc-id-val" class="small doc-sensitive blurred">{{ document.id }}</code>
           </div>
         </div>
       </div>
@@ -133,7 +138,7 @@
     <!-- Download action — hidden for viewers and when document is locked (unless Finance Head) -->
     {% if not document.is_void %}
     <div class="d-flex gap-2 mb-4">
-      {% if not user.is_viewer_role %}
+      {% if user.perm_download_pdfs %}
         {% if not document.is_locked or user.can_lock_document %}
         <a href="{% url 'documents:download' document.id %}" class="btn btn-dark">
           <i class="bi bi-download me-1"></i>Download PDF
@@ -306,4 +311,33 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+  .doc-sensitive {
+    display: block;
+    transition: filter 0.2s ease;
+    word-break: break-all;
+  }
+  .doc-sensitive.blurred {
+    filter: blur(5px);
+    user-select: none;
+  }
+</style>
+<script>
+function toggleSensitiveBlur() {
+    var els = document.querySelectorAll('.doc-sensitive');
+    var btn = document.getElementById('blur-toggle-btn');
+    var isBlurred = els[0].classList.contains('blurred');
+    els.forEach(function(el) { el.classList.toggle('blurred', !isBlurred); });
+    if (isBlurred) {
+        btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+        btn.title = 'Blur';
+    } else {
+        btn.innerHTML = '<i class="bi bi-eye"></i>';
+        btn.title = 'Unblur';
+    }
+}
+</script>
 {% endblock %}

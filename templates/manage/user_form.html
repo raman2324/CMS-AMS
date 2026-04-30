@@ -49,6 +49,49 @@
       </div>
       {% endfor %}
 
+      {% if can_edit_permissions and permission_overrides %}
+      <hr class="my-4">
+      <div class="mb-3">
+        <div class="fw-semibold mb-1">Permission Overrides</div>
+        <div class="text-muted small mb-3">
+          Permissions update automatically when the role changes. Toggle any permission to grant or block access for this specific user.
+          <span class="badge bg-secondary ms-1">Role default</span> shows what the selected role normally allows.
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-0" id="perm-table">
+            <thead class="table-light">
+              <tr>
+                <th>Permission</th>
+                <th class="text-center" style="width:120px;">Role Default</th>
+                <th class="text-center" style="width:100px;">Access</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for perm in permission_overrides %}
+              <tr data-perm="{{ perm.key }}">
+                <td class="fw-medium small">{{ perm.label }}</td>
+                <td class="text-center">
+                  <span class="badge perm-default-badge {% if perm.role_default %}bg-success{% else %}bg-secondary{% endif %}">
+                    {% if perm.role_default %}On{% else %}Off{% endif %}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <div class="form-check form-switch d-flex justify-content-center mb-0">
+                    <input class="form-check-input perm-toggle" type="checkbox"
+                           name="perm_{{ perm.key }}"
+                           value="on"
+                           id="perm_{{ perm.key }}"
+                           {% if perm.is_on %}checked{% endif %}>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="d-flex gap-2 mt-4">
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-check-lg me-1"></i>Save
@@ -58,4 +101,52 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if can_edit_permissions %}
+<script>
+const ROLE_DEFAULTS = {
+  finance_head:      {view_documents:true,  generate_letters:true,  download_pdfs:true,  file_uploads:true,  submit_requests:true,  approve_requests:false, view_all_requests:true,  contract_lens:true},
+  finance_executive: {view_documents:true,  generate_letters:true,  download_pdfs:true,  file_uploads:true,  submit_requests:true,  approve_requests:true,  view_all_requests:false, contract_lens:true},
+  manager:           {view_documents:false, generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:true,  approve_requests:true,  view_all_requests:false, contract_lens:false},
+  employee:          {view_documents:false, generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:true,  approve_requests:false, view_all_requests:false, contract_lens:false},
+  viewer:            {view_documents:true,  generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:false, approve_requests:false, view_all_requests:false, contract_lens:false},
+  admin:             {view_documents:false, generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:false, approve_requests:false, view_all_requests:false, contract_lens:false},
+};
+
+const roleSelect = document.querySelector('select[name="role"]');
+
+function applyRoleDefaults(role) {
+  const defaults = ROLE_DEFAULTS[role] || {};
+  document.querySelectorAll('#perm-table tbody tr').forEach(row => {
+    const perm = row.dataset.perm;
+    const isOn = defaults[perm] || false;
+    const toggle = row.querySelector('.perm-toggle');
+    const badge  = row.querySelector('.perm-default-badge');
+    if (toggle) toggle.checked = isOn;
+    if (badge) {
+      badge.textContent = isOn ? 'On' : 'Off';
+      badge.className = 'badge perm-default-badge ' + (isOn ? 'bg-success' : 'bg-secondary');
+    }
+  });
+}
+
+if (roleSelect) {
+  roleSelect.addEventListener('change', () => applyRoleDefaults(roleSelect.value));
+}
+
+// When Finance Head flips a toggle, update the Role Default badge to reflect the new effective state
+document.querySelectorAll('.perm-toggle').forEach(toggle => {
+  toggle.addEventListener('change', function() {
+    const row = this.closest('tr');
+    const badge = row.querySelector('.perm-default-badge');
+    if (badge) {
+      badge.textContent = this.checked ? 'On' : 'Off';
+      badge.className = 'badge perm-default-badge ' + (this.checked ? 'bg-success' : 'bg-secondary');
+    }
+  });
+});
+</script>
+{% endif %}
 {% endblock %}

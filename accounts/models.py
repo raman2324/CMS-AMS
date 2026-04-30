@@ -92,13 +92,13 @@ class User(AbstractUser):
 
     # ------------------------------------------------- CMS permission helpers
     def can_generate(self):
-        return self.role in (self.ROLE_ADMIN, self.ROLE_FINANCE_HEAD, self.ROLE_FINANCE_EXECUTIVE)
+        return self.has_permission('generate_letters')
 
     def can_manage_templates(self):
-        return self.role in (self.ROLE_ADMIN, self.ROLE_FINANCE_HEAD)
+        return self.role == self.ROLE_ADMIN
 
     def can_view_audit_log(self):
-        return self.role in (self.ROLE_ADMIN, self.ROLE_FINANCE_HEAD, self.ROLE_VIEWER)
+        return self.role == self.ROLE_FINANCE_HEAD
 
     def sees_all_documents(self):
         """Finance Head sees every document; all others are restricted to their own."""
@@ -125,3 +125,102 @@ class User(AbstractUser):
 
     def has_module_perms(self, app_label):
         return super().has_module_perms(app_label)
+
+    # ------------------------------------------------- per-user permission overrides
+    _ROLE_PERMISSION_DEFAULTS = {
+        'finance_head':      dict(view_documents=True,  generate_letters=True,  download_pdfs=True,  file_uploads=True,  submit_requests=True,  approve_requests=False, view_all_requests=True,  contract_lens=True),
+        'finance_executive': dict(view_documents=True,  generate_letters=True,  download_pdfs=True,  file_uploads=True,  submit_requests=True,  approve_requests=True,  view_all_requests=False, contract_lens=True),
+        'manager':           dict(view_documents=False, generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=True,  approve_requests=True,  view_all_requests=False, contract_lens=False),
+        'employee':          dict(view_documents=False, generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=True,  approve_requests=False, view_all_requests=False, contract_lens=False),
+        'viewer':            dict(view_documents=True,  generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=False, approve_requests=False, view_all_requests=False, contract_lens=False),
+        'admin':             dict(view_documents=False, generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=False, approve_requests=False, view_all_requests=False, contract_lens=False),
+    }
+
+    def has_permission(self, perm_name):
+        """Return True/False for a named permission, respecting per-user overrides."""
+        try:
+            override = self.permission_overrides.get(permission=perm_name)
+            if override.state == UserPermission.STATE_ALLOW:
+                return True
+            if override.state == UserPermission.STATE_DENY:
+                return False
+        except UserPermission.DoesNotExist:
+            pass
+        return self._ROLE_PERMISSION_DEFAULTS.get(self.role, {}).get(perm_name, False)
+
+    # Template-friendly properties (templates cannot call methods with arguments)
+    @property
+    def perm_view_documents(self):
+        return self.has_permission('view_documents')
+
+    @property
+    def perm_generate_letters(self):
+        return self.has_permission('generate_letters')
+
+    @property
+    def perm_download_pdfs(self):
+        return self.has_permission('download_pdfs')
+
+    @property
+    def perm_file_uploads(self):
+        return self.has_permission('file_uploads')
+
+    @property
+    def perm_submit_requests(self):
+        return self.has_permission('submit_requests')
+
+    @property
+    def perm_approve_requests(self):
+        return self.has_permission('approve_requests')
+
+    @property
+    def perm_view_all_requests(self):
+        return self.has_permission('view_all_requests')
+
+    @property
+    def perm_contract_lens(self):
+        return self.has_permission('contract_lens')
+
+    @property
+    def has_any_cms_access(self):
+        """True if user can access at least one CMS feature — used to show CMS sidebar."""
+        return self.perm_view_documents or self.perm_file_uploads or self.perm_generate_letters
+
+
+class UserPermission(models.Model):
+    PERM_VIEW_DOCUMENTS   = 'view_documents'
+    PERM_GENERATE_LETTERS = 'generate_letters'
+    PERM_DOWNLOAD_PDFS    = 'download_pdfs'
+    PERM_FILE_UPLOADS     = 'file_uploads'
+    PERM_SUBMIT_REQUESTS  = 'submit_requests'
+    PERM_APPROVE_REQUESTS = 'approve_requests'
+    PERM_VIEW_ALL_REQUESTS = 'view_all_requests'
+    PERM_CONTRACT_LENS    = 'contract_lens'
+
+    ALL_PERMISSIONS = [
+        (PERM_VIEW_DOCUMENTS,    'View Documents'),
+        (PERM_GENERATE_LETTERS,  'Generate Letters'),
+        (PERM_DOWNLOAD_PDFS,     'Download PDFs'),
+        (PERM_FILE_UPLOADS,      'File Uploads'),
+        (PERM_SUBMIT_REQUESTS,   'Submit Requests'),
+        (PERM_APPROVE_REQUESTS,  'Approve Requests'),
+        (PERM_VIEW_ALL_REQUESTS, 'View All Requests'),
+        (PERM_CONTRACT_LENS,     'Contract Lens'),
+    ]
+
+    STATE_DEFAULT = 'default'
+    STATE_ALLOW   = 'allow'
+    STATE_DENY    = 'deny'
+    STATE_CHOICES = [
+        (STATE_DEFAULT, 'Default'),
+        (STATE_ALLOW,   'Allow'),
+        (STATE_DENY,    'Deny'),
+    ]
+
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='permission_overrides')
+    permission = models.CharField(max_length=30, choices=ALL_PERMISSIONS)
+    state      = models.CharField(max_length=10, choices=STATE_CHOICES, default=STATE_DEFAULT)
+
+    class Meta:
+        unique_together = ('user', 'permission')
+        verbose_name = 'User Permission Override'

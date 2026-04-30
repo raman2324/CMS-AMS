@@ -259,6 +259,7 @@ class ApprovalRequest(models.Model):
         source=[
             STATE_ACTIVE, STATE_ACTIVE_PENDING_RENEWAL,
             STATE_RENEWING, STATE_APPROVED, STATE_EXPIRED,
+            STATE_PENDING_FINANCE,
         ],
         target=STATE_TERMINATED,
     )

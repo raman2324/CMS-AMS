@@ -26,8 +26,8 @@
 
     <nav class="sidebar-nav">
 
-      {% if not user.is_ams_only %}
-      <!-- CMS Section — Finance Head, Finance Executive, Viewer, Admin only -->
+      {% if user.has_any_cms_access %}
+      <!-- CMS Section -->
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
               type="button"
               data-bs-toggle="collapse"
@@ -38,15 +38,19 @@
         <i class="bi bi-chevron-down ms-auto small {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}rotate-180{% endif %}"></i>
       </button>
       <div class="collapse {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}show{% endif %}" id="cmsMenu">
+        {% if user.perm_view_documents %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' %}active{% endif %}"
            href="{% url 'documents:list' %}">
-          <i class="bi bi-dot me-1"></i>HR Letters
+          <i class="bi bi-dot me-1"></i>Current HR Letters
         </a>
+        {% endif %}
+        {% if user.perm_file_uploads %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.app_name == 'uploads' %}active{% endif %}"
            href="{% url 'uploads:list' %}">
           <i class="bi bi-dot me-1"></i>File Uploads
         </a>
-        {% if user.role == 'finance_head' or user.role == 'viewer' %}
+        {% endif %}
+        {% if user.role == 'finance_head' %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'audit' %}active{% endif %}"
            href="{% url 'documents:audit' %}">
           <i class="bi bi-dot me-1"></i>Audit Log
@@ -54,8 +58,8 @@
         {% endif %}
       </div>
 
-      <!-- Contract Lens — Finance Head and Finance Executive only -->
-      {% if user.role == 'finance_head' or user.role == 'finance_executive' %}
+      <!-- Contract Lens -->
+      {% if user.perm_contract_lens %}
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
               type="button"
               data-bs-toggle="collapse"
@@ -78,9 +82,10 @@
         {% endif %}
       </div>
       {% endif %}
-      {% endif %}{# end not is_ams_only #}
+      {% endif %}{# end has_any_cms_access #}
 
-      <!-- AMS -->
+      {% if user.role != 'admin' and user.role != 'viewer' or user.perm_submit_requests %}
+      <!-- AMS — not available to Admin or Viewer (unless submit_requests overridden) -->
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
               type="button"
               data-bs-toggle="collapse"
@@ -119,8 +124,9 @@
         {% endif %}
         {% endif %}
       </div>
+      {% endif %}{# end not admin/viewer #}
 
-      {% if user.role == 'finance_head' %}
+      {% if user.role == 'finance_head' or user.role == 'admin' %}
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
               type="button"
               data-bs-toggle="collapse"

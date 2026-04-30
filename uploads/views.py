@@ -23,12 +23,6 @@ def _user_queryset(user):
     if user.is_finance_head_role:
         return UploadedDocument.objects.select_related("company", "uploaded_by").all()
 
-    if user.is_viewer_role:
-        # Viewers see all non-confidential documents
-        return UploadedDocument.objects.select_related("company", "uploaded_by").filter(
-            is_confidential=False
-        )
-
     # Issuers see: their own (any confidentiality) + others' non-confidential
     from django.db.models import Q
     return UploadedDocument.objects.select_related("company", "uploaded_by").filter(
@@ -37,11 +31,11 @@ def _user_queryset(user):
 
 
 def _assert_access(user, doc):
-    """Raise PermissionDenied if user cannot access this document."""
+    """Raise PermissionDenied if user cannot access this uploaded document."""
     if user.is_finance_head_role:
         return
-    if user.is_viewer_role and not doc.is_confidential:
-        return
+    if not user.has_permission('file_uploads'):
+        raise PermissionDenied
     if doc.uploaded_by == user:
         return
     if not doc.is_confidential:
@@ -69,8 +63,10 @@ class UploadedDocumentListView(LoginRequiredMixin, View):
     template_name = "uploads/list.html"
 
     def get(self, request):
-        if request.user.is_admin_role:
-            return redirect("/admin/")
+        if request.user.is_admin_role and not request.user.perm_file_uploads:
+            return redirect("documents:manage_dashboard")
+        if not request.user.has_permission('file_uploads'):
+            raise PermissionDenied
 
         qs = _user_queryset(request.user).order_by("-uploaded_at")
 
@@ -106,9 +102,9 @@ class UploadDocumentView(LoginRequiredMixin, View):
     template_name = "uploads/upload.html"
 
     def get(self, request):
-        if request.user.is_admin_role:
-            return redirect("/admin/")
-        if request.user.is_viewer_role:
+        if request.user.is_admin_role and not request.user.perm_file_uploads:
+            return redirect("documents:manage_dashboard")
+        if not request.user.has_permission('file_uploads'):
             raise PermissionDenied
 
         return render(request, self.template_name, {
@@ -118,9 +114,9 @@ class UploadDocumentView(LoginRequiredMixin, View):
         })
 
     def post(self, request):
-        if request.user.is_admin_role:
-            return redirect("/admin/")
-        if request.user.is_viewer_role:
+        if request.user.is_admin_role and not request.user.perm_file_uploads:
+            return redirect("documents:manage_dashboard")
+        if not request.user.has_permission('file_uploads'):
             raise PermissionDenied
 
         f = request.FILES.get("file")
@@ -177,8 +173,8 @@ class UploadedDocumentDetailView(LoginRequiredMixin, View):
     template_name = "uploads/detail.html"
 
     def get(self, request, pk):
-        if request.user.is_admin_role:
-            return redirect("/admin/")
+        if request.user.is_admin_role and not request.user.perm_file_uploads:
+            return redirect("documents:manage_dashboard")
         try:
             doc = UploadedDocument.objects.get(pk=pk)
         except UploadedDocument.DoesNotExist:
@@ -188,8 +184,8 @@ class UploadedDocumentDetailView(LoginRequiredMixin, View):
         return render(request, self.template_name, {"doc": doc})
 
     def post(self, request, pk):
-        if request.user.is_admin_role:
-            return redirect("/admin/")
+        if request.user.is_admin_role and not request.user.perm_file_uploads:
+            return redirect("documents:manage_dashboard")
         try:
             doc = UploadedDocument.objects.get(pk=pk)
         except UploadedDocument.DoesNotExist:
@@ -213,8 +209,8 @@ class UploadedDocumentDetailView(LoginRequiredMixin, View):
 
 @login_required
 def uploaded_document_download(request, pk):
-    if request.user.is_admin_role:
-        return redirect("/admin/")
+    if request.user.is_admin_role and not request.user.perm_file_uploads:
+        return redirect("documents:manage_dashboard")
 
     try:
         doc = UploadedDocument.objects.get(pk=pk)

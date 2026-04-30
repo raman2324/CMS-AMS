@@ -63,22 +63,21 @@ from documents.services.storage_service import save_document
 def _assert_document_access(request, document):
     """
     Raise PermissionDenied if the requesting user cannot access this document.
-    Finance Head sees everything. Issuers see only their own documents.
-    Admins have no document access at all.
-    Viewers can see detail/metadata but not download/void — callers handle that.
+    Primary gate: has_permission('view_documents') — respects per-user overrides.
+    Finance Head sees all. Finance Executives see only their own. Viewers see only recipient docs.
 
     Logs document.access_denied audit event before raising.
     """
     user = request.user
 
-    # Admin (IT/DevOps) role has no document access
-    if user.role == User.ROLE_ADMIN:
+    # Primary gate — respects Finance Head-granted overrides for any role
+    if not user.has_permission('view_documents'):
         AuditEvent.objects.create(
             event_type="document.access_denied",
             actor=user,
             target_type="Document",
             target_id=str(document.id),
-            metadata={"reason": "admin_role_no_document_access"},
+            metadata={"reason": "no_view_documents_permission"},
         )
         raise PermissionDenied
 
@@ -86,11 +85,20 @@ def _assert_document_access(request, document):
     if user.sees_all_documents():
         return
 
-    # Viewer sees all document metadata (download/void restricted separately)
+    # Viewer sees only documents where they are the named recipient
     if user.role == User.ROLE_VIEWER:
+        if document.recipient.email.lower() != user.email.lower():
+            AuditEvent.objects.create(
+                event_type="document.access_denied",
+                actor=user,
+                target_type="Document",
+                target_id=str(document.id),
+                metadata={"reason": "viewer_not_recipient"},
+            )
+            raise PermissionDenied
         return
 
-    # Issuer: only their own documents
+    # Finance Executive: only their own documents
     if user.role == User.ROLE_FINANCE_EXECUTIVE and document.generated_by != user:
         AuditEvent.objects.create(
             event_type="document.access_denied",
@@ -273,14 +281,14 @@ class GenerateDocumentView(LoginRequiredMixin, View):
     template_name = "documents/generate.html"
 
     def get(self, request):
-        if not request.user.can_generate():
+        if not request.user.has_permission('generate_letters'):
             messages.error(request, "You do not have permission to generate documents.")
             return redirect("documents:list")
         form = GenerateDocumentForm()
         return render(request, self.template_name, {"form": form})
 
     def post(self, request):
-        if not request.user.can_generate():
+        if not request.user.has_permission('generate_letters'):
             return HttpResponse(status=403)
 
         template_id = request.POST.get("template")
@@ -331,18 +339,23 @@ class DocumentListView(LoginRequiredMixin, View):
     template_name = "documents/list.html"
 
     def get(self, request):
-        # Admin (IT/DevOps) has no document access
-        if request.user.role == User.ROLE_ADMIN:
-            messages.error(request, "Admin accounts do not have access to documents.")
-            return redirect("ams_approvals:inbox")
+        # Admin without explicit view_documents grant → redirect to their panel
+        if request.user.role == User.ROLE_ADMIN and not request.user.perm_view_documents:
+            return redirect("documents:manage_dashboard")
+
+        if not request.user.has_permission('view_documents'):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
 
         qs = Document.objects.select_related(
             "template", "recipient", "recipient__company", "generated_by"
         )
 
-        # Finance Head sees everything. Issuers see only their own documents.
+        # Finance Head sees everything. Issuers see only their own. Viewers see only where they are the recipient.
         if request.user.role == User.ROLE_FINANCE_EXECUTIVE:
             qs = qs.filter(generated_by=request.user)
+        elif request.user.role == User.ROLE_VIEWER:
+            qs = qs.filter(recipient__email__iexact=request.user.email)
 
         # Query filters
         search_query = request.GET.get("q", "").strip()
@@ -480,8 +493,7 @@ def document_download(request, pk):
     document = get_object_or_404(Document, id=pk)
     _assert_document_access(request, document)
 
-    # Viewers cannot download PDFs
-    if request.user.role == User.ROLE_VIEWER:
+    if not request.user.has_permission('download_pdfs'):
         raise PermissionDenied
 
     # Locked documents block all downloads (Finance Head can still download — they own the lock)
@@ -517,7 +529,7 @@ class AuditLogView(LoginRequiredMixin, View):
     template_name = "documents/audit.html"
 
     def get(self, request):
-        if request.user.role not in (User.ROLE_FINANCE_HEAD, User.ROLE_VIEWER):
+        if request.user.role != User.ROLE_FINANCE_HEAD:
             raise PermissionDenied
 
         qs = (
@@ -577,7 +589,7 @@ class ContractLensAuditLogView(LoginRequiredMixin, View):
     template_name = "documents/contractlens_audit.html"
 
     def get(self, request):
-        if request.user.role not in (User.ROLE_FINANCE_HEAD, User.ROLE_VIEWER):
+        if not request.user.has_permission('contract_lens'):
             raise PermissionDenied
 
         qs = (
@@ -629,7 +641,7 @@ class ContractLensAuditLogView(LoginRequiredMixin, View):
 
 @login_required
 def cadient_talent_view(request):
-    if request.user.role not in ("finance_head", "finance_executive"):
+    if not request.user.has_permission('contract_lens'):
         raise PermissionDenied
     return render(request, "contractlens/cadient_talent_app.html")
 

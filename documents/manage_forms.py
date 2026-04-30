@@ -91,7 +91,7 @@ class LetterTemplateCreateForm(forms.ModelForm):
 
     class Meta:
         model = LetterTemplate
-        fields = ["name", "html_content", "extra_variables_schema", "is_active"]
+        fields = ["name", "html_content", "extra_variables_schema"]
         widgets = {
             "name": forms.TextInput(attrs={
                 "class": "form-control",
@@ -100,7 +100,6 @@ class LetterTemplateCreateForm(forms.ModelForm):
                 "autocomplete": "off",
             }),
             "html_content": forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 20}),
-            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         help_texts = {
             "html_content": "Use Django template syntax. Variables: {{ company }}, {{ employee }}, {{ issue_date }}, etc.",

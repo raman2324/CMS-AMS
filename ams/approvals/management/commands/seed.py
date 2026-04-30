@@ -45,10 +45,10 @@ USERS = [
         'reports_to_email': None,
     },
     {
-        'email': 'victor@bv.com',
-        'username': 'victor',
-        'first_name': 'Victor',
-        'last_name': 'Viewer',
+        'email': 'viewer@bv.com',
+        'username': 'viewer',
+        'first_name': 'Viewer',
+        'last_name': 'User',
         'role': 'viewer',
         'reports_to_email': None,
     },
@@ -157,7 +157,7 @@ class Command(BaseCommand):
         self.stdout.write('  Finance Head    finance.head@bv.com     Finance queue + CMS documents')
         self.stdout.write('  Finance Exec    carol@bv.com            Approves pending_finance requests')
         self.stdout.write('  Finance Exec    eve@bv.com              Approves pending_finance requests')
-        self.stdout.write('  Viewer          victor@bv.com           Read-only audit access')
+        self.stdout.write('  Viewer          viewer@bv.com           Read-only audit access')
         self.stdout.write('  Manager         bob@bv.com              Approves team requests')
         self.stdout.write('  Manager         meera@bv.com            Approves team requests')
         self.stdout.write('  Employee        alice@bv.com            Submits → bob → finance')

@@ -9,6 +9,7 @@ gunicorn==23.0.0
 django-axes==7.0.1
 cryptography==44.0.2
 mammoth==1.9.0
+pypdf>=4.0
 anthropic
 # AMS dependencies
 django-fsm-2>=3.0

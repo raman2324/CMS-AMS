@@ -20,6 +20,9 @@ from ams.audit.models import AuditLog
 @login_required
 def request_new(request):
     """Create a new approval request (one-off or recurring)."""
+    if not request.user.has_permission('submit_requests'):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
     if request.method == 'POST':
         from ams.approvals.models import RequestCategory
         request_category = request.POST.get('request_category', '')
@@ -53,6 +56,10 @@ def request_new(request):
                 obj.vendor = request.POST.get('vendor', '').strip()
                 obj.billing_period = request.POST.get('billing_period', '')
                 obj.amount_type = request.POST.get('amount_type', '')
+                expires_on_str = request.POST.get('expires_on', '').strip()
+                if expires_on_str:
+                    from datetime import date as _d
+                    obj.expires_on = _d.fromisoformat(expires_on_str)
             else:  # one_off
                 obj.service_name = request.POST.get('service_name_oneoff', '').strip() or request.POST.get('description', '').strip()
                 obj.expense_type = RequestCategory.ONE_OFF
@@ -76,7 +83,7 @@ def request_new(request):
             messages.error(request, f'Error submitting request: {e}')
             return redirect('ams_approvals:request_new')
 
-    managers = User.objects.filter(role=User.ROLE_MANAGER, is_active=True).order_by('first_name')
+    managers = User.objects.filter(role=User.ROLE_MANAGER, is_active=True).exclude(pk=request.user.pk).order_by('first_name')
     return render(request, 'ams/approvals/request_new.html', {
         'managers': managers,
     })
@@ -87,12 +94,12 @@ def request_detail(request, pk):
     """Show request detail with approval actions."""
     obj = get_object_or_404(ApprovalRequest, pk=pk)
 
-    # Check access: submitter, approver, or admin/finance/hr
+    # Check access: submitter, assigned approver, or anyone with view_all_requests
     user = request.user
     can_view = (
         obj.submitted_by == user or
         obj.current_approver == user or
-        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE, User.ROLE_MANAGER)
+        user.has_permission('view_all_requests')
     )
     if not can_view:
         messages.error(request, "You don't have permission to view that request.")
@@ -110,7 +117,8 @@ def request_detail(request, pk):
         is_approver and obj.state in ('pending_manager', 'active_pending_renewal')
     )
     can_finance_approve = (
-        user.role in (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN) and
+        is_approver and
+        user.has_permission('approve_requests') and
         obj.state in ('pending_finance', 'renewing')
     )
     can_provision = False
@@ -126,12 +134,14 @@ def request_detail(request, pk):
         obj.submitted_by == user and
         _near_expiry
     )
+    _finance_head_terminable = ('active', 'active_pending_renewal', 'renewing', 'provisioning', 'approved', 'pending_finance')
+    _finance_exec_terminable = ('active', 'active_pending_renewal', 'renewing', 'provisioning', 'approved')
     can_terminate = (
-        obj.state in ('active', 'active_pending_renewal', 'renewing', 'provisioning', 'approved') and
-        user.role in (User.ROLE_ADMIN, User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE)
+        (user.role == User.ROLE_FINANCE_HEAD and obj.state in _finance_head_terminable) or
+        (user.role == User.ROLE_FINANCE_EXECUTIVE and obj.state in _finance_exec_terminable)
     )
 
-    finance_users = User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).order_by('first_name')
+    finance_users = User.objects.filter(role=User.ROLE_FINANCE_EXECUTIVE, is_active=True).exclude(pk=obj.submitted_by.pk).order_by('first_name')
     managers = list(User.objects.filter(role=User.ROLE_MANAGER, is_active=True).order_by('first_name'))
     managers_json = [
         {'id': str(m.id), 'name': m.display_name}
@@ -233,6 +243,14 @@ def action_renew(request, pk):
         messages.error(request, "You are not allowed to renew this request.")
         return redirect('ams_approvals:request_detail', pk=pk)
 
+    # Enforce 10-day renewal window for employees
+    if request.user.role == User.ROLE_EMPLOYEE and obj.expires_on:
+        from django.utils import timezone
+        days_until_expiry = (obj.expires_on - timezone.now().date()).days
+        if days_until_expiry > 10:
+            messages.error(request, "Renewal is only available within 10 days of expiry.")
+            return redirect('ams_approvals:request_detail', pk=pk)
+
     renewal_cost = None
     if obj.amount_type == 'variable':
         cost_str = request.POST.get('renewal_cost', '').strip()
@@ -267,6 +285,10 @@ def action_terminate(request, pk):
         return HttpResponse(status=405)
 
     obj = get_object_or_404(ApprovalRequest, pk=pk)
+
+    if request.user.role not in (User.ROLE_FINANCE_HEAD, User.ROLE_FINANCE_EXECUTIVE):
+        raise PermissionDenied("Only Finance users can terminate subscriptions.")
+
     reason = request.POST.get('reason', '')
 
     try:
@@ -288,7 +310,7 @@ def inbox(request):
 
     # Requests where I am the current approver — finance roles see pending_finance
     # via finance_queue instead, so exclude it here to avoid duplicates.
-    finance_roles = (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD, User.ROLE_ADMIN)
+    finance_roles = (User.ROLE_FINANCE_EXECUTIVE, User.ROLE_FINANCE_HEAD)
     my_pending_states = (
         ['pending_manager']
         if user.role in finance_roles
@@ -351,9 +373,12 @@ def my_requests(request):
 @login_required
 def all_requests(request):
     """Unified view of all the user's subscriptions and expenses, grouped by status."""
-    base_qs = ApprovalRequest.objects.filter(
-        submitted_by=request.user,
-    ).select_related('current_approver').order_by('-created_at')
+    if request.user.has_permission('view_all_requests'):
+        base_qs = ApprovalRequest.objects.select_related('current_approver').order_by('-created_at')
+    else:
+        base_qs = ApprovalRequest.objects.filter(
+            submitted_by=request.user,
+        ).select_related('current_approver').order_by('-created_at')
 
     active_subs    = base_qs.filter(request_type=RequestType.SUBSCRIPTION, state='active')
     renewing_subs  = base_qs.filter(request_type=RequestType.SUBSCRIPTION, state__in=['active_pending_renewal', 'renewing'])

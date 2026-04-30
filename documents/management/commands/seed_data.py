@@ -174,8 +174,6 @@ class Command(BaseCommand):
     def _seed_users(self):
         self.stdout.write("Seeding demo users…")
         users = [
-            dict(username="admin", email="admin@example.com", first_name="Admin",
-                 last_name="User", role="admin", password="Admin@1234", is_staff=True, is_superuser=True),
             dict(username="finance_head", email="finhead@example.com", first_name="Finance",
                  last_name="Head", role="finance_head", password="Finance@1234", is_staff=True),
             dict(username="issuer", email="issuer@example.com", first_name="Issuer",
@@ -184,10 +182,7 @@ class Command(BaseCommand):
                  last_name="Issuer", role="finance_executive", password="Issuer2@1234"),
             dict(username="issuer3", email="issuer3@example.com", first_name="Arun",
                  last_name="Issuer", role="finance_executive", password="Issuer3@1234"),
-            dict(username="viewer", email="viewer@example.com", first_name="Viewer",
-                 last_name="Demo", role="viewer", password="Viewer@1234"),
         ]
-        admin_user = None
         for u in users:
             password = u.pop("password")
             user, created = User.objects.get_or_create(
@@ -200,9 +195,9 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Created : {user.username} / {password}")
             else:
                 self.stdout.write(f"  Exists  : {user.username}")
-            if u.get("username") == "admin" or user.username == "admin":
-                admin_user = user
-        return admin_user or User.objects.filter(role="admin").first() or User.objects.first()
+        # Always use the canonical admin (admin_bv) — never create a duplicate
+        return User.objects.filter(role="admin", username="admin_bv").first() \
+            or User.objects.filter(role="admin").first()
 
     def _seed_employees(self):
         self.stdout.write("Seeding sample employees…")
