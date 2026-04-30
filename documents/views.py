@@ -344,7 +344,10 @@ class DocumentListView(LoginRequiredMixin, View):
             return redirect("documents:manage_dashboard")
 
         if not request.user.has_permission('view_documents'):
-            from django.core.exceptions import PermissionDenied
+            if request.user.perm_contract_lens:
+                return redirect('documents:cadient_talent')
+            if request.user.is_ams_only:
+                return redirect('ams_approvals:inbox')
             raise PermissionDenied
 
         qs = Document.objects.select_related(

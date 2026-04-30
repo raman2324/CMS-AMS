@@ -1,0 +1,33 @@
+MASTER SERVICES AGREEMENT
+
+This Master Services Agreement ("Agreement") is entered into as of January 1, 2024 (the "Effective Date"), by and between:
+
+CLIENT:
+Acme Corporation
+123 Enterprise Way, Silicon Valley, CA
+Represented by: John Smith, CEO
+
+PROVIDER:
+Cadient Talent Solutions
+456 Innovation Blvd, New York, NY
+Represented by: Jane Doe, COO
+
+1. SERVICES
+Provider agrees to provide Recruitment Process Outsourcing (RPO) services as detailed in Statement of Work #001.
+
+2. TERM AND TERMINATION
+This Agreement shall remain in effect for a period of twenty-four (24) months from the Effective Date, expiring on December 31, 2025.
+Either party may terminate this agreement with a written notice period of thirty (30) days.
+
+3. FEES AND PAYMENT
+The total contract value is estimated at $120,000 USD.
+Payments shall be made on a monthly basis ($5,000/month).
+
+4. CONFIDENTIALITY
+Both parties agree to maintain the confidentiality of all proprietary information exchanged during the term of this contract.
+
+Signed:
+
+__________________________          __________________________
+John Smith, Acme Corp               Jane Doe, Cadient Talent
+Date: Jan 2, 2024                   Date: Jan 2, 2024

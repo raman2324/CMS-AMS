@@ -70,6 +70,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SITE_DOMAIN=localhost:8001
       - GOOGLE_ALLOWED_DOMAINS=cadienttalent.com,commercev3.com
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       shared_mysql:
         condition: service_healthy

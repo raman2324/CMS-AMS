@@ -21,8 +21,8 @@ from ams.audit.models import AuditLog
 def request_new(request):
     """Create a new approval request (one-off or recurring)."""
     if not request.user.has_permission('submit_requests'):
-        from django.core.exceptions import PermissionDenied
-        raise PermissionDenied
+        messages.error(request, "Submitting requests has been restricted for your account. Contact your Finance Head.")
+        return redirect('ams_approvals:all_requests')
     if request.method == 'POST':
         from ams.approvals.models import RequestCategory
         request_category = request.POST.get('request_category', '')

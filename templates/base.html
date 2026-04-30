@@ -18,7 +18,7 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <a href="{% url 'documents:list' %}" class="brand-link">
+      <a href="/" class="brand-link">
         <i class="bi bi-file-earmark-text-fill text-warning me-2"></i>
         <span class="fw-bold">HR Management System</span>
       </a>
@@ -58,7 +58,9 @@
         {% endif %}
       </div>
 
-      <!-- Contract Lens -->
+      {% endif %}{# end has_any_cms_access #}
+
+      <!-- Contract Lens — independent of has_any_cms_access -->
       {% if user.perm_contract_lens %}
       <button class="sidebar-link w-100 text-start border-0 bg-transparent d-flex align-items-center"
               type="button"
@@ -82,7 +84,6 @@
         {% endif %}
       </div>
       {% endif %}
-      {% endif %}{# end has_any_cms_access #}
 
       {% if user.role != 'admin' and user.role != 'viewer' or user.perm_submit_requests %}
       <!-- AMS — not available to Admin or Viewer (unless submit_requests overridden) -->
