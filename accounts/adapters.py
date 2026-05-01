@@ -25,6 +25,18 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                     "Your Google account has no email address. Please contact your Finance Head.",
                 )
 
+            from django.conf import settings
+            provider_settings = getattr(settings, "SOCIALACCOUNT_PROVIDERS", {}).get("google", {})
+            allowed_domains = provider_settings.get("WHITELISTED_DOMAINS", [])
+            
+            if allowed_domains:
+                email_domain = email.split("@")[-1].lower()
+                if email_domain not in [d.lower() for d in allowed_domains]:
+                    raise self._redirect_error(
+                        request,
+                        f"Sign in with '{email_domain}' is not permitted. Please use an approved company account."
+                    )
+
             User = get_user_model()
             extra = sociallogin.account.extra_data or {}
 
