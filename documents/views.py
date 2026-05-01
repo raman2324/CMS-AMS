@@ -64,14 +64,14 @@ def _assert_document_access(request, document):
     """
     Raise PermissionDenied if the requesting user cannot access this document.
     Primary gate: has_permission('view_documents') — respects per-user overrides.
-    Finance Head sees all. Finance Executives see only their own. Viewers see only recipient docs.
+    Finance Head sees all. Finance Executives see own generated + recipient docs. All others see only recipient docs.
 
     Logs document.access_denied audit event before raising.
     """
     user = request.user
 
-    # Primary gate — respects Finance Head-granted overrides for any role
-    if not user.has_permission('view_documents'):
+    # Primary gate — viewer_access roles always pass regardless of permission overrides
+    if not user.has_permission('view_documents') and not user.has_viewer_access:
         AuditEvent.objects.create(
             event_type="document.access_denied",
             actor=user,
@@ -85,8 +85,21 @@ def _assert_document_access(request, document):
     if user.sees_all_documents():
         return
 
-    # Viewer sees only documents where they are the named recipient
-    if user.role == User.ROLE_VIEWER:
+    # Finance Executive: documents they generated OR documents where they are the recipient
+    if user.is_finance_executive_role:
+        if document.generated_by != user and document.recipient.email.lower() != user.email.lower():
+            AuditEvent.objects.create(
+                event_type="document.access_denied",
+                actor=user,
+                target_type="Document",
+                target_id=str(document.id),
+                metadata={"reason": "not_owner_or_recipient", "owner": str(document.generated_by_id)},
+            )
+            raise PermissionDenied
+        return
+
+    # All other non-admin roles: only documents where they are the named recipient
+    if user.has_viewer_access:
         if document.recipient.email.lower() != user.email.lower():
             AuditEvent.objects.create(
                 event_type="document.access_denied",
@@ -97,17 +110,6 @@ def _assert_document_access(request, document):
             )
             raise PermissionDenied
         return
-
-    # Finance Executive: only their own documents
-    if user.role == User.ROLE_FINANCE_EXECUTIVE and document.generated_by != user:
-        AuditEvent.objects.create(
-            event_type="document.access_denied",
-            actor=user,
-            target_type="Document",
-            target_id=str(document.id),
-            metadata={"reason": "not_owner", "owner": str(document.generated_by_id)},
-        )
-        raise PermissionDenied
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +345,7 @@ class DocumentListView(LoginRequiredMixin, View):
         if request.user.role == User.ROLE_ADMIN and not request.user.perm_view_documents:
             return redirect("documents:manage_dashboard")
 
-        if not request.user.has_permission('view_documents'):
+        if not request.user.has_permission('view_documents') and not request.user.has_viewer_access:
             if request.user.perm_contract_lens:
                 return redirect('documents:cadient_talent')
             if request.user.is_ams_only:
@@ -354,10 +356,13 @@ class DocumentListView(LoginRequiredMixin, View):
             "template", "recipient", "recipient__company", "generated_by"
         )
 
-        # Finance Head sees everything. Issuers see only their own. Viewers see only where they are the recipient.
-        if request.user.role == User.ROLE_FINANCE_EXECUTIVE:
-            qs = qs.filter(generated_by=request.user)
-        elif request.user.role == User.ROLE_VIEWER:
+        # Finance Head sees everything. Finance Executives see own generated + recipient docs.
+        # All other non-admin roles see only docs where they are the recipient.
+        if request.user.is_finance_executive_role:
+            qs = qs.filter(
+                Q(generated_by=request.user) | Q(recipient__email__iexact=request.user.email)
+            )
+        elif request.user.has_viewer_access and not request.user.sees_all_documents():
             qs = qs.filter(recipient__email__iexact=request.user.email)
 
         # Query filters

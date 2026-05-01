@@ -38,7 +38,7 @@
         <i class="bi bi-chevron-down ms-auto small {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}rotate-180{% endif %}"></i>
       </button>
       <div class="collapse {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' or request.resolver_match.app_name == 'uploads' or request.resolver_match.url_name == 'audit' %}show{% endif %}" id="cmsMenu">
-        {% if user.perm_view_documents %}
+        {% if user.perm_view_documents or user.has_viewer_access %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' %}active{% endif %}"
            href="{% url 'documents:list' %}">
           <i class="bi bi-dot me-1"></i>Current HR Letters
@@ -76,7 +76,7 @@
            href="{% url 'documents:cadient_talent' %}">
           <i class="bi bi-dot me-1"></i>Contract Suite
         </a>
-        {% if user.role == 'finance_head' or user.role == 'viewer' %}
+        {% if user.has_viewer_access %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'contractlens_audit' %}active{% endif %}"
            href="{% url 'documents:contractlens_audit' %}">
           <i class="bi bi-dot me-1"></i>Audit Log
@@ -107,22 +107,29 @@
            href="{% url 'ams_approvals:all_requests' %}">
           <i class="bi bi-dot me-1"></i>Requests
         </a>
-        {% if user.is_ams_only or user.role == 'finance_executive' %}
+        {% if user.is_ams_only or user.is_finance_executive_role %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'my_audit_log' %}active{% endif %}"
            href="{% url 'ams_audit:my_audit_log' %}">
           <i class="bi bi-dot me-1"></i>My Activity
         </a>
-        {% else %}
+        {% endif %}
+        {% if user.is_ams_only and user.perm_view_documents %}
+        <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'documents' %}active{% endif %}"
+           href="{% url 'documents:list' %}">
+          <i class="bi bi-dot me-1"></i>My Documents
+        </a>
+        {% endif %}
+        {% if user.is_finance_head_role %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}"
            href="{% url 'ams_audit:audit_log' %}">
           <i class="bi bi-dot me-1"></i>Audit Log
         </a>
-        {% if user.role == 'finance_head' %}
+        {% endif %}
+        {% if user.is_finance_head_role %}
         <a class="sidebar-link ps-4 {% if request.resolver_match.url_name == 'offboard' %}active{% endif %}"
            href="{% url 'ams_audit:offboard' %}">
           <i class="bi bi-dot me-1"></i>Offboard
         </a>
-        {% endif %}
         {% endif %}
       </div>
       {% endif %}{# end not admin/viewer #}

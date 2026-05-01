@@ -86,6 +86,17 @@
                 </td>
               </tr>
               {% endfor %}
+              <tr id="viewer-role-row">
+                <td class="fw-medium small">Viewer Role</td>
+                <td class="text-center">
+                  <span class="badge {% if target_role != 'admin' %}bg-success{% else %}bg-secondary{% endif %}" id="viewer-role-badge">
+                    {% if target_role != 'admin' %}On{% else %}Off{% endif %}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="text-muted">—</span>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -109,8 +120,8 @@
 const ROLE_DEFAULTS = {
   finance_head:      {view_documents:true,  generate_letters:true,  download_pdfs:true,  file_uploads:true,  submit_requests:true,  approve_requests:false, view_all_requests:true,  contract_lens:true},
   finance_executive: {view_documents:true,  generate_letters:true,  download_pdfs:true,  file_uploads:true,  submit_requests:true,  approve_requests:true,  view_all_requests:false, contract_lens:true},
-  manager:           {view_documents:false, generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:true,  approve_requests:true,  view_all_requests:false, contract_lens:false},
-  employee:          {view_documents:false, generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:true,  approve_requests:false, view_all_requests:false, contract_lens:false},
+  manager:           {view_documents:true,  generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:true,  approve_requests:true,  view_all_requests:false, contract_lens:false},
+  employee:          {view_documents:true,  generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:true,  approve_requests:false, view_all_requests:false, contract_lens:false},
   viewer:            {view_documents:true,  generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:false, approve_requests:false, view_all_requests:false, contract_lens:false},
   admin:             {view_documents:false, generate_letters:false, download_pdfs:false, file_uploads:false, submit_requests:false, approve_requests:false, view_all_requests:false, contract_lens:false},
 };
@@ -119,7 +130,7 @@ const roleSelect = document.querySelector('select[name="role"]');
 
 function applyRoleDefaults(role) {
   const defaults = ROLE_DEFAULTS[role] || {};
-  document.querySelectorAll('#perm-table tbody tr').forEach(row => {
+  document.querySelectorAll('#perm-table tbody tr[data-perm]').forEach(row => {
     const perm = row.dataset.perm;
     const isOn = defaults[perm] || false;
     const toggle = row.querySelector('.perm-toggle');
@@ -130,6 +141,13 @@ function applyRoleDefaults(role) {
       badge.className = 'badge perm-default-badge ' + (isOn ? 'bg-success' : 'bg-secondary');
     }
   });
+  // Update viewer role badge — On for every role except admin
+  const viewerBadge = document.getElementById('viewer-role-badge');
+  if (viewerBadge) {
+    const isViewer = role !== 'admin';
+    viewerBadge.textContent = isViewer ? 'On' : 'Off';
+    viewerBadge.className = 'badge ' + (isViewer ? 'bg-success' : 'bg-secondary');
+  }
 }
 
 if (roleSelect) {
