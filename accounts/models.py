@@ -66,6 +66,10 @@ class User(AbstractUser):
         return self.role == self.ROLE_VIEWER
 
     @property
+    def has_viewer_access(self):
+        return self.role != self.ROLE_ADMIN
+
+    @property
     def is_manager_role(self):
         return self.role == self.ROLE_MANAGER
 
@@ -130,8 +134,8 @@ class User(AbstractUser):
     _ROLE_PERMISSION_DEFAULTS = {
         'finance_head':      dict(view_documents=True,  generate_letters=True,  download_pdfs=True,  file_uploads=True,  submit_requests=True,  approve_requests=False, view_all_requests=True,  contract_lens=True),
         'finance_executive': dict(view_documents=True,  generate_letters=True,  download_pdfs=True,  file_uploads=True,  submit_requests=True,  approve_requests=True,  view_all_requests=False, contract_lens=True),
-        'manager':           dict(view_documents=False, generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=True,  approve_requests=True,  view_all_requests=False, contract_lens=False),
-        'employee':          dict(view_documents=False, generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=True,  approve_requests=False, view_all_requests=False, contract_lens=False),
+        'manager':           dict(view_documents=True,  generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=True,  approve_requests=True,  view_all_requests=False, contract_lens=False),
+        'employee':          dict(view_documents=True,  generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=True,  approve_requests=False, view_all_requests=False, contract_lens=False),
         'viewer':            dict(view_documents=True,  generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=False, approve_requests=False, view_all_requests=False, contract_lens=False),
         'admin':             dict(view_documents=False, generate_letters=False, download_pdfs=False, file_uploads=False, submit_requests=False, approve_requests=False, view_all_requests=False, contract_lens=False),
     }
@@ -184,7 +188,7 @@ class User(AbstractUser):
     @property
     def has_any_cms_access(self):
         """True if user can access at least one CMS feature — used to show CMS sidebar."""
-        return self.perm_view_documents or self.perm_file_uploads or self.perm_generate_letters
+        return self.perm_view_documents or self.perm_file_uploads or self.perm_generate_letters or self.has_viewer_access
 
 
 class UserPermission(models.Model):
