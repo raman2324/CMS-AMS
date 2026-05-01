@@ -47,29 +47,29 @@ services:
     volumes:
       - .:/app
     environment:
-      - DEBUG=True
-      - SECRET_KEY=dev-secret-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,192.168.80.233
-      - DOCUMENT_ENCRYPTION_KEY=jPt1rx-Lv_Ts7HYkUNnD9qtyADNzXhaiqL4qMJW4pnE=
+      - DEBUG=${DEBUG}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DOCUMENT_ENCRYPTION_KEY=${DOCUMENT_ENCRYPTION_KEY}
       # MySQL — single database for both CMS and AMS
-      - DB_ENGINE=django.db.backends.mysql
-      - DB_NAME=cms_db
-      - DB_USER=admin
-      - DB_PASSWORD=secret
-      - DB_HOST=shared_mysql
-      - DB_PORT=3306
+      - DB_ENGINE=${DB_ENGINE}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
       # S3 / MinIO document storage
       # To switch to real AWS S3: remove AWS_S3_ENDPOINT_URL and use real credentials
-      - AWS_STORAGE_BUCKET_NAME=cms-docs
-      - AWS_S3_REGION_NAME=us-east-1
-      - AWS_ACCESS_KEY_ID=minioadmin
-      - AWS_SECRET_ACCESS_KEY=minioadmin
-      - AWS_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL}
       # Google SSO — get these from Google Cloud Console → APIs & Services → Credentials
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - SITE_DOMAIN=localhost:8001
-      - GOOGLE_ALLOWED_DOMAINS=cadienttalent.com,commercev3.com
+      - SITE_DOMAIN=${SITE_DOMAIN}
+      - GOOGLE_ALLOWED_DOMAINS=${GOOGLE_ALLOWED_DOMAINS}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       shared_mysql:
