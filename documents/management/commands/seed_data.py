@@ -195,8 +195,8 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Created : {user.username} / {password}")
             else:
                 self.stdout.write(f"  Exists  : {user.username}")
-        # Always use the canonical admin (admin_bv) — never create a duplicate
-        return User.objects.filter(role="admin", username="admin_bv").first() \
+        # Use finance_head as template owner — always seeded above, admin may not exist yet
+        return User.objects.filter(username="finance_head").first() \
             or User.objects.filter(role="admin").first()
 
     def _seed_employees(self):
